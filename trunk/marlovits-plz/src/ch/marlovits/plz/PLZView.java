@@ -17,18 +17,17 @@ import ch.elexis.actions.ListLoader;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Plz;
 import ch.elexis.data.Query;
-import ch.elexis.util.CommonViewer;
-import ch.elexis.util.DefaultControlFieldProvider;
-import ch.elexis.util.DefaultLabelProvider;
-import ch.elexis.util.LazyContentProvider;
-import ch.elexis.util.SimpleWidgetProvider;
 import ch.elexis.util.ViewMenus;
-import ch.elexis.util.ViewerConfigurer;
-import ch.elexis.util.ViewerConfigurer.ControlFieldListener;
-import ch.elexis.views.KontaktDetailView;
+import ch.elexis.util.viewers.CommonViewer;
+import ch.elexis.util.viewers.DefaultControlFieldProvider;
+import ch.elexis.util.viewers.DefaultLabelProvider;
+import ch.elexis.util.viewers.LazyContentProvider;
+import ch.elexis.util.viewers.SimpleWidgetProvider;
+import ch.elexis.util.viewers.ViewerConfigurer;
+import ch.elexis.util.viewers.ViewerConfigurer.ControlFieldListener;
 import ch.rgw.tools.ExHandler;
 
-
+//////////////////////
 public class PLZView extends ViewPart implements ControlFieldListener, ISaveablePart2{
 	public static final String ID="ch.marlovits.plz";
 	private CommonViewer cv;
