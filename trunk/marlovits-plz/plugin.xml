@@ -19,5 +19,11 @@
             name="Postleitzahlen">
       </page>
    </extension>
+   <extension
+         point="ch.elexis.PersistentReference">
+      <Factory
+            Class="ch.marlovits.plz.PlzFactory"
+            name="Artikel Schweiz"/>
+   </extension>
 
 </plugin>
