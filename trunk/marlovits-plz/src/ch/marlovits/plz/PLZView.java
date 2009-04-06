@@ -1,12 +1,16 @@
 package ch.marlovits.plz;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.DoubleClickEvent;
@@ -25,6 +29,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.ISaveablePart2;
@@ -38,17 +43,22 @@ import ch.elexis.actions.GlobalActions;
 import ch.elexis.actions.GlobalEvents;
 import ch.elexis.actions.GlobalEvents.ActivationListener;
 import ch.elexis.actions.GlobalEvents.SelectionListener;
-import ch.elexis.commands.Handler;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Query;
+import ch.elexis.importers.ExcelWrapper;
+import ch.elexis.util.Log;
+import ch.elexis.util.ResultAdapter;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
+import ch.rgw.tools.ExHandler;
+import ch.rgw.tools.Result;
 
 
 
 public class PLZView extends ViewPart implements SelectionListener, ActivationListener,
 		ISaveablePart2 {
 	
+	private static final String SRC_ENCODING="UTF-8";
 	public static final String ID = "ch.marlovits.plz.PLZView";
 	
 	// command from org.eclipse.ui
@@ -66,32 +76,42 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 	private Action importAction;
 	
 	// column indices
-	private static final int COL_ID       = 0;
-	private static final int COL_LAND     = 1;
-	private static final int COL_LANDISO3 = 2;
-	private static final int COL_PLZ      = 3;
-	private static final int COL_ORT      = 4;
-	private static final int COL_STRASSE  = 5;
-	private static final int COL_KANTON   = 6;
+	private static final int COL_LAND            = 0;
+	private static final int COL_LANDISO3        = 1;
+	private static final int COL_PLZ             = 2;
+	private static final int COL_ORT             = 3;
+	private static final int COL_STRASSE         = 4;
+	private static final int COL_KANTON          = 5;
+	private static final int COL_KANTONKUERZEL   = 6;
 	
 	private static final String[] COLUMN_TEXT = {
-		"ID",
 		"Land",
 		"LandISO3",
 		"PLZ",
 		"Ort",
 		"Strasse",
 		"Kanton",
+		"Kantonkuerzel",
+	};
+	
+	private static final String[] DB_COLUMN_TEXT = {
+		"Land",
+		"LandISO3",
+		"Plz",
+		"Ort",
+		"Strasse",
+		"Kanton",
+		"Kantonkuerzel",
 	};
 	
 	private static final int[] COLUMN_WIDTH = {
-		0, // ID
 		80, // Land
 		80, // LandISO3
 		80, // PLZ
 		80, // Ort
 		80, // Strasse
 		80, // Kanton
+		80, // Kantonkürzel
 	};
 
 	private List<ch.marlovits.plz.Plz> getPostleitzahlen(){
@@ -121,16 +141,13 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 				if (plz1 == null) {
 					return 1;
 				}
-				
 				// plz2 ist null, plz1 nicht. setze plz1 vor plz2
 				if (plz2 == null) {
 					return -1;
 				}
-				
 				// beide nicht null
 				//String sNumber1 = plz1.get("ID");
 				//String sNumber2 = plz2.get("ID");
-				
 				try {
 					Integer number1 = new Integer(plz1.get("ID"));
 					Integer number2 = new Integer(plz2.get("ID"));
@@ -146,7 +163,6 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 				return (this == obj);
 			}
 		});
-		
 		return postleitzahlen;
 	}
 	
@@ -161,10 +177,10 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		generalArea.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		generalArea.setLayout(new GridLayout(2, false));
 		
-		// set title for this form, non-changeable
+		// Titel setzen
 		form.setText("Harrys Postleitzahlen");
 		
-		// bills
+		// Tabelle erstellen
 		plzViewer = new TableViewer(form.getBody(), SWT.SINGLE | SWT.FULL_SELECTION);
 		Table table = plzViewer.getTable();
 		table.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
@@ -173,7 +189,7 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 		
-		// columns
+		// Tabellen-Überschriften erstellen
 		TableColumn[] tc = new TableColumn[COLUMN_TEXT.length];
 		for (int i = 0; i < COLUMN_TEXT.length; i++) {
 			tc[i] = new TableColumn(table, SWT.NONE);
@@ -181,6 +197,7 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 			tc[i].setWidth(COLUMN_WIDTH[i]);
 		}
 		
+		// Tabellen-Inhalt
 		plzViewer.setContentProvider(new IStructuredContentProvider() {
 			public Object[] getElements(Object inputElement){
 				return getPostleitzahlen().toArray();
@@ -216,9 +233,6 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 				String text = "";
 								
 				switch (columnIndex) {
-				case COL_ID:
-					text = plz.getFieldData("ID");
-					break;
 				case COL_LAND:
 					text = plz.getFieldData("Land");
 					break;
@@ -236,6 +250,9 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 					break;
 				case COL_KANTON:
 					text = plz.getFieldData("Kanton");
+					break;
+				case COL_KANTONKUERZEL:
+					text = plz.getFieldData("Kantonkuerzel");
 					break;
 				}
 				
@@ -261,8 +278,9 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		menu.createMenu(exportToClipboardAction, null, copyAction);
 		
 		// Erstellen des KontextMenus
-		menu.createViewerContextMenu(plzViewer, copyAction, deleteAction, newAction, null, importAction);
+		menu.createViewerContextMenu(plzViewer, newAction, null, copyAction, deleteAction, null, importAction);
 
+		menu.createToolbar(newAction, deleteAction);
 		
 		GlobalEvents.getInstance().addActivationListener(this, this);
 		plzViewer.addSelectionChangedListener(GlobalEvents.getInstance().getDefaultListener());
@@ -360,21 +378,13 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		return true;
 	}
 	
-	/*
-	 * class AccountEntry { TimeTool date; Money amount; String remarks;
-	 * 
-	 * AccountEntry(TimeTool date, Money amount, String remarks) { this.date = date; this.amount =
-	 * amount; this.remarks = remarks;
-	 * 
-	 * if (remarks == null) { remarks = ""; } } }
-	 */
-
 	private void makeActions(){
+		// Alle Postleitzahlen in die Zwischenablage kopieren
 		exportToClipboardAction = new Action("Export (Zwischenablage)") {
 			{
-				setToolTipText("Zusammenfassung in Zwischenablage kopieren");
-			}
-			
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_EXPORT));
+				setToolTipText("Alle Postleitzahlen in Zwischenablage kopieren");
+			}			
 			public void run(){
 				exportToClipboard();
 			}
@@ -382,11 +392,12 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		exportToClipboardAction.setActionDefinitionId("exportToClipboardAction");
 		GlobalActions.registerActionHandler(this, exportToClipboardAction);
 		
+		// Ausgewählten PLZ-Eintrag in die Zwischenablage kopieren
 		copyAction = new Action("Kopieren") {
 			{
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_CLIPBOARD));
 				setToolTipText("Ausgewählten Datensatz in die Zwischenablage kopieren");
 			}
-			
 			public void run(){
 			//	exportToClipboard();
 			}
@@ -394,32 +405,39 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		copyAction.setActionDefinitionId(COMMAND_COPY);
 		GlobalActions.registerActionHandler(this, copyAction);
 		
+		// Ausgewählten PLZ-Eintrag löschen
 		deleteAction = new Action("Löschen...") {
 			{
-				setToolTipText("Ausgewählten Datensatz löschen");
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_DELETE));
+				setToolTipText("Ausgewählte Postleitzahl löschen");
 			}
-			
 			public void run(){
-			//	exportToClipboard();
+			// TODO
 			}
 		};
 		deleteAction.setActionDefinitionId(COMMAND_DELETE);
 		GlobalActions.registerActionHandler(this, deleteAction);
 		
+		// Erstellen eines neuen PLZ-Eintrages
 		newAction = new Action("Neue Postleitzahl...") {
 			{
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_NEW));
 				setToolTipText("Neue Postleitzahl erfassen");
 			}
 			
 			public void run(){
-				exportToClipboard();
+//				new PlzDialog(getSite().getShell(), true).open();
+				if (new PlzDialog(getSite().getShell()).open() == Dialog.OK) {
+					plzViewer.refresh();}
 			}
 		};
 		newAction.setActionDefinitionId("NEUE_POSTLEITZAHL");
 		GlobalActions.registerActionHandler(this, newAction);
 		
+		// Importieren von PLZ-Definitionen aus einer csv-Datei
 		importAction = new Action("Importieren...")	{
 			{
+			setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_IMPORT));
 			setToolTipText("Importieren von Postleitzahlen aus Dateien");
 			}
 			public void run(){
@@ -435,34 +453,9 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		GlobalActions.registerActionHandler(this, importAction);
 	}
 	
-public void doImport() throws Exception{
-	String[] results = {"", "", "", "", ""};
-//	IProgressMonitor monitor = Handler.getMonitor(eev);;
-	
-	CSVReader reader = new CSVReader(new FileReader(results[0]), ';');
-//	monitor.beginTask("Importiere Postleitzahlen", 100);
-	String[] line = reader.readNext();
-	while ((line = reader.readNext()) != null) {
-		if (line.length < 3) {
-			continue;
-		}
-//		monitor.subTask(line[1]);
-		String id =
-			new Query<Plz>(Plz.class).findSingle("Ziffer", "=", line[0]);
-		if (id != null) {
-			Plz pl = Plz.load(id);
-			pl.set(new String[] {
-				"Titel", "TP"
-			}, line[1], line[2]);
-		} else {
-			/* Plz pl = */new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
-		}
-	}
-//	monitor.done();
-}
-
 	/**
-	 * Exportiert alle angezeigten Postleitzahlen in die Zwischenablage.
+	 * Exportiert alle Postleitzahlen in die Zwischenablage. 
+	 * Format: tab-delimited, die erste Zeile enthält die Feldnamen
 	 * @param -
 	 * @return -
 	 */
@@ -474,39 +467,31 @@ public void doImport() throws Exception{
 		StringBuffer sbTable = new StringBuffer();
 		StringBuffer sbHeader = new StringBuffer();
 		
-		sbHeader.append(COLUMN_TEXT[COL_LAND]);
-		sbHeader.append("\t");
-		sbHeader.append(COLUMN_TEXT[COL_LANDISO3]);
-		sbHeader.append("\t");
-		sbHeader.append(COLUMN_TEXT[COL_PLZ]);
-		sbHeader.append("\t");
-		sbHeader.append(COLUMN_TEXT[COL_ORT]);
-		sbHeader.append("\t");
-		sbHeader.append(COLUMN_TEXT[COL_STRASSE]);
-		sbHeader.append("\t");
-		sbHeader.append(COLUMN_TEXT[COL_KANTON]);
+		// Tabellen-Überschriften erstellen
+		String delimiter = "";
+		for (int i = 0; i < COLUMN_TEXT.length; i++) {
+			sbHeader.append(delimiter);
+			sbHeader.append(COLUMN_TEXT[i]);
+			delimiter = "\t";
+		}
 		sbHeader.append(lineSeparator);
 		sbTable.append(sbHeader);
 		
+		// Tabellen-Inhalt einlesen
 		for (Plz plz : plzs) {
+			delimiter = "";
 			StringBuffer sbLine = new StringBuffer();
-			sbLine.append(plz.getFieldData("Land"));
-			sbLine.append("\t");
-			sbLine.append(plz.getFieldData("LandISO3"));
-			sbLine.append("\t");
-			sbLine.append(plz.getFieldData("Plz"));
-			sbLine.append("\t");
-			sbLine.append(plz.getFieldData("Ort"));
-			sbLine.append("\t");
-			sbLine.append(plz.getFieldData("Strasse"));
-			sbLine.append("\t");
-			sbLine.append(plz.getFieldData("Kanton"));
+			for (int i = 0; i < COLUMN_TEXT.length; i++) {
+				sbLine.append(delimiter);
+				sbLine.append(plz.getFieldData(DB_COLUMN_TEXT[i]));
+				delimiter = "\t";
+			}
 			sbLine.append(lineSeparator);
 			sbTable.append(sbLine);
-		}
-		
+		}		
 		clipboardText = sbTable.toString();
 		
+		// Daten ins Clipboard kopieren
 		Clipboard clipboard = new Clipboard(Desk.getDisplay());
 		TextTransfer textTransfer = TextTransfer.getInstance();
 		Transfer[] transfers = new Transfer[] {
@@ -519,5 +504,76 @@ public void doImport() throws Exception{
 		clipboard.dispose();
 	}
 
-
+	public void doImport() 	{
+		FileDialog fd = new FileDialog(getSite().getShell(),SWT.OPEN);
+		fd.setFilterExtensions(new String[]{"*.csv", "*.xls", "*.*"});
+		fd.setFilterNames(new String[]{"Comma Separated Values", "Excel-Dateien", "Alle Dateien"});
+		String fileName = fd.open();
+		if (fileName == null) {
+			return;
+		}
+		if (fileName.endsWith(".xls")) {
+			importExcel(fileName);
+		} else if (fileName.endsWith(".csv")) {
+			importCSV(fileName);
+		} else {
+			// TODO
+		}
+	}
+/*
+		/////
+		FileDialog fd = new FileDialog(getSite().getShell(),SWT.OPEN);
+		fd.setFilterExtensions(new String[]{"*.csv", "*.xls", "*.*"});
+		fd.setFilterNames(new String[]{"Comma Separated Values", "Excel-Dateien", "Alle Dateien"});
+		String fileName = fd.open();
+		if (fileName == null) {
+			return;
+		}
+		InputStreamReader isr=new InputStreamReader(new FileInputStream(fileName),SRC_ENCODING);
+		CSVReader reader = new CSVReader(isr);
+	    String [] line;
+		//monitor.subTask("Postleitzahlen einlesen");
+	    while ((line = reader.readNext()) != null) {
+	    	// TODO hier könnte man noch ggf ; durch , ersetzen (Excel!)
+	    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
+			new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
+			//monitor.worked(1);
+		}
+		//monitor.done();
+		}
+*/
+	private void importExcel(final String file){
+		ExcelWrapper xl = new ExcelWrapper();
+		if (!xl.load(file, 0)) {
+			return;
+		}
+		for (int i = xl.getFirstRow(); i <= xl.getLastRow(); i++) {
+			List<String> row = xl.getRow(i);
+			//importLine(row.toArray(new String[0]));
+			String[] line;
+			line = row.toArray(new String[0]);
+	    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
+			new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
+		}
+		return;
+	}
+	
+	private void importCSV(final String file){
+		try {
+			CSVReader cr = new CSVReader(new FileReader(file));
+			String[] line;
+			while ((line = cr.readNext()) != null) {
+				//importLine(line);
+		    	// TODO hier könnte man noch ggf ; durch , ersetzen (Excel -> csv !)
+		    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
+				new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
+			}
+			return;
+		} catch (Exception ex) {
+			ExHandler.handle(ex);
+			return;
+		}
+		
+	}
+	
 }

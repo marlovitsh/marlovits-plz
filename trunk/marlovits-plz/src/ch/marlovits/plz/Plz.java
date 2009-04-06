@@ -3,24 +3,18 @@ package ch.marlovits.plz;
 import java.util.ArrayList;
 import java.util.List;
 
-import ch.elexis.data.AUF;
-import ch.elexis.data.Eigenartikel;
-import ch.elexis.data.Fall;
 import ch.elexis.data.PersistentObject;
-import ch.elexis.data.PersistentObjectFactory;
 import ch.elexis.data.Query;
-import ch.elexis.data.Rechnung;
-import ch.elexis.views.artikel.ArtikelContextMenu;
 import ch.rgw.tools.StringTool;
 
 public class Plz extends PersistentObject {
 
 	static{
-		addMapping("Plz","ID", "Land","LandISO3","Plz","Ort","Strasse","Kanton");
+		addMapping("Plz","Land","LandISO3","Plz","Ort","Strasse","Kanton","Kantonkuerzel");
 	}
-	public Plz(String ID, String Land, String LandIso3, String plz, String Ort, String Strasse, String Kanton){
+	public Plz(String Land, String LandIso3, String plz, String Ort, String Strasse, String Kanton, String Kantonkuerzel){
 		create(null);
-		set(new String[]{"ID", "Land","LandIso3","Plz","Ort","Strasse","Kanton"},new String[]{ID,Land,LandIso3,plz,Ort,Strasse,Kanton});
+		set(new String[]{"Land","LandISO3","Plz","Ort","Strasse","Kanton","Kantonkuerzel"},new String[]{Land, LandIso3, plz, Ort, Strasse, Kanton, Kantonkuerzel});
 	}
 
 	public static Plz load(String id){
@@ -36,7 +30,7 @@ public class Plz extends PersistentObject {
 	
 	public String getLabel(){
 		String[] f=new String[7];
-		get(new String[]{"ID", "Land","LandIso3","Plz","Ort","Strasse","Kanton"},f);
+		get(new String[]{"Land", "LandIso3", "Plz", "Ort", "Strasse", "Kanton", "Kantonkuerzel"},f);
 		StringBuilder ret=new StringBuilder();
 		ret.append(f[0]).append(" ").append(f[1]).append(" ").append(f[2]);
 		return ret.toString();
