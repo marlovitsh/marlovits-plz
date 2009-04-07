@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            category="ch.elexis.codesKategorie"
+            class="ch.marlovits.plz.PLZView"
+            icon="icons/mail.png"
+            id="ch.marlovits.plz.PLZView"
+            name="Plz (neu)"/>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            category="ch.elexis.preferences.UserPreferences"
+            class="ch.marlovits.plz.Preferences"
+            id="ch.marlovits.plz.PLZView"
+            name="Postleitzahlen">
+      </page>
+   </extension>
+
+</plugin>
