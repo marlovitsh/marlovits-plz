@@ -30,7 +30,7 @@ import ch.elexis.util.viewers.ViewerConfigurer.ControlFieldListener;
 import ch.rgw.tools.ExHandler;
 
 
-public class PLZViewSaved_1 extends ViewPart implements ControlFieldListener, ISaveablePart2{
+public abstract class PLZViewSaved_1 extends ViewPart implements ControlFieldListener, ISaveablePart2{
 	public static final String ID="ch.marlovits.plzSaved";
 	private CommonViewer cv;
 	private ViewerConfigurer vc;
@@ -179,10 +179,10 @@ public class PLZViewSaved_1 extends ViewPart implements ControlFieldListener, IS
 		return true;
 	}
 
-	@Override
+/*	@Override
 	public void changed(HashMap<String, String> values) {
 		// TODO Auto-generated method stub
 		
 	}
-
+*/
 }

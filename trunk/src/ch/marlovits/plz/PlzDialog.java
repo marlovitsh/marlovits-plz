@@ -49,9 +49,15 @@ public class PlzDialog extends TitleAreaDialog {
 	PlzDialog(Shell shell){
 		super(shell);
 		act = null;
-		if (lang == "")	{
-			lang = "de";
+		String [] languages = Locale.getISOLanguages();
+		if (lang == "")	lang = "de";
+		boolean found = false;
+		for (int i = 0; i < languages.length; i++)	{
+			if (lang.toUpperCase() == languages[i].toUpperCase())	{
+				found = true;
+			}
 		}
+		if (found == false)	lang = "de";
 	}
 	
 	/**
@@ -62,9 +68,15 @@ public class PlzDialog extends TitleAreaDialog {
 	PlzDialog(Shell shell, Plz plz){
 		super(shell);
 		act = plz;
-		if (lang == "")	{
-			lang = "de";
+		String [] languages = Locale.getISOLanguages();
+		if (lang == "")	lang = "de";
+		boolean found = false;
+		for (int i = 0; i < languages.length; i++)	{
+			if (lang.toUpperCase() == languages[i].toUpperCase())	{
+				found = true;
+			}
 		}
+		if (found == false)	lang = "de";
 	}
 	
 	/**
@@ -108,8 +120,10 @@ public class PlzDialog extends TitleAreaDialog {
 		cbLandCombo.addModifyListener(new ModifyListener(){
 			public void modifyText(ModifyEvent arg0) {
 				int selected = cbLandCombo.getSelectionIndex();
-				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso3");
-				landIso3Field.setText(returnStrings[selected]);
+				if (selected != -1)	{
+					String[] returnStrings = (String[]) cbLandCombo.getData("LandIso3");
+					landIso3Field.setText(returnStrings[selected]);
+				}
 			}
 		});
 		
@@ -179,6 +193,17 @@ public class PlzDialog extends TitleAreaDialog {
 			kantonText.   setText("Prefs Kanton");
 		}
 		
+		String[] ktListe = getKantonsListe(landIso3Field.getText(), lang);
+		cbKantonCombo.setData("kantonsListe", ktListe);
+		cbKantonCombo.addModifyListener(new ModifyListener(){
+			public void modifyText(ModifyEvent arg0) {
+				int selected = cbKantonCombo.getSelectionIndex();
+				if (selected != -1)	{
+					String[] returnStrings = (String[]) cbKantonCombo.getData("kantonsListe");
+					kantonText.setText(returnStrings[selected]);
+				}
+			}
+		});
 		// und nun der Rückgabewert
 		return ret;
 /*
@@ -321,28 +346,17 @@ public class PlzDialog extends TitleAreaDialog {
 		// LandIso3 muss ausgewählt sein
 		//if (isFieldEmpty(cbLandCombo, "Land"))	{
 		if ((err = isFieldEmpty(cbLandCombo, "Land")) != "")	{
-			focusField = cbLandCombo;
+			if (focusField == null) focusField = cbLandCombo;
 			errMsg = errMsg + err + "\n";
 			//return;
 			}
 		// Plz muss ausgefüllt sein
 		//if (isFieldEmpty(plzField, "Postleitzahl"))	{
 		if ((err = isFieldEmpty(plzField, "Postleitzahl")) != "")	{
-			focusField = plzField;
+			if (focusField == null) focusField = plzField;
 			errMsg = errMsg + err + "\n";
 			//return;
 			}
-		// Plz muss die Bedingungen für das Land in LandISO3 erfüllen
-		String neededLength = getLandFieldValue(landIso3Field.getText(), "plzlaenge", lang);
-		int actualLength = plzField.getText().length();
-		if ((neededLength != null) && (Long.parseLong(neededLength) != actualLength))	{
-			focusField = plzField;
-			//SWTHelper.alert("Felder nicht korrekt ausgefüllt", "Das Feld 'Postleitzahl' muss eine Länge von " + neededLength + " Zeichen aufweisen");
-			err = "Das Feld 'Postleitzahl' muss eine Länge von " + neededLength + " Zeichen aufweisen";
-			//plzField.setFocus();
-			errMsg = errMsg + err + "\n";
-			//return;
-		}
 		// Plz muss ein bestimmtes Format aufweisen, definiert in der DB-Tabelle land:plzregex
 		// Die dazugehörige Fehlermeldung ist definiert in der DB-Tabelle land:plzregexmessage
 		String plzRegex = getLandFieldValue(landIso3Field.getText(), "plzregex", lang);
@@ -351,7 +365,7 @@ public class PlzDialog extends TitleAreaDialog {
 			Matcher matcher = pattern.matcher(plzField.getText());
 			boolean matchFound = matcher.matches();
 			if (matchFound == false){
-				focusField = plzField;
+				if (focusField == null) focusField = plzField;
 				err = getLandFieldValue(landIso3Field.getText(), "plzregexmessage", lang);
 				//SWTHelper.alert("Felder nicht korrekt ausgefüllt", plzRegexMessage);
 				//plzField.setFocus();
@@ -362,7 +376,7 @@ public class PlzDialog extends TitleAreaDialog {
 		// Ort muss ausgefüllt sein
 		//if (isFieldEmpty(ort, "Ort"))	{
 		if ((err = isFieldEmpty(ort, "Ort")) != "")	{
-			focusField = ort;
+			if (focusField == null) focusField = ort;
 			errMsg = errMsg + err + "\n";
 			//return;
 			}
