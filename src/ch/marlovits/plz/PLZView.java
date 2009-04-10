@@ -318,8 +318,8 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 	 */
 
 	public void selectionEvent(PersistentObject obj){
-		Plz selectedPlz = (Plz) obj;
-			plzViewer.refresh();
+		//Plz selectedPlz = (Plz) obj;
+		//	plzViewer.refresh();
 			//setPatient(selectedPatient);
 	}
 	
