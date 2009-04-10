@@ -18,10 +18,10 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.forms.widgets.ScrolledForm;
 
 import ch.elexis.data.PersistentObject;
-import ch.elexis.preferences.Messages;
-import ch.elexis.preferences.PreferenceConstants;
 import ch.elexis.util.SWTHelper;
 import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.JdbcLink.Stm;
@@ -40,25 +40,10 @@ public class PlzDialog extends TitleAreaDialog {
 	Text	strasse;
 	Combo	cbKantonCombo;
 	Text	kantonText;
-	String	lang = Locale.getDefault().toString().substring(0, 2).toUpperCase();
-	
-	/**
-	 * Constructor für PlzDialog bei noch nicht vorhandener Plz (PLZ erfassen)
-	 * @param shell
-	 */
-	PlzDialog(Shell shell){
-		super(shell);
-		act = null;
-		String [] languages = Locale.getISOLanguages();
-		if (lang == "")	lang = "de";
-		boolean found = false;
-		for (int i = 0; i < languages.length; i++)	{
-			if (lang.toUpperCase() == languages[i].toUpperCase())	{
-				found = true;
-			}
-		}
-		if (found == false)	lang = "de";
-	}
+	String	lang;
+	private	FormToolkit tk;
+	private	ScrolledForm form;
+	private	Label lbAnschrift;
 	
 	/**
 	 * Constructor für PlzDialog bei vorhandener Plz (PLZ editieren)
@@ -68,15 +53,40 @@ public class PlzDialog extends TitleAreaDialog {
 	PlzDialog(Shell shell, Plz plz){
 		super(shell);
 		act = plz;
+		setLang();
+	}
+	
+	/**
+	 * Constructor für PlzDialog bei noch nicht vorhandener Plz (PLZ erfassen)
+	 * @param shell
+	 */
+	PlzDialog(Shell shell){
+		super(shell);
+		act = null;
+		setLang();
+	}
+	
+	/**
+	 * Setzen der internen Variablen lang für die Internationalization (DE/FR/IT/EN, etc)
+	 * Falls irgendetwas schief geht, dann Default = "DE"
+	 */
+	private void setLang()	{
+		// Lesen aus der Locale
+		lang = Locale.getDefault().toString().substring(0, 2).toUpperCase();
+		// wenn aus irgendwelchen Gründen leer...
+		if ((lang == "") || (lang == null))	{
+			lang = "DE";
+			return;
+		}
+		// lang muss eine richtige Sprache sein, testen gegen ISO-Sprachen in Locale
 		String [] languages = Locale.getISOLanguages();
-		if (lang == "")	lang = "de";
 		boolean found = false;
 		for (int i = 0; i < languages.length; i++)	{
 			if (lang.toUpperCase() == languages[i].toUpperCase())	{
 				found = true;
 			}
 		}
-		if (found == false)	lang = "de";
+		if (found == false)	lang = "DE";
 	}
 	
 	/**
@@ -84,37 +94,17 @@ public class PlzDialog extends TitleAreaDialog {
 	 */
 	@Override
 	protected Control createDialogArea(Composite parent){
-		Composite ret = new Composite(parent, SWT.NONE);
-		ret.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
-		ret.setLayout(new GridLayout());
+		// Darstellung in zwei Spalten, ganze Breite ausnutzen
+		Composite top = new Composite(parent, SWT.NONE);
+		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
+		top.setLayout(new GridLayout(2, false));
 		
-		// testing
-		Combo combo = new Combo (parent, SWT.NONE);
-		combo.setItems (new String [] {"A-1", "B-1", "C-1"});
-		Text text = new Text (parent, SWT.SINGLE | SWT.BORDER);
-		text.setText ("some text");
-		text.addModifyListener(new ModifyListener(){
-			public void modifyText(ModifyEvent arg0) {
-				SWTHelper.alert("Alert", "Text modified");
-			}
-		});
-
 		// Land: Auswahl aus Menu
-		Composite cbLandComposite = new Composite(ret, SWT.NONE);
-		cbLandComposite.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		cbLandComposite.setLayout(new GridLayout(2, false));
-		new Label(cbLandComposite, SWT.NONE).setText("Land");
+		new Label(top, SWT.NONE).setText("Land");
 		String[] laenderListe = getLaenderListe("land", lang);
-		cbLandCombo = new Combo(cbLandComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+		cbLandCombo = new Combo(top, SWT.DROP_DOWN|SWT.READ_ONLY);
 		cbLandCombo.setItems(laenderListe);
-		cbLandCombo.setLocation(0,0);
-		Rectangle rect = new Rectangle(5, 5, 40, 800);
-		rect.width = 700;
-		cbLandCombo.setBounds(rect);
-		cbLandCombo.setEnabled(true);
-		cbLandCombo.setSize(10, 35);
 		cbLandCombo.setToolTipText("Kuckuck_");
-		cbLandCombo.setVisible(true);
 		String[] laenderIsoListe = getLaenderListe("landiso3", lang);
 		cbLandCombo.setData("LandIso3", laenderIsoListe);
 		cbLandCombo.addModifyListener(new ModifyListener(){
@@ -126,41 +116,48 @@ public class PlzDialog extends TitleAreaDialog {
 				}
 			}
 		});
+		cbLandCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// LandIso3: nur zur Anzeige
-		new Label(cbLandComposite, SWT.NONE).setText("Land Iso 3");
-		landIso3Field = new Text(cbLandComposite, SWT.BORDER);
+		new Label(top, SWT.NONE).setText("Land Iso 3");
+		landIso3Field = new Text(top, SWT.BORDER);
 		landIso3Field.setBounds(10,10,200,20);
 		landIso3Field.setTextLimit(30);
-		
+		landIso3Field.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+				
 		// Postleitzahl: je nach Land Zahl unterschiedlicher Länge oder Text
-		new Label(cbLandComposite, SWT.NONE).setText("Postleitzahl");
-		plzField = new Text(cbLandComposite, SWT.BORDER);
+		new Label(top, SWT.NONE).setText("Postleitzahl");
+		plzField = new Text(top, SWT.BORDER);
 		plzField.setBounds(10,10,200,20);
 		plzField.setTextLimit(30);
+		plzField.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Ort: einfache Texteingabe
-		new Label(cbLandComposite, SWT.NONE).setText("Ort");
-		ort = new Text(cbLandComposite, SWT.BORDER);
+		new Label(top, SWT.NONE).setText("Ort");
+		ort = new Text(top, SWT.BORDER);
 		ort.setBounds(10,10,200,20);
 		ort.setTextLimit(30);
+		ort.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Strasse: einfache Texteingabe
-		new Label(cbLandComposite, SWT.NONE).setText("Strasse");
-		strasse = new Text(cbLandComposite, SWT.BORDER);
+		new Label(top, SWT.NONE).setText("Strasse");
+		strasse = new Text(top, SWT.BORDER);
 		strasse.setBounds(10,10,200,20);
 		strasse.setTextLimit(30);
+		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Kanton: Kürzel-Auswahl aus Combo
-		new Label(cbLandComposite, SWT.NONE).setText("Kantonkuerzel");
-		cbKantonCombo = new Combo(cbLandComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+		new Label(top, SWT.NONE).setText("Kantonkuerzel");
+		cbKantonCombo = new Combo(top, SWT.DROP_DOWN|SWT.READ_ONLY);
 		cbKantonCombo.setLocation(0,0);
+		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Kanton: Volltext-Anzeige
-		new Label(cbLandComposite, SWT.NONE).setText("Kanton");
-		kantonText = new Text(cbLandComposite, SWT.BORDER);
+		new Label(top, SWT.NONE).setText("Kanton");
+		kantonText = new Text(top, SWT.BORDER);
 		kantonText.setBounds(10,10,200,20);
 		kantonText.setTextLimit(30);
+		kantonText.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Einsetzen der Werte
 		if (act != null)	{
@@ -170,7 +167,7 @@ public class PlzDialog extends TitleAreaDialog {
 			plzField.     setText(act.get("Plz"));
 			ort.          setText(act.get("Ort"));
 			strasse.      setText(act.get("Strasse"));
-			String[] kantonsListe = getKantonsListe(act.get("LandISO3"), lang);
+			String[] kantonsListe = getKantonsListe("kantonkuerzel", act.get("LandISO3"), lang);
 			if (kantonsListe != null)	{
 				cbKantonCombo.setItems(kantonsListe);
 			}
@@ -185,7 +182,7 @@ public class PlzDialog extends TitleAreaDialog {
 			plzField.     setText("Prefs Plz");
 			ort.          setText("Prefs Ort");
 			strasse.      setText("Prefs Strasse");
-			String[] kantonsListe = getKantonsListe("CHE", lang);
+			String[] kantonsListe = getKantonsListe("kantonkuerzel", "CHE", lang);
 			if (kantonsListe != null)	{
 				cbKantonCombo.setItems(kantonsListe);
 			}
@@ -193,7 +190,7 @@ public class PlzDialog extends TitleAreaDialog {
 			kantonText.   setText("Prefs Kanton");
 		}
 		
-		String[] ktListe = getKantonsListe(landIso3Field.getText(), lang);
+		String[] ktListe = getKantonsListe("kanton", landIso3Field.getText(), lang);
 		cbKantonCombo.setData("kantonsListe", ktListe);
 		cbKantonCombo.addModifyListener(new ModifyListener(){
 			public void modifyText(ModifyEvent arg0) {
@@ -205,118 +202,7 @@ public class PlzDialog extends TitleAreaDialog {
 			}
 		});
 		// und nun der Rückgabewert
-		return ret;
-/*
-		Composite ret = new Composite(parent, SWT.NONE);
-		ret.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
-		ret.setLayout(new GridLayout());
-		
-		// testing
-		Combo combo = new Combo (parent, SWT.NONE);
-		combo.setItems (new String [] {"A-1", "B-1", "C-1"});
-		Text text = new Text (parent, SWT.SINGLE | SWT.BORDER);
-		text.setText ("some text");
-		text.addModifyListener(new ModifyListener(){
-			public void modifyText(ModifyEvent arg0) {
-				SWTHelper.alert("Alert", "Text modified");
-			}
-		});
-
-		// Land: Auswahl aus Menu
-		Composite cbLandComposite = new Composite(ret, SWT.NONE);
-		cbLandComposite.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		cbLandComposite.setLayout(new GridLayout(2, false));
-		new Label(cbLandComposite, SWT.NONE).setText("Land");
-		String[] laenderListe = getLaenderListe("land", lang);
-		cbLandCombo = new Combo(cbLandComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
-		cbLandCombo.setItems(laenderListe);
-		cbLandCombo.setLocation(0,0);
-		Rectangle rect = new Rectangle(5, 5, 40, 800);
-		rect.width = 700;
-		cbLandCombo.setBounds(rect);
-		cbLandCombo.setEnabled(true);
-		cbLandCombo.setSize(10, 35);
-		cbLandCombo.setToolTipText("Kuckuck_");
-		cbLandCombo.setVisible(true);
-		String[] laenderIsoListe = getLaenderListe("landiso3", lang);
-		cbLandCombo.setData("LandIso3", laenderIsoListe);
-		cbLandCombo.addModifyListener(new ModifyListener(){
-			public void modifyText(ModifyEvent arg0) {
-				int selected = cbLandCombo.getSelectionIndex();
-				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso3");
-				landIso3Field.setText(returnStrings[selected]);
-			}
-		});
-		
-		// LandIso3: nur zur Anzeige
-		new Label(cbLandComposite, SWT.NONE).setText("Land Iso 3");
-		landIso3Field = new Text(cbLandComposite, SWT.BORDER);
-		landIso3Field.setBounds(10,10,200,20);
-		landIso3Field.setTextLimit(30);
-		
-		// Postleitzahl: je nach Land Zahl unterschiedlicher Länge oder Text
-		new Label(cbLandComposite, SWT.NONE).setText("Postleitzahl");
-		plzField = new Text(cbLandComposite, SWT.BORDER);
-		plzField.setBounds(10,10,200,20);
-		plzField.setTextLimit(30);
-		
-		// Ort: einfache Texteingabe
-		new Label(cbLandComposite, SWT.NONE).setText("Ort");
-		ort = new Text(cbLandComposite, SWT.BORDER);
-		ort.setBounds(10,10,200,20);
-		ort.setTextLimit(30);
-		
-		// Strasse: einfache Texteingabe
-		new Label(cbLandComposite, SWT.NONE).setText("Strasse");
-		strasse = new Text(cbLandComposite, SWT.BORDER);
-		strasse.setBounds(10,10,200,20);
-		strasse.setTextLimit(30);
-		
-		// Kanton: Kürzel-Auswahl aus Combo
-		new Label(cbLandComposite, SWT.NONE).setText("Kantonkuerzel");
-		cbKantonCombo = new Combo(cbLandComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
-		cbKantonCombo.setLocation(0,0);
-		
-		// Kanton: Volltext-Anzeige
-		new Label(cbLandComposite, SWT.NONE).setText("Kanton");
-		kantonText = new Text(cbLandComposite, SWT.BORDER);
-		kantonText.setBounds(10,10,200,20);
-		kantonText.setTextLimit(30);
-		
-		// Einsetzen der Werte
-		if (act != null)	{
-			// die Werte aus der Selection aus PlzView einsetzen
-			cbLandCombo.  setText(act.get("Land"));
-			landIso3Field.setText(act.get("LandISO3"));
-			plzField.     setText(act.get("Plz"));
-			ort.          setText(act.get("Ort"));
-			strasse.      setText(act.get("Strasse"));
-			String[] kantonsListe = getKantonsListe(act.get("LandISO3"), lang);
-			if (kantonsListe != null)	{
-				cbKantonCombo.setItems(kantonsListe);
-			}
-			cbKantonCombo.setText(act.get("Kantonkuerzel"));
-			kantonText.   setText(act.get("Kanton"));			
-		}
-		else	{
-			// neuer Eintrag wird erstellt: Default-Werte einsetzen
-			// die Default-Werte werden in den Prefs gesetzt
-			cbLandCombo.  setText("Prefs Land");
-			landIso3Field.setText("Prefs LandISO3");
-			plzField.     setText("Prefs Plz");
-			ort.          setText("Prefs Ort");
-			strasse.      setText("Prefs Strasse");
-			String[] kantonsListe = getKantonsListe("CHE", lang);
-			if (kantonsListe != null)	{
-				cbKantonCombo.setItems(kantonsListe);
-			}
-			cbKantonCombo.setText("Prefs Kantonkuerzel");
-			kantonText.   setText("Prefs Kanton");
-		}
-		
-		// und nun der Rückgabewert
-		return ret;
-*/
+		return top;
 }
 	
 	/**
@@ -344,16 +230,8 @@ public class PlzDialog extends TitleAreaDialog {
 		String	err			= "";
 		Object	focusField	= null;
 		// LandIso3 muss ausgewählt sein
-		//if (isFieldEmpty(cbLandCombo, "Land"))	{
 		if ((err = isFieldEmpty(cbLandCombo, "Land")) != "")	{
 			if (focusField == null) focusField = cbLandCombo;
-			errMsg = errMsg + err + "\n";
-			//return;
-			}
-		// Plz muss ausgefüllt sein
-		//if (isFieldEmpty(plzField, "Postleitzahl"))	{
-		if ((err = isFieldEmpty(plzField, "Postleitzahl")) != "")	{
-			if (focusField == null) focusField = plzField;
 			errMsg = errMsg + err + "\n";
 			//return;
 			}
@@ -367,21 +245,21 @@ public class PlzDialog extends TitleAreaDialog {
 			if (matchFound == false){
 				if (focusField == null) focusField = plzField;
 				err = getLandFieldValue(landIso3Field.getText(), "plzregexmessage", lang);
-				//SWTHelper.alert("Felder nicht korrekt ausgefüllt", plzRegexMessage);
-				//plzField.setFocus();
 				errMsg = errMsg + err + "\n";
-				//return;
 			}
 		}
 		// Ort muss ausgefüllt sein
-		//if (isFieldEmpty(ort, "Ort"))	{
 		if ((err = isFieldEmpty(ort, "Ort")) != "")	{
 			if (focusField == null) focusField = ort;
 			errMsg = errMsg + err + "\n";
-			//return;
 			}
 		// Kantonkuerzel muss je nach Land in LandISO3 ausgefüllt sein
-		// TODO
+		// TODO kantonauswaehlen strasseerlaubt
+		String kantonauswaehlen = getLandFieldValue(landIso3Field.getText(), "kantonauswaehlen", lang);
+		if ((Integer.parseInt(kantonauswaehlen) != 0) && (cbKantonCombo.getText() == null))	{
+			if (focusField == null) focusField = cbKantonCombo;
+			errMsg = errMsg + "Der Kanton muss ausgewählt werden.\n";
+		}
 		
 		// Anzeige Zusammenfassung Fehler, falls hasErrors = true;
 		if (errMsg != ""){
@@ -434,7 +312,7 @@ public class PlzDialog extends TitleAreaDialog {
 		return res;
 	}
 
-	public String[] getLaenderListe(String fieldName, String locale){
+	public String[] getLaenderListe(final String fieldName, final String locale){
 		// Datenbank anzapfen
 		Stm stm = j.getStatement();
 		
@@ -466,7 +344,7 @@ public class PlzDialog extends TitleAreaDialog {
 		return tmpStringArray;
 	}
 
-	public String[] getKantonsListe(final String landIso3, String locale){
+	public String[] getKantonsListe(final String fieldName, final String landIso3, final String locale){
 		// Datenbank anzapfen
 		Stm stm = j.getStatement();
 		
@@ -484,7 +362,7 @@ public class PlzDialog extends TitleAreaDialog {
 		// Kanton/Staat/etc. für die aktuelle SystemSprache und das ausgewählte Land
 		// aus der Datenbank-Tabelle "kanton" einlesen
 		String[] tmpStringArray = new String[numOfRows];
-		rs = stm.query("select kantonkuerzel from kanton where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and kantonland = " + "'" + landIso3 + "' order by kanton");
+		rs = stm.query("select " + fieldName + " from kanton where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and kantonland = " + "'" + landIso3 + "' order by kanton");
 		if (rs == null)	{
 			return null;
 		}
@@ -492,7 +370,7 @@ public class PlzDialog extends TitleAreaDialog {
 			int i = 0;
 			for (i = 0; i < numOfRows; i++)	{
 				rs.next();
-				tmpStringArray[i] = rs.getString("kantonkuerzel");
+				tmpStringArray[i] = rs.getString(fieldName);
 			}
 			rs.close();
 		} catch (SQLException e1) {
@@ -503,32 +381,26 @@ public class PlzDialog extends TitleAreaDialog {
 	}
 	
 	/**
-	 * Testet, ob ein Feld leer ist. Zeigt eine Fehlermeldung, dass das Feld ausgefüllt werden muss.
+	 * Testet, ob ein Feld leer ist.
 	 * @param fieldControl: Feld, das getestet werden soll
 	 * @param fieldName: Name für das Feld, das in der Fehlermeldung angezeigt werden soll
-	 * @return true, wenn leer; false, wenn nicht leer
+	 * @return String: Fehlermeldung bei Fehler, sonst ""
 	 */
 	private String isFieldEmpty(final Object fieldControl, final String fieldName) {
-	//private boolean isFieldEmpty(final Object fieldControl, final String fieldName) {
 		String str;
 		// Trick, damit alle Casts ohne Fehlermeldung abgeklappert werden können
 		try	{
 			Combo ctrl = (Combo)fieldControl;
 			str = ctrl.getText();
-			//ctrl.setFocus();
 		} catch	(java.lang.Exception e) {
 			Text ctrl = (Text)fieldControl;
 			str = ctrl.getText();
-			//ctrl.setFocus();
 		}
 		if ((str == null) || (str == ""))	{
-			//SWTHelper.alert("Felder nicht korrekt ausgefüllt", "Das Feld '" + fieldName + "' muss ausgefüllt sein");
 			return "Das Feld '" + fieldName + "' muss ausgefüllt sein";
-			//return false;
 		}
 		else	{
 			return "";
-			//return false;
 		}
 	}
 	
