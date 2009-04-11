@@ -1,16 +1,22 @@
 package ch.marlovits.plz;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.DoubleClickEvent;
@@ -46,21 +52,47 @@ import ch.elexis.actions.GlobalEvents.SelectionListener;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Query;
 import ch.elexis.importers.ExcelWrapper;
-import ch.elexis.util.Log;
-import ch.elexis.util.ResultAdapter;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
 import ch.rgw.tools.ExHandler;
-import ch.rgw.tools.Result;
-
-
 
 public class PLZView extends ViewPart implements SelectionListener, ActivationListener,
 		ISaveablePart2 {
 	
-	private static final String SRC_ENCODING="UTF-8";
-	public static final String ID = "ch.marlovits.plz.PLZView";
+	private static final String SRC_ENCODING				= "UTF-8";
+	public static final String ID							= "ch.marlovits.plz.PLZView";
+
+	/**
+	 * 
+	 * Stand per 10.04.2009 für "http://de.wikipedia.org/wiki/ISO-3166-1-Kodierliste"
+	 * 
+	 * Die HTML-Marker, welche den jeweiligen Anfang/Ende von Datenblöcken markieren
+	 * 
+	 * Start der Tabelle mit den Land-Iso-Codes;
+	 * <table class="wikitable sortable" style="vertical-align:top; width:100%;">
+	 * Suche nach: <table class="wikitable sortable"
+	 * 
+	 * Ende der Tabelle mit den Land-Iso-Codes:
+	 * </table>
+	 * 
+	 * dann folgen die Zeilen, jeweils mit Start-Marker <tr> und End-Marker </tr>
+	 * 
+	 * die erste Zeile ist die Titel-Zeile, wird ausgelassen
+	 * 
+	 * in jeder Zeile folgen dann jeweils 8 Daten-Zellen
+	 */
+	private static final String URL_DE						= "http://de.wikipedia.org/wiki/ISO-3166-1-Kodierliste";
+	private static final String WIKI_LAND_STARTINFO_MARKER	= "<table class=" + "\"" + "wikitable sortable" + "\"";
+	private static final String WIKI_LAND_STARTROWS_MARKER	= "<tr>";
+	private static final String WIKI_LAND_STARTCELLS_MARKER	= "<td";
+	private static final String WIKI_LAND_ENDINFO_MARKER	= "</table>";
+	private static final String WIKI_LAND_SKIPDATA_MARKER	= "<td><span style";
 	
+	private static final String TABLEDATA_STARTMARKER	= "<td>";
+	private static final String TABLEDATA_ENDMARKER	= "</td>";
+	
+	private List<LandIsoEntry> landIsoEntries = new Vector<LandIsoEntry>();
+		
 	// command from org.eclipse.ui
 	private static final String COMMAND_COPY   = "org.eclipse.ui.edit.copy";
 	private static final String COMMAND_DELETE = "org.eclipse.ui.edit.delete";
@@ -290,6 +322,15 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 			public void doubleClick(DoubleClickEvent event){
 				IStructuredSelection sel = (IStructuredSelection) plzViewer.getSelection();
 				if (!sel.isEmpty()) {
+					try {
+						tester();
+					} catch (MalformedURLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					Plz plz = (Plz) sel.getFirstElement();
 					if (new PlzDialog(getSite().getShell(), plz).open() == Dialog.OK) {
 						plzViewer.refresh();
@@ -576,4 +617,263 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		
 	}
 	
+	/***************************************************************************/
+	/***************************************************************************/
+	/***************************************************************************/
+	/**
+	 * Liest Inhalt einer Web-Abfrage auf www.directories.ch/weisseseiten
+	 */
+	public static String readContent(final String name)
+		throws IOException, MalformedURLException{
+		//URL content = getURL(name, geo);
+		URL content = new URL(URL_DE);
+		
+		InputStream input = content.openStream();
+		
+		StringBuffer sb = new StringBuffer();
+		int count = 0;
+		char[] c = new char[10000];
+		InputStreamReader isr = new InputStreamReader(input);
+		try {
+			while ((count = isr.read(c)) > 0) {
+				sb.append(c, 0, count);
+			}
+		} finally {
+			if (input != null) {
+				input.close();
+			}
+		}
+		return cleanupUmlaute(cleanupText(sb.toString()));
+	}
+
+	private static URL getURL(String name, String geo) throws MalformedURLException	{
+		name = name.replace(' ', '+');
+		geo = geo.replace(' ', '+');
+		
+		String urlPattern = "http://tel.local.ch/{0}/q/?what={1}&where={2}"; //$NON-NLS-1$
+
+		return new URL(MessageFormat.format(urlPattern, new Object[] {
+				Locale.getDefault().getLanguage(), name, geo
+//		return new URL(MessageFormat.format(urlPattern, new Object[] {
+//				Locale.getDefault().getLanguage(), name, geo
+			}));
+		}
+
+	private static String cleanupText(String text){
+		text = text.replace("</nobr>", "").replace("<nobr>", ""); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+		text = text.replace("&amp;", "&"); //$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("<b class=\"searchWords\">", ""); //$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("</b>", ""); //$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace((char) 160, ' '); // Spezielles Blank Zeichen wird
+												// ersetzt
+		return text;
+	}
+	
+	private static String cleanupUmlaute(String text) {
+		text = text.replace("&#xE4;", "ä");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xC4;", "Ä");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xF6;", "ö");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xD6;", "Ö");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xFC;", "ü");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xDC;", "Ü");//$NON-NLS-1$ //$NON-NLS-2$
+		
+		text = text.replace("&#xE8;", "è");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xE9;", "é");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("&#xEA;", "ê");//$NON-NLS-1$ //$NON-NLS-2$
+		
+		text = text.replace("&#xE0;", "à");//$NON-NLS-1$ //$NON-NLS-2$
+		
+		text = text.replace("&#xA0;", " ");//$NON-NLS-1$ //$NON-NLS-2$
+		text = text.replace("%C3%9F", "ss");//$NON-NLS-1$ //$NON-NLS-2$
+		
+		return text;
+    }
+	
+	private void tester() throws MalformedURLException, IOException	{
+		String wholeHTMLPage = readContent(URL_DE);
+//		System.out.print(tmp222);
+		
+		// Tabellen-Inhalt aus Text extrahieren
+		int tableStartPos			= wholeHTMLPage.indexOf(WIKI_LAND_STARTINFO_MARKER, 0);
+		int tableContentStartPos	= wholeHTMLPage.indexOf(WIKI_LAND_STARTROWS_MARKER, tableStartPos);
+		int tableDataStartPos		= wholeHTMLPage.indexOf(WIKI_LAND_STARTROWS_MARKER, tableStartPos);
+		int tableEndPos				= wholeHTMLPage.indexOf(WIKI_LAND_ENDINFO_MARKER,   tableDataStartPos);
+		String landTableContent 	= wholeHTMLPage.substring(tableContentStartPos, tableEndPos);
+		//System.out.print(landTablePart);
+		
+		// durch die Tabelle loopen und die einzelnen Datensätze einlesen
+		int currRowPos	= 0;
+		int nextRowPos	= 0;
+		String rowData = "";
+		while (currRowPos != -1)	{
+			nextRowPos = landTableContent.indexOf(WIKI_LAND_STARTROWS_MARKER, currRowPos + WIKI_LAND_STARTROWS_MARKER.length());
+			rowData = landTableContent.substring(currRowPos, nextRowPos);
+			currRowPos = nextRowPos;
+			//System.out.print(rowData);
+			exctractRowData(rowData);
+			//System.out.print(landTableContent);
+		}
+	}
+
+	private void exctractRowData(final String rowData)	{
+		// erste Zelle enthält den Namen des Landes und dessen Wikipedia-Link
+		int currDataPos	= 0;
+		int nextDataPos	= 0;
+		String cellData;
+		
+		// wenn kein <td vorhanden ist, dann ist es wohl ein header - skip
+		currDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		if (currDataPos == -1)	{
+			return;
+		}
+		
+		// Land
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = rowData.substring(currDataPos, nextDataPos);
+		
+		// wenn die erste Zelle den WIKI_LAND_SKIPDATA_MARKER enthält, dann überspringen
+		String theString = cellData.substring(0, WIKI_LAND_SKIPDATA_MARKER.length());
+		if (theString.equals(WIKI_LAND_SKIPDATA_MARKER))	{
+			return;
+		}
+		
+		System.out.println("****************************************************************");
+		
+		cellData = extractCellData(cellData);
+		String[] linkAndText;
+		
+		linkAndText = splitHyperlinkCell(cellData);
+		System.out.println(linkAndText[0]);	// link
+		System.out.println(linkAndText[1]);	// text
+				
+		currDataPos = nextDataPos;
+		
+		// Alpha 2
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = extractCellData(rowData.substring(currDataPos, nextDataPos));
+		myOutput(cellData, 2);
+		currDataPos = nextDataPos;
+		
+		// Alpha 3
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = extractCellData(rowData.substring(currDataPos, nextDataPos));
+		myOutput(cellData, 3);
+		currDataPos = nextDataPos;
+
+		// Numeric
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = extractCellData(rowData.substring(currDataPos, nextDataPos));
+		myOutput(cellData, 3);
+		currDataPos = nextDataPos;
+
+		// TopLevelDomain
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = extractCellData(rowData.substring(currDataPos, nextDataPos));
+		myOutput(cellData, 3);
+		currDataPos = nextDataPos;
+
+		// IOC
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = extractCellData(rowData.substring(currDataPos, nextDataPos));
+		myOutput(cellData, 3);
+		currDataPos = nextDataPos;
+
+		// ISO3166-2
+		nextDataPos = rowData.indexOf(WIKI_LAND_STARTCELLS_MARKER, currDataPos + WIKI_LAND_STARTCELLS_MARKER.length());
+		cellData = extractCellData(rowData.substring(currDataPos, nextDataPos));
+
+		linkAndText = splitHyperlinkCell(cellData);
+		System.out.println(linkAndText[0]);	// link
+		String linkText = linkAndText[1];
+		myOutput(linkText, 2);
+		//System.out.println(cellData);
+		currDataPos = nextDataPos;
+
+	}
+	
+	private String extractCellData(final String cellDataWithEnclosings)	{
+		String cellContents = null;
+		
+		// falls leer
+		if ((cellDataWithEnclosings == null) || (cellDataWithEnclosings == ""))	{
+			return cellContents;
+		}
+		int contentStart = cellDataWithEnclosings.indexOf(TABLEDATA_STARTMARKER, 0);
+		if (contentStart != -1)	{
+			// has <td>[Content]</td>
+			int contentEnd	= cellDataWithEnclosings.indexOf(TABLEDATA_ENDMARKER, TABLEDATA_STARTMARKER.length());
+			cellContents = cellDataWithEnclosings.substring(contentStart + TABLEDATA_STARTMARKER.length(), contentEnd);
+		} else	{
+			// has <td [Content] /td>
+			// TO DO
+			cellContents = "";
+		}
+		return cellContents;
+	}
+
+	private String[] splitHyperlinkCell(final String cellData)	{
+		String linkPart = "";
+		String textPart = "";
+		
+		// bei mehreren links ist der erste der Landes-Link, die restlichen werden ignoriert
+		final String hrefStartMarker	= "<a href=\"";
+		final String hrefEndMarker		= "\">";
+		
+		int hrefStart = cellData.indexOf(hrefStartMarker, 0);
+		
+		// es gibt keinen Link
+		if (hrefStart == -1){
+			linkPart = "";
+			textPart = cellData;
+			return new String[] {linkPart, textPart};
+		}
+		
+		// Teil links des href ist Text-Teil
+		textPart = textPart + cellData.substring(0, hrefStart);
+		
+		// href extrahieren
+		int hrefEnd = cellData.indexOf(hrefEndMarker, hrefStart) + hrefEndMarker.length();
+		String hrefPart = cellData.substring(hrefStart, hrefEnd);
+		
+		// Link aus href extrahieren
+		linkPart = extractHrefLink(hrefPart);
+		
+		// Text rechts des hrefs gehört zum Text-Teil, es müssen alle </a> entfernt werden
+		textPart = textPart + cellData.substring(hrefEnd, cellData.length()).replace("</a>", "");
+		
+		// jetzt werden noch weitere Links entfernt, werden ignoriert
+		// jetzt werden alle weiteren <x> entfernt
+        Pattern pattern = Pattern.compile("<.*>");
+        //Pattern pattern = Pattern.compile("<a href=\".*\">");
+        Matcher matcher = pattern.matcher(textPart);
+        textPart = matcher.replaceAll("");
+        textPart = textPart.replace("\n\r", " ");
+        textPart = textPart.replace("\r", " ");
+        textPart = textPart.replace("\n", " ");
+        
+		// Rückgabe
+		return new String[] {linkPart, textPart};
+	}
+	
+	private String extractHrefLink(final String href)	{
+		final String hrefLinkStartMarker	= "<a href=\"";
+		final String hrefLinkEndMarker	= "\"";
+		
+		int hrefLinkStart = href.indexOf(hrefLinkStartMarker,	0);
+		if (hrefLinkStart == -1)	{
+			return "";
+		}
+		hrefLinkStart =  + hrefLinkStartMarker.length();
+		int hrefLinkEnd = href.indexOf(hrefLinkEndMarker, hrefLinkStart);
+		
+		return href.substring(hrefLinkStart, hrefLinkEnd);
+	}
+	
+	private void myOutput(final String str, final int len){
+		if ((str == null) || (str.equals("")))	{
+			System.out.println("");
+		} else	{
+			System.out.println(str.substring(0, len));
+		}
+	}
 }

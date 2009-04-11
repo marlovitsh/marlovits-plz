@@ -10,7 +10,6 @@ import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
@@ -18,8 +17,6 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.forms.widgets.FormToolkit;
-import org.eclipse.ui.forms.widgets.ScrolledForm;
 
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
@@ -41,9 +38,6 @@ public class PlzDialog extends TitleAreaDialog {
 	Combo	cbKantonCombo;
 	Text	kantonText;
 	String	lang;
-	private	FormToolkit tk;
-	private	ScrolledForm form;
-	private	Label lbAnschrift;
 	
 	/**
 	 * Constructor für PlzDialog bei vorhandener Plz (PLZ editieren)
