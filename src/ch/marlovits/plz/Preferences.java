@@ -1,7 +1,10 @@
 package ch.marlovits.plz;
 
+import java.util.Locale;
+
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.ColorFieldEditor;
+import org.eclipse.jface.preference.ComboFieldEditor;
 import org.eclipse.jface.preference.DirectoryFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.FileFieldEditor;
@@ -10,10 +13,16 @@ import org.eclipse.jface.preference.IntegerFieldEditor;
 import org.eclipse.jface.preference.PathEditor;
 import org.eclipse.jface.preference.RadioGroupFieldEditor;
 import org.eclipse.jface.preference.StringFieldEditor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import ch.elexis.Hub;
+import ch.elexis.util.SWTHelper;
 
 /**
  * Einstellungen für PLZ (neu). 
@@ -26,7 +35,18 @@ public class Preferences extends FieldEditorPreferencePage implements IWorkbench
 
 	@Override
 	protected void createFieldEditors() {
-		addField(new DirectoryFieldEditor(lHarryPLZ_String, "Mein Test-String", getFieldEditorParent()));
+		Combo cbBereich=new Combo(getFieldEditorParent(),SWT.READ_ONLY|SWT.SINGLE);
+
+		
+		String[][] entryNamesAndValues = {{"Name1", "Name2"}, {"Value1", "Value2"}};
+		addField(new ComboFieldEditor("description1", "description2", entryNamesAndValues, getFieldEditorParent()));
+
+		String prefsString = Messages.getString("marlovits-plz.prefs.labelLanguage");
+		addField(new DirectoryFieldEditor(lHarryPLZ_String, prefsString, getFieldEditorParent()));
+
+		//addField(invalidFieldEditor);
+		
+		
 		addField(new BooleanFieldEditor("theNameBool", "theLabelBool", 1, getFieldEditorParent()));
 		addField(new ColorFieldEditor("theNameColor", "theLabelColor", getFieldEditorParent()));
 		FontFieldEditor ffe = new FontFieldEditor("theNameFont", "theLabelFont", "thePreviewText", getFieldEditorParent());
@@ -34,8 +54,8 @@ public class Preferences extends FieldEditorPreferencePage implements IWorkbench
 		ffe.setChangeButtonText("Changed Button Text");
 		addField(ffe);
 		ffe.setFocus();
-		MyListEditor lMyListEditor = new MyListEditor("theNameListEditor", "theLabelListEditor",  "333333",  "999999999", getFieldEditorParent());
-		addField(lMyListEditor);
+		//MyListEditor lMyListEditor = new MyListEditor("theNameListEditor", "theLabelListEditor",  "333333",  "999999999", getFieldEditorParent());
+		//addField(lMyListEditor);
 		IntegerFieldEditor lIntegerFieldEditor = new IntegerFieldEditor ("theNameIntegerFieldEditor", "theLabelIntegerFieldEditor", getFieldEditorParent());
 		addField(lIntegerFieldEditor);
 		StringFieldEditor lStringFieldEditor = new StringFieldEditor ("theNameStringFieldEditor", "theNameStringFieldEditor", getFieldEditorParent());
