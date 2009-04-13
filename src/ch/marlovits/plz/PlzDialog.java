@@ -28,17 +28,19 @@ public class PlzDialog extends TitleAreaDialog {
 	private JdbcLink j=PersistentObject.getConnection();
 
 	//LabeledInputField liBeleg, liDate, liBetrag;
-	Text	text;
-	Plz		last, act;
-	Combo	cbCats;
-	Combo	cbLandCombo;
-	Text	landIso3Field;
-	Text	plzField;
-	Text	ort;
-	Text	strasse;
-	Combo	cbKantonCombo;
-	Text	kantonText;
-	String	lang;
+	Text		text;
+	Plz			last, act;
+	Combo		cbCats;
+	Combo		cbLandCombo;
+	Text		landIso2Field;
+	Text		plzField;
+	Text		ort;
+	Text		strasse;
+	Combo		cbKantonIso;
+	Combo		cbKantonName;
+	Composite	compKanton;
+	Text		kantonText;
+	String		lang;
 	
 	/**
 	 * Constructor für PlzDialog bei vorhandener Plz (PLZ editieren)
@@ -89,127 +91,172 @@ public class PlzDialog extends TitleAreaDialog {
 	 */
 	@Override
 	protected Control createDialogArea(Composite parent){
-		// Darstellung in zwei Spalten, ganze Breite ausnutzen
+		/*
+		 * Layout:	- Composite top mit 2 Spalten, füllt ganzen Dialog
+		 * 			  enthält immer Bezeichnungen/Labels
+		 * 			- rechtes Panel von Composite top enthält:
+		 * 				- einfaches Feld    			ODER
+		 * 				- rightComposite mit 2 Spalten
+		 * 
+		 *        __top____________________________________________
+		 * 		||		||	 ___rightComposite______________	||
+		 * 		||		||	|			|					|	||
+		 * 		||		|| 	 -------------------------------	||
+		 * 		||		||										||
+		 * 		||		||	 ___rightComposite______________	||
+		 * 		||		||	|			|					|	||
+		 *     	||		||	 -------------------------------	||
+		 * 		||		||										||
+		 *     	 -------------------------------------------------
+		 */
+		// für rechts benutzt
+		GridLayout	tmpGrid;
+		Composite	rightComposite = null;
+		
+		// top: Darstellung in zwei Spalten, ganze Breite und ganze Höhe ausnutzen
 		Composite top = new Composite(parent, SWT.NONE);
 		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
 		top.setLayout(new GridLayout(2, false));
 		
-		// Land: Auswahl aus Menu
-		new Label(top, SWT.NONE).setText("Land");
-		String[] laenderListe = getLaenderListe("landname", lang);
-		cbLandCombo = new Combo(top, SWT.DROP_DOWN|SWT.READ_ONLY);
-		cbLandCombo.setItems(laenderListe);
-		cbLandCombo.setToolTipText("Kuckuck_");
-		String[] laenderIsoListe = getLaenderListe("landiso2", lang);
-		cbLandCombo.setData("LandIso3", laenderIsoListe);
-		cbLandCombo.addModifyListener(new ModifyListener(){
-			public void modifyText(ModifyEvent arg0) {
-				int selected = cbLandCombo.getSelectionIndex();
-				if (selected != -1)	{
-					String[] returnStrings = (String[]) cbLandCombo.getData("LandIso3");
-					landIso3Field.setText(returnStrings[selected]);
-					String[] kantonsListe = getKantonsListe("kantonsubcode", returnStrings[selected], lang);
-					String[] ktListe      = getKantonsListe("kantonname",    returnStrings[selected], lang);
-					cbKantonCombo.setItems(kantonsListe);
-					cbKantonCombo.setData("kantonsListe", ktListe);
-					Point size = cbKantonCombo.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-					cbKantonCombo.pack();
-					cbKantonCombo.pack(true);
-					cbKantonCombo.setSize(size.y, size.x);
-					cbKantonCombo.redraw();
-				}
-			}
-		});
-		cbLandCombo.setLayoutData(SWTHelper.getFillGridData(1, false, 1, false));
+		// Land *************************************
+		// Label::LandCombo:LandIso2Text
+		// Label
+		new Label(top, SWT.NONE).setText("Land");		
 		
-		// LandIso3: nur zur Anzeige
-		new Label(top, SWT.NONE).setText("Land Iso 3");
-		landIso3Field = new Text(top, SWT.BORDER);
-		landIso3Field.setBounds(10,10,200,20);
-		landIso3Field.setTextLimit(30);
-		landIso3Field.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-				
-		// Postleitzahl: je nach Land Zahl unterschiedlicher Länge oder Text
+		// rightComposite für diese Zeile erstellen
+		rightComposite = new Composite(top, SWT.NONE);
+		rightComposite.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		tmpGrid = new GridLayout(2, false);
+		tmpGrid.marginWidth  = 0;
+		rightComposite.setLayout(tmpGrid);
+		
+		// LandCombo
+		String[] laenderListeNamen = getLaenderListe("landname", lang);
+		String[] laenderListeIsos  = getLaenderListe("landiso2", lang);
+		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+		cbLandCombo.setItems(laenderListeNamen);
+		cbLandCombo.setData("LandIso2", laenderListeIsos);
+		cbLandCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		
+		// landIso2Field
+		//new Label(landComposite, SWT.NONE).setText("Land Iso 3");
+		landIso2Field = new Text(rightComposite, SWT.BORDER);
+		landIso2Field.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		
+		// Postleitzahl *****************************
+		// Label::plzField
 		new Label(top, SWT.NONE).setText("Postleitzahl");
 		plzField = new Text(top, SWT.BORDER);
-		plzField.setBounds(10,10,200,20);
-		plzField.setTextLimit(30);
 		plzField.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		
-		// Ort: einfache Texteingabe
+
+		// Ort **************************************
+		// Label::Ort
 		new Label(top, SWT.NONE).setText("Ort");
 		ort = new Text(top, SWT.BORDER);
-		ort.setBounds(10,10,200,20);
-		ort.setTextLimit(30);
 		ort.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
-		// Strasse: einfache Texteingabe
+		// Strasse **********************************
+		// Label::Strasse
 		new Label(top, SWT.NONE).setText("Strasse");
 		strasse = new Text(top, SWT.BORDER);
-		strasse.setBounds(10,10,200,20);
-		strasse.setTextLimit(30);
 		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
-		// Kanton: Kürzel-Auswahl aus Combo
-		new Label(top, SWT.NONE).setText("Kantonkuerzel");
-		cbKantonCombo = new Combo(top, SWT.DROP_DOWN|SWT.READ_ONLY);
-		cbKantonCombo.setLocation(0,0);
+		// Kanton ***********************************
+		// Label::KantonSubIso:KantonName
+		// Label
+		new Label(top, SWT.NONE).setText("Kanton***");		
+		
+		// rightComposite für diese Zeile erstellen
+		compKanton = new Composite(top, SWT.NONE);
+		compKanton.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		tmpGrid = new GridLayout(2, false);
+		tmpGrid.marginWidth  = 0;
+		compKanton.setLayout(tmpGrid);
+		
+		// Combo für KantonSubIso
+		cbKantonIso = new Combo(compKanton, SWT.DROP_DOWN|SWT.READ_ONLY);
 		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
-		// Kanton: Volltext-Anzeige
-		new Label(top, SWT.NONE).setText("Kanton");
-		kantonText = new Text(top, SWT.BORDER);
-		kantonText.setBounds(10,10,200,20);
-		kantonText.setTextLimit(30);
-		kantonText.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		// Combo für KantonName
+		cbKantonName = new Combo(compKanton, SWT.DROP_DOWN|SWT.READ_ONLY);
+		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Einsetzen der Werte
 		if (act != null)	{
 			// die Werte aus der Selection aus PlzView einsetzen
 			cbLandCombo.  setText(act.get("Land"));
-			landIso3Field.setText(act.get("LandISO3"));
+			landIso2Field.setText(act.get("Landiso2"));
 			plzField.     setText(act.get("Plz"));
 			ort.          setText(act.get("Ort"));
 			strasse.      setText(act.get("Strasse"));
-			String[] kantonsListe = getKantonsListe("kantonsubcode", act.get("LandISO3"), lang);
+			String[] kantonsListe = getKantonsListe("kantonsubcode", act.get("LandISO2"), lang);
 			if (kantonsListe != null)	{
-				cbKantonCombo.setItems(kantonsListe);
+				cbKantonIso.setItems(kantonsListe);
 			}
-			cbKantonCombo.setText(act.get("Kantonkuerzel"));
-			kantonText.   setText(act.get("Kanton"));
+			String[] ktListe      = getKantonsListe("kantonname",    act.get("LandISO2"), lang);
+			if (ktListe != null)	{
+				cbKantonName.setItems(kantonsListe);
+			}
+			cbKantonIso.  setText(act.get("Kantonkuerzel"));
+			cbKantonName. setText(act.get("Kanton"));
 		}
 		else	{
 			// neuer Eintrag wird erstellt: Default-Werte einsetzen
 			// TO DO die Default-Werte werden in den Prefs gesetzt
 			cbLandCombo.  setText("Prefs Land");
-			landIso3Field.setText("Prefs LandISO3");
+			landIso2Field.setText("Prefs LandISO2");
 			plzField.     setText("Prefs Plz");
 			ort.          setText("Prefs Ort");
 			strasse.      setText("Prefs Strasse");
 			String[] kantonsListe = getKantonsListe("kantonsubocde", "CH", lang);
 			if (kantonsListe != null)	{
-				cbKantonCombo.setItems(kantonsListe);
+				cbKantonIso.setItems(kantonsListe);
 			}
-			cbKantonCombo.setText("Prefs Kantonkuerzel");
-			kantonText.   setText("Prefs Kanton");
+			String[] ktListe      = getKantonsListe("kantonname",    "CH", lang);
+			if (ktListe != null)	{
+				cbKantonName.setItems(kantonsListe);
+			}
+			cbKantonIso.  setText("Prefs Kantonkuerzel");
+			cbKantonName. setText("Prefs Kanton");
 		}
 		
-		String[] ktListe = getKantonsListe("kantonname", landIso3Field.getText(), lang);
-		cbKantonCombo.setData("kantonsListe", ktListe);
-		cbKantonCombo.addModifyListener(new ModifyListener(){
+		// alle Listeners installieren *******************************************
+		// Land Combo
+		cbLandCombo.addModifyListener(new ModifyListener(){
 			public void modifyText(ModifyEvent arg0) {
-				int selected = cbKantonCombo.getSelectionIndex();
+				int selected = cbLandCombo.getSelectionIndex();
 				if (selected != -1)	{
-					String[] returnStrings = (String[]) cbKantonCombo.getData("kantonsListe");
-					String[] ktListe2      = getKantonsListe("kantonname",    landIso3Field.getText(), lang);
-					kantonText.setText(ktListe2[selected]);
-					//kantonText.setText(returnStrings[selected]);
-					cbKantonCombo.pack();
-				} else	{
-					kantonText.setText(null);
+					String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
+					landIso2Field.setText(returnStrings[selected]);
+					String[] kantonsListe = getKantonsListe("kantonsubcode", returnStrings[selected], lang);
+					String[] ktListe      = getKantonsListe("kantonname",    returnStrings[selected], lang);
+					cbKantonIso.setItems(kantonsListe);
+					cbKantonIso.setData("kantonsListe", ktListe);
+					cbKantonIso.pack();
+					cbKantonName.setItems(ktListe);
+					cbKantonName.setData("kantonsListeIso", kantonsListe);
+					cbKantonName.pack();
+					compKanton.pack();
 				}
 			}
 		});
+		// Kantonskürzel Combo
+		/*String[] ktListe = getKantonsListe("kantonname", landIso2Field.getText(), lang);
+		cbKantonIso.setData("kantonsListe", ktListe);
+		cbKantonIso.addModifyListener(new ModifyListener(){
+			public void modifyText(ModifyEvent arg0) {
+				int selected = cbKantonIso.getSelectionIndex();
+				if (selected != -1)	{
+					String[] returnStrings = (String[]) cbKantonIso.getData("kantonsListe");
+					String[] ktListe2      = getKantonsListe("kantonname",    landIso2Field.getText(), lang);
+					cbKantonName.setText(ktListe2[selected]);
+					cbKantonIso.pack();
+				} else	{
+					cbKantonName.setText(null);
+				}
+			}
+		});*/
+		
 		// und nun der Rückgabewert
 		return top;
 }
@@ -238,7 +285,7 @@ public class PlzDialog extends TitleAreaDialog {
 		String	errMsg		= "";
 		String	err			= "";
 		Object	focusField	= null;
-		// LandIso3 muss ausgewählt sein
+		// LandIso2 muss ausgewählt sein
 		if ((err = isFieldEmpty(cbLandCombo, "Land")) != "")	{
 			if (focusField == null) focusField = cbLandCombo;
 			errMsg = errMsg + err + "\n";
@@ -246,14 +293,14 @@ public class PlzDialog extends TitleAreaDialog {
 			}
 		// Plz muss ein bestimmtes Format aufweisen, definiert in der DB-Tabelle land:plzregex
 		// Die dazugehörige Fehlermeldung ist definiert in der DB-Tabelle land:plzregexmessage
-		String plzRegex = getLandFieldValue(landIso3Field.getText(), "plzregex", lang);
+		String plzRegex = getLandFieldValue(landIso2Field.getText(), "plzregex", lang);
 		if ((plzRegex != null) && (plzRegex != ""))	{
 			Pattern pattern = Pattern.compile(plzRegex);
 			Matcher matcher = pattern.matcher(plzField.getText());
 			boolean matchFound = matcher.matches();
 			if (matchFound == false){
 				if (focusField == null) focusField = plzField;
-				err = getLandFieldValue(landIso3Field.getText(), "plzregexmessage", lang);
+				err = getLandFieldValue(landIso2Field.getText(), "plzregexmessage", lang);
 				errMsg = errMsg + err + "\n";
 			}
 		}
@@ -262,11 +309,11 @@ public class PlzDialog extends TitleAreaDialog {
 			if (focusField == null) focusField = ort;
 			errMsg = errMsg + err + "\n";
 			}
-		// Kantonkuerzel muss je nach Land in LandISO3 ausgefüllt sein
+		// Kantonkuerzel muss je nach Land in LandISO2 ausgefüllt sein
 		// TODO kantonauswaehlen strasseerlaubt
-		String kantonauswaehlen = getLandFieldValue(landIso3Field.getText(), "kantonauswaehlen", lang);
-		if ((Integer.parseInt(kantonauswaehlen) != 0) && (cbKantonCombo.getText() == null))	{
-			if (focusField == null) focusField = cbKantonCombo;
+		String kantonauswaehlen = getLandFieldValue(landIso2Field.getText(), "kantonauswaehlen", lang);
+		if ((Integer.parseInt(kantonauswaehlen) != 0) && (cbKantonIso.getText() == null))	{
+			if (focusField == null) focusField = cbKantonIso;
 			errMsg = errMsg + "Der Kanton muss ausgewählt werden.\n";
 		}
 		
@@ -283,15 +330,15 @@ public class PlzDialog extends TitleAreaDialog {
 		
 		if (act == null) {
 			// neuen Eintrag erstellen
-			act = new Plz(cbLandCombo.getText(), landIso3Field.getText(), plzField.getText(), ort.getText(), strasse.getText(), kantonText.getText(), cbKantonCombo.getText());
+			act = new Plz(cbLandCombo.getText(), landIso2Field.getText(), plzField.getText(), ort.getText(), strasse.getText(), kantonText.getText(), cbKantonIso.getText());
 		} else {
 			// bestehenden Eintrag ändern
 			act.set("Land",          cbLandCombo.getText());
-			act.set("LandISO3",      landIso3Field.getText());
+			act.set("LandISO2",      landIso2Field.getText());
 			act.set("Plz",           plzField.getText());
 			act.set("Ort",           ort.getText());
 			act.set("Strasse",       strasse.getText());
-			act.set("Kantonkuerzel", cbKantonCombo.getText());
+			act.set("Kantonkuerzel", cbKantonIso.getText());
 			act.set("Kanton",        kantonText.getText());
 		}
 		super.okPressed();
@@ -299,17 +346,17 @@ public class PlzDialog extends TitleAreaDialog {
 	
 	/**
 	 * Feldwert als String aus der DB auslesen
-	 * @param landIso3: suche Eintrag mit dieser LandISO3
+	 * @param landIso2: suche Eintrag mit dieser LandISO2
 	 * @param feldName: lese Wert für dieses Feld
 	 * @return eingelesener Wert oder null, wenn nicht gefunden
 	 */
-	private String getLandFieldValue(final String landIso3, final String feldName, String locale){
+	private String getLandFieldValue(final String landIso2, final String feldName, String locale){
 		// Datenbank anzapfen
 		Stm stm = j.getStatement();
 		
 		// Feld plzlaenge für die übermittelte id aus der Datenbank-Tabelle "land" einlesen
 		String res = null;
-		ResultSet rs = stm.query("select " + feldName + " from land where upper(landiso3) = '" + landIso3.toUpperCase() + "' and landlanguage = '" + locale.toUpperCase() + "'");
+		ResultSet rs = stm.query("select " + feldName + " from land where upper(landiso2) = '" + landIso2.toUpperCase() + "' and landlanguage = '" + locale.toUpperCase() + "'");
 		try {
 			rs.next();
 			res = rs.getString(feldName);
