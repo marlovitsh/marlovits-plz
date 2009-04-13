@@ -41,6 +41,9 @@ public class PlzDialog extends TitleAreaDialog {
 	Composite	compKanton;
 	Text		kantonText;
 	String		lang;
+	ModifyListener	landModifyListener;
+	ModifyListener	kantonIsoModifyListener;
+	ModifyListener	kantonNameModifyListener;
 	
 	/**
 	 * Constructor für PlzDialog bei vorhandener Plz (PLZ editieren)
@@ -51,6 +54,9 @@ public class PlzDialog extends TitleAreaDialog {
 		super(shell);
 		act = plz;
 		setLang();
+		landModifyListener   = new LandModifyListener();
+		kantonIsoModifyListener = new KantonIsoModifyListener();
+		kantonNameModifyListener = new KantonNameModifyListener();
 	}
 	
 	/**
@@ -61,6 +67,9 @@ public class PlzDialog extends TitleAreaDialog {
 		super(shell);
 		act = null;
 		setLang();
+		landModifyListener   = new LandModifyListener();
+		kantonIsoModifyListener = new KantonIsoModifyListener();
+		kantonNameModifyListener = new KantonNameModifyListener();
 	}
 	
 	/**
@@ -222,44 +231,71 @@ public class PlzDialog extends TitleAreaDialog {
 		
 		// alle Listeners installieren *******************************************
 		// Land Combo
-		cbLandCombo.addModifyListener(new ModifyListener(){
-			public void modifyText(ModifyEvent arg0) {
-				int selected = cbLandCombo.getSelectionIndex();
-				if (selected != -1)	{
-					String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
-					landIso2Field.setText(returnStrings[selected]);
-					String[] kantonsListe = getKantonsListe("kantonsubcode", returnStrings[selected], lang);
-					String[] ktListe      = getKantonsListe("kantonname",    returnStrings[selected], lang);
-					cbKantonIso.setItems(kantonsListe);
-					cbKantonIso.setData("kantonsListe", ktListe);
-					cbKantonIso.pack();
-					cbKantonName.setItems(ktListe);
-					cbKantonName.setData("kantonsListeIso", kantonsListe);
-					cbKantonName.pack();
-					compKanton.pack();
-				}
-			}
-		});
+		cbLandCombo.addModifyListener(landModifyListener);
 		// Kantonskürzel Combo
-		/*String[] ktListe = getKantonsListe("kantonname", landIso2Field.getText(), lang);
+		String[] ktListe = getKantonsListe("kantonname", landIso2Field.getText(), lang);
 		cbKantonIso.setData("kantonsListe", ktListe);
-		cbKantonIso.addModifyListener(new ModifyListener(){
-			public void modifyText(ModifyEvent arg0) {
-				int selected = cbKantonIso.getSelectionIndex();
-				if (selected != -1)	{
-					String[] returnStrings = (String[]) cbKantonIso.getData("kantonsListe");
-					String[] ktListe2      = getKantonsListe("kantonname",    landIso2Field.getText(), lang);
-					cbKantonName.setText(ktListe2[selected]);
-					cbKantonIso.pack();
-				} else	{
-					cbKantonName.setText(null);
-				}
-			}
-		});*/
+		cbKantonIso.addModifyListener(kantonIsoModifyListener);
+		cbKantonName.addModifyListener(kantonNameModifyListener);
 		
 		// und nun der Rückgabewert
 		return top;
-}
+	}
+	
+	class KantonIsoModifyListener implements ModifyListener	{
+
+		public void modifyText(ModifyEvent arg0) {
+			int selected = cbKantonIso.getSelectionIndex();
+			if (selected != -1)	{
+				String[] returnStrings = (String[]) cbKantonIso.getData("kantonsListe");
+				String[] ktListe2      = getKantonsListe("kantonname",    landIso2Field.getText(), lang);
+				cbKantonName.setText(ktListe2[selected]);
+				cbKantonIso.pack();
+			} else	{
+				cbKantonName.setText(null);
+			}
+		}		
+	}
+	
+	class KantonNameModifyListener implements ModifyListener	{
+
+		public void modifyText(ModifyEvent arg0) {
+			int selected = cbKantonName.getSelectionIndex();
+			if (selected != -1)	{
+				String[] returnStrings = (String[]) cbKantonName.getData("kantonsListe");
+				String[] ktListe2      = getKantonsListe("kantonsubcode",    landIso2Field.getText(), lang);
+				cbKantonIso.setText(ktListe2[selected]);
+				cbKantonName.pack();
+			} else	{
+				cbKantonIso.setText(null);
+			}
+		}		
+	}
+	
+	class LandModifyListener implements ModifyListener	{
+		public void modifyText(ModifyEvent arg0) {
+			int selected = cbLandCombo.getSelectionIndex();
+			if (selected != -1)	{
+				cbKantonIso.removeModifyListener(kantonIsoModifyListener);
+				cbKantonName.removeModifyListener(kantonNameModifyListener);
+				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
+				landIso2Field.setText(returnStrings[selected]);
+				String[] kantonsListe = getKantonsListe("kantonsubcode", returnStrings[selected], lang);
+				String[] ktListe      = getKantonsListe("kantonname",    returnStrings[selected], lang);
+				cbKantonIso.setItems(kantonsListe);
+				cbKantonIso.setData("kantonsListe", ktListe);
+				cbKantonName.setItems(ktListe);
+				cbKantonName.setData("kantonsListeIso", kantonsListe);
+				// die Grösse der FormItems neu berechnen lassen
+				cbKantonIso.pack();
+				cbKantonName.pack();
+				compKanton.pack();
+				cbKantonIso.addModifyListener(kantonIsoModifyListener);
+				cbKantonName.addModifyListener(kantonNameModifyListener);
+			}
+		}
+	}
+	
 	
 	/**
 	 * Dialog für die Erfassung neuer PLZ-Daten/Änderung von PLZ-Daten
