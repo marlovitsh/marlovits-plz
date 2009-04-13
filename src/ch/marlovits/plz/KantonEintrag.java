@@ -98,7 +98,7 @@ public class KantonEintrag extends PersistentObject {
 		set(new String[]{"Kantonname", "Kantonfullcode", "Kantonsubcode", "Kantonland", "Kantonindex", "Kantonkind", "Kantonwikilink", "Kantonlanguage"},
 			new String[]{kantonname,   kantonfullcode,   kantonsubcode,   kantonland,   kantonindex,   kantonkind,   kantonwikilink, kantonlanguage});
 	}
-
+	
 	public String toString() {
 /*		return getName() + ", " + getZusatz() + ", " + getAdresse() + ", " //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 				+ getPlz() + " " + getOrt() + " " + getTelefon(); //$NON-NLS-1$ //$NON-NLS-2$
@@ -106,7 +106,7 @@ public class KantonEintrag extends PersistentObject {
 		System.out.print("toString() in LandIsoEntry not implemented");
 		return "toString not implemented";
 	}
-
+	
 	@Override
 	public String getLabel() {
 		String[] f = new String[9];
@@ -115,7 +115,7 @@ public class KantonEintrag extends PersistentObject {
 		ret.append(f[0]).append(" ").append(f[1]).append(" ").append(f[2]);
 		return ret.toString();
 	}
-
+	
 	@Override
 	protected String getTableName() {
 		return TABLENAME;

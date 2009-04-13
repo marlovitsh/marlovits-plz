@@ -35,6 +35,8 @@ public class LandEintrag extends PersistentObject {
 			"landwikilink		character varying,				" +
 			// dieser Eintrag gilt für diese Sprache
 			"landlanguage		character varying(2),			" +
+			// Sortierung vor Namenssortierung
+			"landsorting		integer default 9999,			" +
 			// Gültigkeitsprüfungen für dieses Land
 			"plzregex			character varying(100),			" +
 			"plzregexmessage	character varying,				" +
@@ -67,6 +69,7 @@ public class LandEintrag extends PersistentObject {
 					"Landiso3166_2=landiso3166_2",
 					"Landwikilink=landwikilink",
 					"Landlanguage=landlanguage",
+					"Landsorting=landsorting",
 					"Plzregex=plzregex",
 					"Plzregexmessage=plzregexmessage",
 					"Strasseerlaubt=strasseerlaubt",
