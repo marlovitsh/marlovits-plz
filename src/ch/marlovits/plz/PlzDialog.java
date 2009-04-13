@@ -1,6 +1,5 @@
 package ch.marlovits.plz;
 
-import java.lang.reflect.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -180,32 +179,7 @@ public class PlzDialog extends TitleAreaDialog {
 		strasse = new Text(top, SWT.BORDER);
 		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		strasse.moveBelow(top);
-		
-		// Kanton ***********************************
-		
-		
-		// Anzahl Regionsmenus für aktuelles Land ermitteln
-		numOfRegions = getNumOfRegions("RU", "DE");
-		addKantonsFields(top);
-		
-		
-		// Label::KantonSubIso:KantonName
-		// Label
-		new Label(top, SWT.NONE).setText("Kanton***");
-		
-		// rightComposite für diese Zeile erstellen
-		compKanton = new Composite(top, SWT.NONE);
-		compKanton.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		tmpGrid = new GridLayout(2, false);
-		tmpGrid.marginWidth  = 0;
-		compKanton.setLayout(tmpGrid);
-		
-		// Combo für KantonSubIso
-		cbKantonIso = new Combo(compKanton, SWT.DROP_DOWN|SWT.READ_ONLY);
-		
-		// Combo für KantonName
-		cbKantonName = new Combo(compKanton, SWT.DROP_DOWN|SWT.READ_ONLY);
-		
+				
 		// Einsetzen der Werte
 		if (act != null)	{
 			// die Werte aus der Selection aus PlzView einsetzen
@@ -214,16 +188,6 @@ public class PlzDialog extends TitleAreaDialog {
 			plzField.     setText(act.get("Plz"));
 			ort.          setText(act.get("Ort"));
 			strasse.      setText(act.get("Strasse"));
-			String[] kantonsListe = getKantonsListe("kantonsubcode", act.get("LandISO2"), lang);
-			if (kantonsListe != null)	{
-				cbKantonIso.setItems(kantonsListe);
-			}
-			String[] ktListe      = getKantonsListe("kantonname",    act.get("LandISO2"), lang);
-			if (ktListe != null)	{
-				cbKantonName.setItems(kantonsListe);
-			}
-			cbKantonIso.  setText(act.get("Kantonkuerzel"));
-			cbKantonName. setText(act.get("Kanton"));
 		}
 		else	{
 			// neuer Eintrag wird erstellt: Default-Werte einsetzen
@@ -233,53 +197,45 @@ public class PlzDialog extends TitleAreaDialog {
 			plzField.     setText("Prefs Plz");
 			ort.          setText("Prefs Ort");
 			strasse.      setText("Prefs Strasse");
-			String[] kantonsListe = getKantonsListe("kantonsubocde", "CH", lang);
-			if (kantonsListe != null)	{
-				cbKantonIso.setItems(kantonsListe);
-			}
-			String[] ktListe      = getKantonsListe("kantonname",    "CH", lang);
-			if (ktListe != null)	{
-				cbKantonName.setItems(kantonsListe);
-			}
-			cbKantonIso.  setText("Prefs Kantonkuerzel");
-			cbKantonName. setText("Prefs Kanton");
 		}
 		
-		// alle Listeners installieren *******************************************
-		// Land Combo
+		// Kanton ***********************************
+		// Anzahl Regionsmenus für aktuelles Land ermitteln und erstellen aller Felder
+		numOfRegions = getNumOfRegions("RU", "DE");
+		addKantonsFields();
 		
+		// alle Listeners installieren *******************************************
 		cbLandCombo.addModifyListener(landModifyListener);
-		// Kantonskürzel Combo
-		String[] ktListe = getKantonsListe("kantonname", landIso2Field.getText(), lang);
-		cbKantonIso.setData("kantonsListe", ktListe);
-		cbKantonIso.addModifyListener(kantonIsoModifyListener);
-		cbKantonName.addModifyListener(kantonNameModifyListener);
+		// die Kantons-Listeners werden in der Methode addKantonsFields installiert
 		
 		// und nun der Rückgabewert
 		return top;
 	}
 	
-	private void addKantonsFields(final Composite top)	{
+	private void addKantonsFields()	{
 		GridLayout	tmpGrid;
 		
 		// eventuell vorhandene Felder entfernen
 		try	{
 			for (int i=0; i<labelKantonArray.length; i++)	{
-				labelKantonArray[i].dispose();
-				comboIsoKantonArray[i].dispose();
-				comboNameKantonArray[i].dispose();	
-				compKantonArray[i].dispose();
+				if (labelKantonArray[i]		!= null)	labelKantonArray[i].dispose();
+				if (comboIsoKantonArray[i]	!= null)	comboIsoKantonArray[i].dispose();
+				if (comboNameKantonArray[i]	!= null)	comboNameKantonArray[i].dispose();	
+				if (compKantonArray[i]		!= null)	compKantonArray[i].dispose();
 			}
 		}
 		catch (java.lang.Exception e)	{
 			// nix - will einfach keine Fehlermeldungen...
 		}
+		
 		// alle Felder neu anlegen
-		for (int i=0; i<numOfRegions; i++)	{
+		String landIso2 = landIso2Field.getText();
+		for (int kantonIndex=0; kantonIndex<numOfRegions; kantonIndex++)	{
 			// Label
 			Label tmpLabel = new Label(top, SWT.NONE);
-			tmpLabel.setText("Kanton***");
-			labelKantonArray[i] = tmpLabel;
+			String kantonkind = getKantonIndexName(landIso2, kantonIndex, lang);
+			tmpLabel.setText(kantonkind);
+			labelKantonArray[kantonIndex] = tmpLabel;
 			
 			// rightComposite für diese Zeile erstellen
 			Composite tmpComposite = new Composite(top, SWT.NONE);
@@ -287,44 +243,70 @@ public class PlzDialog extends TitleAreaDialog {
 			tmpGrid = new GridLayout(2, false);
 			tmpGrid.marginWidth  = 0;
 			tmpComposite.setLayout(tmpGrid);
-			compKantonArray[i] = tmpComposite;
+			compKantonArray[kantonIndex] = tmpComposite;
 			
 			// Combo für KantonSubIso
 			Combo tmpCombo1 = new Combo(tmpComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
-			comboIsoKantonArray[i] = tmpCombo1;
+			String[] tmpKantonsListeSubCode = getKantonsListe("kantonsubcode", landIso2, kantonIndex, "kantonsubcode", lang);
+			String[] tmpKantonsListeName    = getKantonsListe("kantonname",    landIso2, kantonIndex, "kantonsubcode", lang);
+			tmpCombo1.setItems(tmpKantonsListeSubCode);
+			tmpCombo1.setData("kantonsListe", tmpKantonsListeName);
+			comboIsoKantonArray[kantonIndex] = tmpCombo1;
+			tmpCombo1.addModifyListener(kantonIsoModifyListener);
 			
 			// Combo für KantonName
 			Combo tmpCombo2 = new Combo(tmpComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
-			comboNameKantonArray[i] = tmpCombo2;
+			tmpCombo2.setItems(tmpKantonsListeName);
+			tmpCombo2.setData("kantonsListe", tmpKantonsListeSubCode);
+			tmpCombo2.setData("linkedCombo",  tmpCombo1);
+			comboNameKantonArray[kantonIndex] = tmpCombo2;
+			tmpCombo2.addModifyListener(kantonNameModifyListener);
+			
+			// link back
+			tmpCombo1.setData("linkedCombo", tmpCombo2);
 		}
 		top.pack();
 	}
 	
+	/**
+	 * Synchronisieren der Kürzels-Combo mit dem Namens-Combo. 
+	 * Auswahl Kürzel -> Setzen Namen
+	 * @author Harald Marlovits
+	 *
+	 */
 	class KantonIsoModifyListener implements ModifyListener	{
 		public void modifyText(ModifyEvent arg0) {
-			int selected = cbKantonIso.getSelectionIndex();
+			Combo myself = (Combo) arg0.getSource();
+			int selected = myself.getSelectionIndex();
+			Combo linkedCombo = (Combo) myself.getData("linkedCombo");
 			if (selected != -1)	{
-				String[] returnStrings = (String[]) cbKantonIso.getData("kantonsListe");
-				String[] ktListe2      = getKantonsListe("kantonname",    landIso2Field.getText(), lang);
-				cbKantonName.setText(ktListe2[selected]);
-				cbKantonIso.pack();
+				String[] returnStrings = (String[]) myself.getData("kantonsListe");
+				linkedCombo.setText(returnStrings[selected]);
 			} else	{
-				cbKantonName.setText(null);
+				linkedCombo.setText(null);
 			}
+			myself.pack();
 		}		
 	}
 	
+	/**
+	 * Synchronisieren der Kürzels-Combo mit dem Namens-Combo. 
+	 * Auswahl Name -> Setzen Kürzel
+	 * @author Harald Marlovits
+	 *
+	 */
 	class KantonNameModifyListener implements ModifyListener	{
 		public void modifyText(ModifyEvent arg0) {
-			int selected = cbKantonName.getSelectionIndex();
+			Combo myself = (Combo) arg0.getSource();
+			int selected = myself.getSelectionIndex();
+			Combo linkedCombo = (Combo) myself.getData("linkedCombo");
 			if (selected != -1)	{
-				String[] returnStrings = (String[]) cbKantonName.getData("kantonsListe");
-				String[] ktListe2      = getKantonsListe("kantonsubcode",    landIso2Field.getText(), lang);
-				cbKantonIso.setText(ktListe2[selected]);
-				cbKantonName.pack();
+				String[] returnStrings = (String[]) myself.getData("kantonsListe");
+				linkedCombo.setText(returnStrings[selected]);
 			} else	{
-				cbKantonIso.setText(null);
+				linkedCombo.setText(null);
 			}
+			myself.pack();
 		}		
 	}
 	
@@ -332,31 +314,16 @@ public class PlzDialog extends TitleAreaDialog {
 		public void modifyText(ModifyEvent arg0) {
 			int selected = cbLandCombo.getSelectionIndex();
 			if (selected != -1)	{
-				cbKantonIso.removeModifyListener(kantonIsoModifyListener);
-				cbKantonName.removeModifyListener(kantonNameModifyListener);
+				// setzen des isoStrings
 				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
 				landIso2Field.setText(returnStrings[selected]);
-				String[] kantonsListe = getKantonsListe("kantonsubcode", returnStrings[selected], lang);
-				String[] ktListe      = getKantonsListe("kantonname",    returnStrings[selected], lang);
+				// neu erstellen der Kantons-Combos
 				numOfRegions = getNumOfRegions(landIso2Field.getText(), lang);
-				addKantonsFields(top);
-				cbKantonIso.setItems(kantonsListe);
-				cbKantonIso.setData("kantonsListe", ktListe);
-				cbKantonName.setItems(ktListe);
-				cbKantonName.setData("kantonsListeIso", kantonsListe);
-				// die Grösse der FormItems neu berechnen lassen
-				cbKantonIso.pack();
-				cbKantonName.pack();
-				compKanton.pack();
-				cbKantonIso.addModifyListener(kantonIsoModifyListener);
-				cbKantonName.addModifyListener(kantonNameModifyListener);
-				int numOfMenus = getNumOfRegions(returnStrings[selected], lang);
-				System.out.println("numOfMenus: " + numOfMenus);
+				addKantonsFields();
 			}
 		}
 	}
-	
-	
+		
 	/**
 	 * Dialog für die Erfassung neuer PLZ-Daten/Änderung von PLZ-Daten
 	 */
@@ -458,6 +425,29 @@ public class PlzDialog extends TitleAreaDialog {
 		return numOfRows;
 	}
 	
+	private String getKantonIndexName(final String landIso, final int kantonIndex, final String locale)	{
+		String sql = "";
+		sql = sql + "select kantonkind from ch_marlovits_kanton ";
+		sql = sql + "where upper(kantonland) = '" + landIso.toUpperCase() + "'";
+		sql = sql + "  and upper(kantonlanguage) = '" + locale + "'";
+		sql = sql + "  and kantonindex = " + kantonIndex;
+		
+		// Datenbank anzapfen
+		Stm stm = j.getStatement();
+		
+		String res = "";
+		ResultSet rs = stm.query(sql);
+		try {
+			rs.next();
+			res = rs.getString("kantonkind");
+			rs.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return res;
+	}
+	
 	/**
 	 * Feldwert als String aus der DB auslesen
 	 * @param landIso2: suche Eintrag mit dieser LandISO2
@@ -528,14 +518,14 @@ public class PlzDialog extends TitleAreaDialog {
 		}
 		return tmpStringArray;
 	}
-
-	public String[] getKantonsListe(final String fieldName, final String landIso2, final String locale){
+	
+	public String[] getKantonsListe(final String fieldName, final String landIso2, final int kantonIndex, final String orderBy, final String locale){
 		// Datenbank anzapfen
 		Stm stm = j.getStatement();
 		
 		// Anzahl Kantons-Datensätze ermitteln
 		int numOfRows = 0;
-		ResultSet rs = stm.query("select count(*) as cnt from CH_MARLOVITS_KANTON where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and kantonland = " + "'" + landIso2 + "'");
+		ResultSet rs = stm.query("select count(*) as cnt from CH_MARLOVITS_KANTON where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and kantonland = " + "'" + landIso2 + "' and kantonindex=" + kantonIndex);
 		try {
 			rs.next();
 			numOfRows = rs.getInt("cnt");
@@ -548,7 +538,7 @@ public class PlzDialog extends TitleAreaDialog {
 		// Kanton/Staat/etc. für die aktuelle SystemSprache und das ausgewählte Land
 		// aus der Datenbank-Tabelle "kanton" einlesen
 		String[] tmpStringArray = new String[numOfRows];
-		rs = stm.query("select " + fieldName + " from CH_MARLOVITS_KANTON where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and kantonland = " + "'" + landIso2 + "' order by " + fieldName);
+		rs = stm.query("select " + fieldName + " from CH_MARLOVITS_KANTON where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and kantonland = " + "'" + landIso2 + "' and kantonindex = " + kantonIndex + " order by " + orderBy);
 		if (rs == null)	{
 			j.releaseStatement(stm);
 			return null;
