@@ -1,5 +1,6 @@
 package ch.marlovits.plz;
 
+import java.lang.reflect.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -10,7 +11,6 @@ import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
@@ -36,14 +36,26 @@ public class PlzDialog extends TitleAreaDialog {
 	Text		plzField;
 	Text		ort;
 	Text		strasse;
+	Composite	compKanton;
 	Combo		cbKantonIso;
 	Combo		cbKantonName;
-	Composite	compKanton;
-	Text		kantonText;
+	Composite	compKanton2;
+	Combo		cbKantonIso2;
+	Combo		cbKantonName2;
+	Composite	compKanton3;
+	Combo		cbKantonIso3;
+	Combo		cbKantonName3;
 	String		lang;
 	ModifyListener	landModifyListener;
 	ModifyListener	kantonIsoModifyListener;
 	ModifyListener	kantonNameModifyListener;
+	int				numOfRegions;
+	Composite[]		compKantonArray = {null, null, null, null, null, null, null, null, null, null};
+	Label[]			labelKantonArray = {null, null, null, null, null, null, null, null, null, null};
+	Combo[]			comboIsoKantonArray = {null, null, null, null, null, null, null, null, null, null};
+	Combo[]			comboNameKantonArray = {null, null, null, null, null, null, null, null, null, null};
+	Composite		top;
+	String			currLandIso;
 	
 	/**
 	 * Constructor für PlzDialog bei vorhandener Plz (PLZ editieren)
@@ -123,7 +135,7 @@ public class PlzDialog extends TitleAreaDialog {
 		Composite	rightComposite = null;
 		
 		// top: Darstellung in zwei Spalten, ganze Breite und ganze Höhe ausnutzen
-		Composite top = new Composite(parent, SWT.NONE);
+		top = new Composite(parent, SWT.NONE);
 		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
 		top.setLayout(new GridLayout(2, false));
 		
@@ -145,12 +157,10 @@ public class PlzDialog extends TitleAreaDialog {
 		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
 		cbLandCombo.setItems(laenderListeNamen);
 		cbLandCombo.setData("LandIso2", laenderListeIsos);
-		cbLandCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// landIso2Field
 		//new Label(landComposite, SWT.NONE).setText("Land Iso 3");
 		landIso2Field = new Text(rightComposite, SWT.BORDER);
-		landIso2Field.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Postleitzahl *****************************
 		// Label::plzField
@@ -169,11 +179,19 @@ public class PlzDialog extends TitleAreaDialog {
 		new Label(top, SWT.NONE).setText("Strasse");
 		strasse = new Text(top, SWT.BORDER);
 		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		strasse.moveBelow(top);
 		
 		// Kanton ***********************************
+		
+		
+		// Anzahl Regionsmenus für aktuelles Land ermitteln
+		numOfRegions = getNumOfRegions("RU", "DE");
+		addKantonsFields(top);
+		
+		
 		// Label::KantonSubIso:KantonName
 		// Label
-		new Label(top, SWT.NONE).setText("Kanton***");		
+		new Label(top, SWT.NONE).setText("Kanton***");
 		
 		// rightComposite für diese Zeile erstellen
 		compKanton = new Composite(top, SWT.NONE);
@@ -184,11 +202,9 @@ public class PlzDialog extends TitleAreaDialog {
 		
 		// Combo für KantonSubIso
 		cbKantonIso = new Combo(compKanton, SWT.DROP_DOWN|SWT.READ_ONLY);
-		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Combo für KantonName
 		cbKantonName = new Combo(compKanton, SWT.DROP_DOWN|SWT.READ_ONLY);
-		strasse.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		// Einsetzen der Werte
 		if (act != null)	{
@@ -231,6 +247,7 @@ public class PlzDialog extends TitleAreaDialog {
 		
 		// alle Listeners installieren *******************************************
 		// Land Combo
+		
 		cbLandCombo.addModifyListener(landModifyListener);
 		// Kantonskürzel Combo
 		String[] ktListe = getKantonsListe("kantonname", landIso2Field.getText(), lang);
@@ -242,8 +259,48 @@ public class PlzDialog extends TitleAreaDialog {
 		return top;
 	}
 	
+	private void addKantonsFields(final Composite top)	{
+		GridLayout	tmpGrid;
+		
+		// eventuell vorhandene Felder entfernen
+		try	{
+			for (int i=0; i<labelKantonArray.length; i++)	{
+				labelKantonArray[i].dispose();
+				comboIsoKantonArray[i].dispose();
+				comboNameKantonArray[i].dispose();	
+				compKantonArray[i].dispose();
+			}
+		}
+		catch (java.lang.Exception e)	{
+			// nix - will einfach keine Fehlermeldungen...
+		}
+		// alle Felder neu anlegen
+		for (int i=0; i<numOfRegions; i++)	{
+			// Label
+			Label tmpLabel = new Label(top, SWT.NONE);
+			tmpLabel.setText("Kanton***");
+			labelKantonArray[i] = tmpLabel;
+			
+			// rightComposite für diese Zeile erstellen
+			Composite tmpComposite = new Composite(top, SWT.NONE);
+			tmpComposite.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+			tmpGrid = new GridLayout(2, false);
+			tmpGrid.marginWidth  = 0;
+			tmpComposite.setLayout(tmpGrid);
+			compKantonArray[i] = tmpComposite;
+			
+			// Combo für KantonSubIso
+			Combo tmpCombo1 = new Combo(tmpComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+			comboIsoKantonArray[i] = tmpCombo1;
+			
+			// Combo für KantonName
+			Combo tmpCombo2 = new Combo(tmpComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+			comboNameKantonArray[i] = tmpCombo2;
+		}
+		top.pack();
+	}
+	
 	class KantonIsoModifyListener implements ModifyListener	{
-
 		public void modifyText(ModifyEvent arg0) {
 			int selected = cbKantonIso.getSelectionIndex();
 			if (selected != -1)	{
@@ -258,7 +315,6 @@ public class PlzDialog extends TitleAreaDialog {
 	}
 	
 	class KantonNameModifyListener implements ModifyListener	{
-
 		public void modifyText(ModifyEvent arg0) {
 			int selected = cbKantonName.getSelectionIndex();
 			if (selected != -1)	{
@@ -282,6 +338,8 @@ public class PlzDialog extends TitleAreaDialog {
 				landIso2Field.setText(returnStrings[selected]);
 				String[] kantonsListe = getKantonsListe("kantonsubcode", returnStrings[selected], lang);
 				String[] ktListe      = getKantonsListe("kantonname",    returnStrings[selected], lang);
+				numOfRegions = getNumOfRegions(landIso2Field.getText(), lang);
+				addKantonsFields(top);
 				cbKantonIso.setItems(kantonsListe);
 				cbKantonIso.setData("kantonsListe", ktListe);
 				cbKantonName.setItems(ktListe);
@@ -292,6 +350,8 @@ public class PlzDialog extends TitleAreaDialog {
 				compKanton.pack();
 				cbKantonIso.addModifyListener(kantonIsoModifyListener);
 				cbKantonName.addModifyListener(kantonNameModifyListener);
+				int numOfMenus = getNumOfRegions(returnStrings[selected], lang);
+				System.out.println("numOfMenus: " + numOfMenus);
 			}
 		}
 	}
@@ -366,7 +426,7 @@ public class PlzDialog extends TitleAreaDialog {
 		
 		if (act == null) {
 			// neuen Eintrag erstellen
-			act = new Plz(cbLandCombo.getText(), landIso2Field.getText(), plzField.getText(), ort.getText(), strasse.getText(), kantonText.getText(), cbKantonIso.getText());
+			act = new Plz(cbLandCombo.getText(), landIso2Field.getText(), plzField.getText(), ort.getText(), strasse.getText(), cbKantonName.getText(), cbKantonIso.getText());
 		} else {
 			// bestehenden Eintrag ändern
 			act.set("Land",          cbLandCombo.getText());
@@ -375,9 +435,27 @@ public class PlzDialog extends TitleAreaDialog {
 			act.set("Ort",           ort.getText());
 			act.set("Strasse",       strasse.getText());
 			act.set("Kantonkuerzel", cbKantonIso.getText());
-			act.set("Kanton",        kantonText.getText());
+			act.set("Kanton",        cbKantonName.getText());
 		}
 		super.okPressed();
+	}
+	
+	private int getNumOfRegions(final String landIso, final String locale)	{
+		// Datenbank anzapfen
+		Stm stm = j.getStatement();
+		
+		String sql = "select count(*) as regionCount from (select kantonindex from ch_marlovits_kanton where upper(kantonlanguage) = '" + locale.toUpperCase() + "' and upper(kantonland) = '" + landIso.toUpperCase() + "' and deleted = '0' group by kantonindex) as foo";
+		// Anzahl Datensätze ermitteln
+    	int numOfRows = 0;
+		ResultSet rs = stm.query(sql);
+		try {
+			rs.next();
+			numOfRows = rs.getInt("regionCount");
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+			return 0;
+		}
+		return numOfRows;
 	}
 	
 	/**
