@@ -11,6 +11,15 @@
             name="Plz (neu)"/>
    </extension>
    <extension
+         point="org.eclipse.ui.views">
+      <view
+            category="ch.elexis.codesKategorie"
+            class="ch.marlovits.plz.PlzTesting"
+            icon="icons/mail.png"
+            id="ch.marlovits.plz.PlzTesting"
+            name="Plz Testing"/>
+   </extension>
+   <extension
          point="org.eclipse.ui.preferencePages">
       <page
             category="ch.elexis.preferences.UserPreferences"
