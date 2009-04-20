@@ -1,84 +1,64 @@
 package ch.marlovits.plz;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jface.action.Action;
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.viewers.DoubleClickEvent;
-import org.eclipse.jface.viewers.IDoubleClickListener;
-import org.eclipse.jface.viewers.ILabelProviderListener;
-import org.eclipse.jface.viewers.IStructuredContentProvider;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.TableViewer;
-import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.dnd.Clipboard;
-import org.eclipse.swt.dnd.TextTransfer;
-import org.eclipse.swt.dnd.Transfer;
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.events.FocusEvent;
+import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.part.ViewPart;
+import org.w3c.dom.Attr;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import au.com.bytecode.opencsv.CSVReader;
-import ch.elexis.Desk;
 import ch.elexis.actions.GlobalActions;
 import ch.elexis.actions.GlobalEvents;
 import ch.elexis.actions.GlobalEvents.ActivationListener;
 import ch.elexis.actions.GlobalEvents.SelectionListener;
 import ch.elexis.data.PersistentObject;
-import ch.elexis.data.Query;
-import ch.elexis.importers.ExcelWrapper;
 import ch.elexis.util.SWTHelper;
-import ch.elexis.util.ViewMenus;
 import ch.rgw.tools.ExHandler;
 
-public class PLZView extends ViewPart implements SelectionListener, ActivationListener,
+import com.sun.org.apache.xerces.internal.parsers.DOMParser;
+
+public class PlzTesting extends ViewPart implements SelectionListener, ActivationListener,
 		ISaveablePart2 {
 	
 	private static final String SRC_ENCODING				= "UTF-8";
 	public static final String ID							= "ch.marlovits.plz.PLZView";
 
-	/**
-	 * 
-	 * Stand per 10.04.2009 für "http://de.wikipedia.org/wiki/ISO-3166-1-Kodierliste"
-	 * 
-	 * Die HTML-Marker, welche den jeweiligen Anfang/Ende von Datenblöcken markieren
-	 * 
-	 * Start der Tabelle mit den Land-Iso-Codes;
-	 * <table class="wikitable sortable" style="vertical-align:top; width:100%;">
-	 * Suche nach: <table class="wikitable sortable"
-	 * 
-	 * Ende der Tabelle mit den Land-Iso-Codes:
-	 * </table>
-	 * 
-	 * dann folgen die Zeilen, jeweils mit Start-Marker <tr> und End-Marker </tr>
-	 * 
-	 * die erste Zeile ist die Titel-Zeile, wird ausgelassen
-	 * 
-	 * in jeder Zeile folgen dann jeweils 8 Daten-Zellen
-	 */
 	private static final String BASE_URL_DE					= "http://de.wikipedia.org";
 	private static final String URL_DE						= "http://de.wikipedia.org/wiki/ISO-3166-1-Kodierliste";
 	private static final String WIKI_LAND_STARTINFO_MARKER	= "<table class=" + "\"" + "wikitable sortable" + "\"";
@@ -103,249 +83,135 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 	private FormToolkit tk;
 	private Form form;
 	private TableViewer plzViewer;
-		
-	private Action exportToClipboardAction;
-	private Action copyAction;
-	private Action deleteAction;
-	private Action newAction;
-	private Action importAction;
-	private Action importFromWiki;
 	
-	// column indices
-	private static final int COL_LAND            = 0;
-	private static final int COL_LANDISO3        = 1;
-	private static final int COL_PLZ             = 2;
-	private static final int COL_ORT             = 3;
-	private static final int COL_STRASSE         = 4;
-	private static final int COL_KANTON          = 5;
-	private static final int COL_KANTONKUERZEL   = 6;
+	private Composite top;
+	private Composite rightComposite;
+	private GridLayout tmpGrid;
+	private Combo cbLandCombo;
+	private Text landIso2Field;
+	private String lang = "DE";
+	private ModifyListener landModifyListener;
+	private Text plzField;
+	private Text ort;
+	private FocusListener plzFocusListener;
 	
-	private static final String[] COLUMN_TEXT = {
-		"Land",
-		"LandISO3",
-		"PLZ",
-		"Ort",
-		"Strasse",
-		"Kanton",
-		"Kantonkuerzel",
-	};
-	
-	private static final String[] DB_COLUMN_TEXT = {
-		"Land",
-		"LandISO3",
-		"Plz",
-		"Ort",
-		"Strasse",
-		"Kanton",
-		"Kantonkuerzel",
-	};
-	
-	private static final int[] COLUMN_WIDTH = {
-		80, // Land
-		80, // LandISO3
-		80, // PLZ
-		80, // Ort
-		80, // Strasse
-		80, // Kanton
-		80, // Kantonkürzel
-	};
-
-	private List<ch.marlovits.plz.Plz> getPostleitzahlen(){
-		// Erstellen des Return-Arrays
-		List<ch.marlovits.plz.Plz> postleitzahlen = new ArrayList<ch.marlovits.plz.Plz>(); 		
-		
-		// Erstellen einer Query auf Plz und alle Datensätze einlesen, sortieren nach ID
-		Query<ch.marlovits.plz.Plz> query = new Query<ch.marlovits.plz.Plz>(ch.marlovits.plz.Plz.class);
-		query.insertTrue();
-		query.orderBy(false, "ID");
-		List<ch.marlovits.plz.Plz> plzList = query.execute();
-		
-		// Die aus der Datenbank eingelesenen Werte in den Return-Array schreiben
-		if (plzList != null) {
-			postleitzahlen.addAll(plzList);
-		}
-		
-		// Sortieren der Daten
-		Collections.sort(postleitzahlen, new Comparator<Plz>() {
-			// Anfägliche Sortierung nach ID
-			public int compare(Plz plz1, Plz plz2){
-				// beide gleich gibt es nicht
-				if (plz1 == null && plz2 == null) {
-					return 0;
-				}
-				// plz1 ist null, plz2 nicht. setze plz2 vor plz1
-				if (plz1 == null) {
-					return 1;
-				}
-				// plz2 ist null, plz1 nicht. setze plz1 vor plz2
-				if (plz2 == null) {
-					return -1;
-				}
-				// beide nicht null
-				//String sNumber1 = plz1.get("ID");
-				//String sNumber2 = plz2.get("ID");
-				try {
-					Integer number1 = new Integer(plz1.get("ID"));
-					Integer number2 = new Integer(plz2.get("ID"));
-					return number1.compareTo(number2);
-				} catch (NumberFormatException ex) {
-					// error, consider equal
-					return 0;
-				}
-			}
-			
-			// compare on id
-			public boolean equals(Object obj){
-				return (this == obj);
-			}
-		});
-		return postleitzahlen;
+	public PlzTesting() {
+		super();
+		landModifyListener   = new LandModifyListener();
 	}
-	
+
 	public void createPartControl(Composite parent){
-		parent.setLayout(new FillLayout());
-		tk = Desk.getToolkit();
-		form = tk.createForm(parent);
-		form.getBody().setLayout(new GridLayout(1, false));
+		landModifyListener   = new LandModifyListener();
+		plzFocusListener   =   new PlzFocusListener();
+
+		top = new Composite(parent, SWT.NONE);
+		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
+		top.setLayout(new GridLayout(2, false));
 		
-		// general infos
-		Composite generalArea = tk.createComposite(form.getBody());
-		generalArea.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		generalArea.setLayout(new GridLayout(2, false));
+		// Land *************************************
+		// Label::LandCombo:LandIso2Text
+		// Label
+		new Label(top, SWT.NONE).setText("Land");		
+		
+		// rightComposite für diese Zeile erstellen
+		rightComposite = new Composite(top, SWT.NONE);
+		rightComposite.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		tmpGrid = new GridLayout(2, false);
+		tmpGrid.marginWidth  = 0;
+		rightComposite.setLayout(tmpGrid);
+		
+		// LandCombo
+		String[] laenderListeNamen = {"Schweiz", "Deutschland", "Österreich"};  //ch.marlovits.plz.PlzDialog.getLaenderListe("landname", lang );
+		String[] laenderListeIsos  = {"CH", "DE", "AT"}; //getLaenderListe("landiso2", lang);
+		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+		cbLandCombo.setItems(laenderListeNamen);
+		cbLandCombo.setData("LandIso2", laenderListeIsos);
+		
+		// landIso2Field
+		//new Label(landComposite, SWT.NONE).setText("Land Iso 3");
+		landIso2Field = new Text(rightComposite, SWT.BORDER);
+
+		// Postleitzahl *****************************
+		// Label::plzField
+		new Label(top, SWT.NONE).setText("Postleitzahl");
+		plzField = new Text(top, SWT.BORDER);
+		plzField.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+
+		// Ort **************************************
+		// Label::Ort
+		new Label(top, SWT.NONE).setText("Ort");
+		ort = new Text(top, SWT.BORDER);
+		ort.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		
+		cbLandCombo.  setText("Prefs Land");
+		landIso2Field.setText("Prefs LandISO2");
+		plzField.     setText("Prefs Plz");
+		ort.          setText("Prefs Ort");
 		
 		// Titel setzen
-		form.setText("Harrys Postleitzahlen");
-		
-		// Tabelle erstellen
-		plzViewer = new TableViewer(form.getBody(), SWT.SINGLE | SWT.FULL_SELECTION);
-		Table table = plzViewer.getTable();
-		table.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
-		tk.adapt(table);
-		
-		table.setHeaderVisible(true);
-		table.setLinesVisible(true);
-		
-		// Tabellen-Überschriften erstellen
-		TableColumn[] tc = new TableColumn[COLUMN_TEXT.length];
-		for (int i = 0; i < COLUMN_TEXT.length; i++) {
-			tc[i] = new TableColumn(table, SWT.NONE);
-			tc[i].setText(COLUMN_TEXT[i]);
-			tc[i].setWidth(COLUMN_WIDTH[i]);
-		}
-		
-		// Tabellen-Inhalt
-		plzViewer.setContentProvider(new IStructuredContentProvider() {
-			public Object[] getElements(Object inputElement){
-				return getPostleitzahlen().toArray();
-			}
-			
-			public void dispose(){
-			// nothing to do
-			}
-			
-			public void inputChanged(Viewer viewer, Object oldInput, Object newInput){
-			// nothing to do
-			}
-		});
-		plzViewer.setLabelProvider(new ITableLabelProvider() {
-			public void addListener(ILabelProviderListener listener){
-			// nothing to do
-			}
-			
-			public void removeListener(ILabelProviderListener listener){
-			// nothing to do
-			}
-			
-			public void dispose(){
-			// nothing to do
-			}
-			
-			public String getColumnText(Object element, int columnIndex){
-				if (!(element instanceof Plz)) {
-					return "";
-				}
-				
-				Plz plz = (Plz) element;
-				String text = "";
-								
-				switch (columnIndex) {
-				case COL_LAND:
-					text = plz.getFieldData("Land");
-					break;
-				case COL_LANDISO3:
-					text = plz.getFieldData("LandISO3");
-					break;
-				case COL_PLZ:
-					text = plz.getFieldData("Plz");
-					break;
-				case COL_ORT:
-					text = plz.getFieldData("Ort");
-					break;
-				case COL_STRASSE:
-					text = plz.getFieldData("Strasse");
-					break;
-				case COL_KANTON:
-					text = plz.getFieldData("Kanton");
-					break;
-				case COL_KANTONKUERZEL:
-					text = plz.getFieldData("Kantonkuerzel");
-					break;
-				}
-				
-				return text;
-			}
-			
-			public Image getColumnImage(Object element, int columnIndex){
-				return null;
-			}
-			
-			public boolean isLabelProperty(Object element, String property){
-				return false;
-			}
-		});
-		
-		plzViewer.setInput(getViewSite());
+		//this.form.setText("Harrys Postleitzahlen aus OpenNames");		
 		
 		// Erstellen der Actions für die Menus, etc
-		makeActions();
+		//makeActions();
 		
 		// Erstellen des ViewMenus
-		ViewMenus menu = new ViewMenus(getViewSite());
-		menu.createMenu(exportToClipboardAction, null, copyAction, null, importFromWiki);
+		//ViewMenus menu = new ViewMenus(getViewSite());
+		//menu.createMenu(exportToClipboardAction, null, copyAction, null, importFromWiki);
 		
 		// Erstellen des KontextMenus
-		menu.createViewerContextMenu(plzViewer, newAction, null, copyAction, deleteAction, null, importAction);
+		//menu.createViewerContextMenu(plzViewer, newAction, null, copyAction, deleteAction, null, importAction);
 
-		menu.createToolbar(newAction, deleteAction);
+		//menu.createToolbar(newAction, deleteAction);		
 		
-		GlobalEvents.getInstance().addActivationListener(this, this);
-		plzViewer.addSelectionChangedListener(GlobalEvents.getInstance().getDefaultListener());
-		
-		// Doppelclick öffnen Eingabe-Dialog
-		plzViewer.addDoubleClickListener(new IDoubleClickListener() {
-			public void doubleClick(DoubleClickEvent event){
-				IStructuredSelection sel = (IStructuredSelection) plzViewer.getSelection();
-				if (!sel.isEmpty()) {
-					Plz plz = (Plz) sel.getFirstElement();
-					if (new PlzDialog(getSite().getShell(), plz).open() == Dialog.OK) {
-						plzViewer.refresh();
-					}
-				}
-			}
-		});
+		//GlobalEvents.getInstance().addActivationListener(this, this);
+		cbLandCombo.addModifyListener(landModifyListener);
+		plzField.addFocusListener(plzFocusListener);
 	}
+	
+	class PlzFocusListener implements FocusListener	{
+		public void focusGained(FocusEvent e) {
+			// nichts
+		}
+
+		public void focusLost(FocusEvent e) {
+			DataImporter.importCountryData();
+		}
+			//tmp("CH", "C:\\Temp\\");
+/*			String land	= landIso2Field.getText().toString();
+			String plz	= plzField.getText().toString();
+			String lang	= "de";
+			String[] result = geoNames_PlaceNameFromPostalCode(land, plz, lang);
+			System.out.print(result);
+		}
+*/		
+	}
+	
+	class LandModifyListener implements ModifyListener	{
+		public void modifyText(ModifyEvent arg0) {
+			int selected = cbLandCombo.getSelectionIndex();
+			if (selected != -1)	{
+				// setzen des isoStrings
+				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
+				landIso2Field.setText(returnStrings[selected]);
+			}
+		}
+	}
+		
+	
+	/*
+	*/
 	
 	/**
 	 * Passing the focus request to the viewer's control.
 	 */
 	public void setFocus(){
-		plzViewer.getControl().setFocus();
+		//plzViewer.getControl().setFocus();
 	}
 	
 	@Override
 	public void dispose(){
 		GlobalEvents.getInstance().removeActivationListener(this, this);
-		plzViewer.removeSelectionChangedListener(GlobalEvents.getInstance().getDefaultListener());
+//		plzViewer.removeSelectionChangedListener(GlobalEvents.getInstance().getDefaultListener());
 		super.dispose();
 	}
 
@@ -360,7 +226,7 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 	}
 	
 	public void clearEvent(Class template){
-		plzViewer.refresh();
+		//plzViewer.refresh();
 		//if (template.equals(Patient.class)) {
 		//	setPatient(null);
 		//}
@@ -380,11 +246,11 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 			
 			//Patient patient = GlobalEvents.getSelectedPatient();
 			//setPatient(patient);
-			plzViewer.refresh();
+			//plzViewer.refresh();
 		} else {
 			GlobalEvents.getInstance().removeSelectionListener(this);
 			//setPatient(null);
-			plzViewer.refresh();
+			//plzViewer.refresh();
 		}
 	};
 	
@@ -414,221 +280,6 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		return true;
 	}
 	
-	private void makeActions(){
-		// Alle Postleitzahlen in die Zwischenablage kopieren
-		exportToClipboardAction = new Action("Export (Zwischenablage)") {
-			{
-				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_EXPORT));
-				setToolTipText("Alle Postleitzahlen in Zwischenablage kopieren");
-			}			
-			public void run(){
-				exportToClipboard();
-			}
-		};
-		exportToClipboardAction.setActionDefinitionId("exportToClipboardAction");
-		GlobalActions.registerActionHandler(this, exportToClipboardAction);
-		
-		// Ausgewählten PLZ-Eintrag in die Zwischenablage kopieren
-		copyAction = new Action("Kopieren") {
-			{
-				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_CLIPBOARD));
-				setToolTipText("Ausgewählten Datensatz in die Zwischenablage kopieren");
-			}
-			public void run(){
-			//	exportToClipboard();
-			}
-		};
-		copyAction.setActionDefinitionId(COMMAND_COPY);
-		GlobalActions.registerActionHandler(this, copyAction);
-		
-		// Ausgewählten PLZ-Eintrag löschen
-		deleteAction = new Action("Löschen...") {
-			{
-				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_DELETE));
-				setToolTipText("Ausgewählte Postleitzahl löschen");
-			}
-			public void run(){
-			// TODO
-			}
-		};
-		deleteAction.setActionDefinitionId(COMMAND_DELETE);
-		GlobalActions.registerActionHandler(this, deleteAction);
-		
-		// Erstellen eines neuen PLZ-Eintrages
-		newAction = new Action("Neue Postleitzahl...") {
-			{
-				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_NEW));
-				setToolTipText("Neue Postleitzahl erfassen");
-			}
-			
-			public void run(){
-//				new PlzDialog(getSite().getShell(), true).open();
-				if (new PlzDialog(getSite().getShell()).open() == Dialog.OK) {
-					plzViewer.refresh();}
-			}
-		};
-		newAction.setActionDefinitionId("NEUE_POSTLEITZAHL");
-		GlobalActions.registerActionHandler(this, newAction);
-		
-		// Importieren von PLZ-Definitionen aus einer csv-Datei
-		importAction = new Action("Importieren...")	{
-			{
-			setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_IMPORT));
-			setToolTipText("Importieren von Postleitzahlen aus Dateien");
-			}
-			public void run(){
-				try {
-					doImport();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		};
-		newAction.setActionDefinitionId("PLZ_IMPORT");
-		GlobalActions.registerActionHandler(this, importAction);
-		
-		// Importieren von Ländern und Regionen aus Wikipedia
-		importFromWiki = new Action("Landdaten importieren aus Wiki...")	{
-			{
-			setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_IMPORT));
-			setToolTipText("Importieren der Land- und Regions-Daten aus Wikipedia");
-			}
-			public void run(){
-				try {
-					extractLandData("de");
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		};
-		newAction.setActionDefinitionId("WIKI_LAND_REGION_IMPORT");
-		GlobalActions.registerActionHandler(this, importFromWiki);
-	}
-	
-	/**
-	 * Exportiert alle Postleitzahlen in die Zwischenablage. 
-	 * Format: tab-delimited, die erste Zeile enthält die Feldnamen
-	 * @param -
-	 * @return -
-	 */
-	private void exportToClipboard(){
-		String clipboardText = "";
-		String lineSeparator = System.getProperty("line.separator");
-		
-		List<Plz> plzs = Plz.getShownPostleitzahlen();
-		StringBuffer sbTable = new StringBuffer();
-		StringBuffer sbHeader = new StringBuffer();
-		
-		// Tabellen-Überschriften erstellen
-		String delimiter = "";
-		for (int i = 0; i < COLUMN_TEXT.length; i++) {
-			sbHeader.append(delimiter);
-			sbHeader.append(COLUMN_TEXT[i]);
-			delimiter = "\t";
-		}
-		sbHeader.append(lineSeparator);
-		sbTable.append(sbHeader);
-		
-		// Tabellen-Inhalt einlesen
-		for (Plz plz : plzs) {
-			delimiter = "";
-			StringBuffer sbLine = new StringBuffer();
-			for (int i = 0; i < COLUMN_TEXT.length; i++) {
-				sbLine.append(delimiter);
-				sbLine.append(plz.getFieldData(DB_COLUMN_TEXT[i]));
-				delimiter = "\t";
-			}
-			sbLine.append(lineSeparator);
-			sbTable.append(sbLine);
-		}		
-		clipboardText = sbTable.toString();
-		
-		// Daten ins Clipboard kopieren
-		Clipboard clipboard = new Clipboard(Desk.getDisplay());
-		TextTransfer textTransfer = TextTransfer.getInstance();
-		Transfer[] transfers = new Transfer[] {
-			textTransfer
-		};
-		Object[] data = new Object[] {
-			clipboardText
-		};
-		clipboard.setContents(data, transfers);
-		clipboard.dispose();
-	}
-
-	public void doImport() 	{
-		FileDialog fd = new FileDialog(getSite().getShell(),SWT.OPEN);
-		fd.setFilterExtensions(new String[]{"*.csv", "*.xls", "*.*"});
-		fd.setFilterNames(new String[]{"Comma Separated Values", "Excel-Dateien", "Alle Dateien"});
-		String fileName = fd.open();
-		if (fileName == null) {
-			return;
-		}
-		if (fileName.endsWith(".xls")) {
-			importExcel(fileName);
-		} else if (fileName.endsWith(".csv")) {
-			importCSV(fileName);
-		} else {
-			// TODO
-		}
-	}
-/*
-		/////
-		FileDialog fd = new FileDialog(getSite().getShell(),SWT.OPEN);
-		fd.setFilterExtensions(new String[]{"*.csv", "*.xls", "*.*"});
-		fd.setFilterNames(new String[]{"Comma Separated Values", "Excel-Dateien", "Alle Dateien"});
-		String fileName = fd.open();
-		if (fileName == null) {
-			return;
-		}
-		InputStreamReader isr=new InputStreamReader(new FileInputStream(fileName),SRC_ENCODING);
-		CSVReader reader = new CSVReader(isr);
-	    String [] line;
-		//monitor.subTask("Postleitzahlen einlesen");
-	    while ((line = reader.readNext()) != null) {
-	    	// TODO hier könnte man noch ggf ; durch , ersetzen (Excel!)
-	    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
-			new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
-			//monitor.worked(1);
-		}
-		//monitor.done();
-		}
-*/
-	private void importExcel(final String file){
-		ExcelWrapper xl = new ExcelWrapper();
-		if (!xl.load(file, 0)) {
-			return;
-		}
-		for (int i = xl.getFirstRow(); i <= xl.getLastRow(); i++) {
-			List<String> row = xl.getRow(i);
-			//importLine(row.toArray(new String[0]));
-			String[] line;
-			line = row.toArray(new String[0]);
-	    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
-			new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
-		}
-		return;
-	}
-	
-	private void importCSV(final String file){
-		try {
-			CSVReader cr = new CSVReader(new FileReader(file));
-			String[] line;
-			while ((line = cr.readNext()) != null) {
-				//importLine(line);
-		    	// TODO hier könnte man noch ggf ; durch , ersetzen (Excel -> csv !)
-		    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
-				new Plz(line[0], line[1], line[2], line[3], line[4], line[5], line[6]);
-			}
-			return;
-		} catch (Exception ex) {
-			ExHandler.handle(ex);
-			return;
-		}
-		
-	}
 	
 	/***************************************************************************/
 	/***************************************************************************/
@@ -1135,5 +786,350 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 			return input.substring(0, count);
 		}
 	}
+	
+	
+	/**
+	 * 
+	 * @param countryIso2: Land, in welchem nach der Postleitzahl gesucht werden soll
+	 * @param postalCode: Postleitzahl, für welche der Ort gefunden werden soll
+	 * @param language: Resultat in dieser Sprache ausgeben
+	 * @return String[]: String-Array aller passenden Einträge, null, wenn nichts gefunden
+	 */
+	public static String[] geoNames_PlaceNameFromPostalCode(final String countryIso2,
+															final String postalCode,
+															final String language)	{
+		// Initialisieren Result
+		String[] result = null;
 		
+		// *** minimales Fehlerhandling, damit unnötige Abfragen schon mal vermieden werden
+		// countryIso2 muss 2 Zeichen lang sein
+		if (countryIso2.length() != 2)	{
+			return null;
+		}
+		// darf nicht null oder leer sein
+		if ((postalCode.equals("")) || (postalCode == null))	{
+			return null;
+		}
+		// language muss 2 Zeichen lang sein
+		if (language.length() != 2)	{
+			return null;
+		}
+		
+		// *** Erstellen der URL für die Abfrage
+		String url = "http://ws.geonames.org/postalCodeSearch?postalcode=" + postalCode + "&country=" + countryIso2 + "lang=" + language + "&style=full";
+		
+		try {
+			Node		n;
+			Node		currN;
+			NodeList	nList;
+			NodeList	nListSub;
+			
+			File	file;
+			
+			// den Parser anzapfen
+			DOMParser p = new DOMParser();
+			// den Inhalt einlesen
+			p.parse(url);
+			Document doc = p.getDocument();
+			
+			// next
+			n = doc.getDocumentElement().getFirstChild();
+			n = n.getNextSibling();
+			nList = n.getParentNode().getChildNodes();
+			for (int i = 0; i < nList.getLength(); i++)	{
+				currN = nList.item(i);
+				String currNodeName = currN.getNodeName();
+				if (currNodeName.equals("#text") == false)	{
+					if (currNodeName.equals("code") == false)	{
+						System.out.println("Child " + i + " Name:      " + currN.getNodeName());
+						System.out.println("Child " + i + " Type:      " + currN.getNodeType());
+						System.out.println("Child " + i + " String:    " + currN.getNodeValue());
+						System.out.println("Child " + i + " Text:      " + currN.getTextContent());
+						System.out.println("Child " + i + " LocalName: " + currN.getLocalName());
+					}
+					nListSub = currN.getChildNodes();
+					for (int j = 0; j < nListSub.getLength(); j++)	{
+						currN = nListSub.item(j);
+						if (currN.getNodeName().equals("#text") == false)	{
+							System.out.println("Child " + i + " Name:      " + currN.getNodeName());
+							System.out.println("Child " + i + " Type:      " + currN.getNodeType());
+							System.out.println("Child " + i + " String:    " + currN.getNodeValue());
+							System.out.println("Child " + i + " Text:      " + currN.getTextContent());
+							System.out.println("Child " + i + " LocalName: " + currN.getLocalName());
+						}
+					}
+				}
+				
+			}
+		} catch (SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	/*	try {
+			Node n;
+			Node currN;
+			NodeList nList;
+			NodeList nListSub;
+			DOMParser p = new DOMParser();
+			p.parse(xmlDoc);
+			Document doc = p.getDocument();
+			
+			// Anzahl gefundener Einträge <totalResultsCount>
+			n = doc.getDocumentElement().getFirstChild();
+			n = n.getNextSibling();
+			//System.out.println("Anzahl gefundener Einträge: " + n.getNodeName());
+			
+			// next
+			nList = n.getParentNode().getChildNodes();
+			System.out.println("Und nun: " + nList.getLength());
+			for (int i = 0; i < nList.getLength(); i++)	{
+				currN = nList.item(i);
+				String currNodeName = currN.getNodeName();
+				if (currNodeName.equals("#text") == false)	{
+					if (currNodeName.equals("code") == false)	{
+						System.out.println("Child " + i + " Name:      " + currN.getNodeName());
+						System.out.println("Child " + i + " Type:      " + currN.getNodeType());
+						System.out.println("Child " + i + " String:    " + currN.getNodeValue());
+						System.out.println("Child " + i + " Text:      " + currN.getTextContent());
+						System.out.println("Child " + i + " LocalName: " + currN.getLocalName());
+					}
+					nListSub = currN.getChildNodes();
+					for (int j = 0; j < nListSub.getLength(); j++)	{
+						currN = nListSub.item(j);
+						if (currN.getNodeName().equals("#text") == false)	{
+							System.out.println("Child " + i + " Name:      " + currN.getNodeName());
+							System.out.println("Child " + i + " Type:      " + currN.getNodeType());
+							System.out.println("Child " + i + " String:    " + currN.getNodeValue());
+							System.out.println("Child " + i + " Text:      " + currN.getTextContent());
+							System.out.println("Child " + i + " LocalName: " + currN.getLocalName());
+						}
+					}
+				}
+				
+			}
+		}
+		*/
+		return result;
+	}
+	
+	
+	public static void xmlParser(final String xmlDoc) {
+		try {
+			Node n;
+			Node currN;
+			NodeList nList;
+			NodeList nListSub;
+			DOMParser p = new DOMParser();
+			p.parse(xmlDoc);
+			Document doc = p.getDocument();
+					
+			/*
+			 * <>
+			 * 
+			 * 
+			 */
+			
+			// Anzahl gefundener Einträge <totalResultsCount>
+			//System.out.println("root: " + doc.getFirstChild().getNodeName());
+			
+			// Anzahl gefundener Einträge <totalResultsCount>
+			n = doc.getDocumentElement().getFirstChild();
+			n = n.getNextSibling();
+			//System.out.println("Anzahl gefundener Einträge: " + n.getNodeName());
+			
+			// next
+			nList = n.getParentNode().getChildNodes();
+			System.out.println("Und nun: " + nList.getLength());
+			for (int i = 0; i < nList.getLength(); i++)	{
+				currN = nList.item(i);
+				String currNodeName = currN.getNodeName();
+				if (currNodeName.equals("#text") == false)	{
+					if (currNodeName.equals("code") == false)	{
+						System.out.println("Child " + i + " Name:      " + currN.getNodeName());
+						System.out.println("Child " + i + " Type:      " + currN.getNodeType());
+						System.out.println("Child " + i + " String:    " + currN.getNodeValue());
+						System.out.println("Child " + i + " Text:      " + currN.getTextContent());
+						System.out.println("Child " + i + " LocalName: " + currN.getLocalName());
+					}
+					nListSub = currN.getChildNodes();
+					for (int j = 0; j < nListSub.getLength(); j++)	{
+						currN = nListSub.item(j);
+						if (currN.getNodeName().equals("#text") == false)	{
+							System.out.println("Child " + i + " Name:      " + currN.getNodeName());
+							System.out.println("Child " + i + " Type:      " + currN.getNodeType());
+							System.out.println("Child " + i + " String:    " + currN.getNodeValue());
+							System.out.println("Child " + i + " Text:      " + currN.getTextContent());
+							System.out.println("Child " + i + " LocalName: " + currN.getLocalName());
+						}
+					}
+				}
+				
+			}
+			
+			
+			/*Node n = doc.getDocumentElement().getFirstChild();
+			while (n!=null && !n.getNodeName().equals("totalResultsCount")) 
+				n = n.getNextSibling();
+			PrintStream out = System.out;
+			out.println("<?xml version=\"1.0\"?>");
+			out.println("<totalResultsCount>");
+			if (n!=null)
+				print(n, out);
+			*/
+			System.out.println("</code>");
+			
+		} catch (Exception e)	{
+			e.printStackTrace();
+		}
+	}
+
+	
+	static void print(Node node, PrintStream out) {
+		    int type = node.getNodeType();
+		    switch (type) {
+		      case Node.ELEMENT_NODE:
+		        out.print("<" + node.getNodeName());
+		        NamedNodeMap attrs = node.getAttributes();
+		        int len = attrs.getLength();
+		        for (int i=0; i<len; i++) {
+		            Attr attr = (Attr)attrs.item(i);
+		            out.print(" " + attr.getNodeName() + "=\"" +
+		                      escapeXML(attr.getNodeValue()) + "\"");
+		        }
+		        out.print('>');
+		        NodeList children = node.getChildNodes();
+		        len = children.getLength();
+		        for (int i=0; i<len; i++)
+		          print(children.item(i), out);
+		        out.print("</" + node.getNodeName() + ">");
+		        break;
+		      case Node.ENTITY_REFERENCE_NODE:
+		        out.print("&" + node.getNodeName() + ";");
+		        break;
+		      case Node.CDATA_SECTION_NODE:
+		        out.print("<![CDATA[" + node.getNodeValue() + "]]>");
+		        break;
+		      case Node.TEXT_NODE:
+		        out.print(escapeXML(node.getNodeValue()));
+		        break;
+		      case Node.PROCESSING_INSTRUCTION_NODE:
+		        out.print("<?" + node.getNodeName());
+		        String data = node.getNodeValue();
+		        if (data!=null && data.length()>0)
+		           out.print(" " + data);
+		        out.println("?>");
+		        break;
+		    }
+		  }
+
+		  static String escapeXML(String s) {
+		    StringBuffer str = new StringBuffer();
+		    int len = (s != null) ? s.length() : 0;
+		    for (int i=0; i<len; i++) {
+		       char ch = s.charAt(i);
+		       switch (ch) {
+		       case '<': str.append("&lt;"); break;
+		       case '>': str.append("&gt;"); break;
+		       case '&': str.append("&amp;"); break;
+		       case '"': str.append("&quot;"); break;
+		       case '\'': str.append("&apos;"); break;
+		       default: str.append(ch);
+		     }
+		    }
+		    return str.toString();
+		  }
+	public void tmp(final String countryCode, final String tempDir)	{
+		String downloadLoc;
+		String theFileName;
+		
+		// die Datei in das Temp downloaden
+		theFileName = countryCode + ".zip";
+		downloadLoc = "http://download.geonames.org/export/dump/";
+		FileDataDownload.FileDownload(downloadLoc + theFileName, theFileName, tempDir);
+		// den Inhalt des zip-Files in Temp dekomprimieren
+		zipReader(tempDir + theFileName, countryCode + ".txt", tempDir);
+		
+		// die Datei in das Temp downloaden
+		String srcFileName = countryCode + ".zip";
+		String dstFileName = countryCode + "zip.zip";
+		downloadLoc = "http://download.geonames.org/export/zip/";
+		FileDataDownload.FileDownload(downloadLoc + srcFileName, dstFileName, tempDir);
+		// den Inhalt des zip-Files in Temp dekomprimieren
+		zipReader(tempDir + dstFileName, countryCode + "zip.txt", tempDir);
+		importTabDelimited(tempDir + countryCode + "zip.txt");
+	}
+	
+	private void importTabDelimited(final String file){
+		try {
+			char delimiter = (char)9;
+			CSVReader cr = new CSVReader(new FileReader(file), delimiter);
+			String[] line;
+			while ((line = cr.readNext()) != null) {
+				//importLine(line);
+		    	// TODO hier könnte man noch ggf ; durch , ersetzen (Excel -> csv !)
+		    	//line = StringTool.convertEncoding(line, SRC_ENCODING);
+				new Plz(line[0],	// Land (+)
+						line[0],	// LandIso2 +
+						line[1],	// Plz +
+						line[2],	// Ort +
+						"",			// Strasse (+)
+						line[3],	// Kanton +
+						line[4]);	// KantonKuerzel +
+/*
+00 country code      : iso country code, 2 characters
+01 postal code       : varchar(10)
+02 place name        : varchar(180)
+03 admin name1       : 1. order subdivision (state) varchar(100)
+04 admin code1       : 1. order subdivision (state) varchar(20)
+05 admin name2       : 2. order subdivision (county/province) varchar(100)
+06 admin code2       : 2. order subdivision (county/province) varchar(20)
+07 admin name3       : 3. order subdivision (community) varchar(100)
+08 atitude          : estimated latitude (wgs84)
+09 longitude         : estimated longitude (wgs84)
+10 accuracy          : accuracy of lat/lng from 1=estimated to 6=centroid
+*/
+			}
+			return;
+		} catch (Exception ex) {
+			ExHandler.handle(ex);
+			return;
+		}
+		
+	}
+
+	public void readIntoDB(final String file)	{
+		try {
+			FileReader fr = new FileReader(file);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+	}
+	public void zipReader(final String zipFile, final String dataFileName, final String tempDir)	{
+		ZipInputStream inStream;
+		try {
+			inStream = new ZipInputStream(new FileInputStream(zipFile));
+			byte[] buffer = new byte[1024];
+			int read;
+			ZipEntry entry;
+			while ((entry = inStream.getNextEntry()) != null) {
+				OutputStream outStream = new FileOutputStream(tempDir + dataFileName);
+				while ((read = inStream.read(buffer)) > 0) {
+					outStream.write(buffer, 0, read);
+				}
+				outStream.close();
+			}
+			inStream.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 }

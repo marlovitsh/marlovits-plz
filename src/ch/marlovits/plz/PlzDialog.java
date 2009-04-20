@@ -10,6 +10,7 @@ import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
@@ -230,6 +231,8 @@ public class PlzDialog extends TitleAreaDialog {
 		
 		// alle Felder neu anlegen
 		String landIso2 = landIso2Field.getText();
+		int maxWidth  = 0;
+		int theHeight = 0;
 		for (int kantonIndex=0; kantonIndex<numOfRegions; kantonIndex++)	{
 			// Label
 			Label tmpLabel = new Label(top, SWT.NONE);
@@ -253,6 +256,9 @@ public class PlzDialog extends TitleAreaDialog {
 			tmpCombo1.setData("kantonsListe", tmpKantonsListeName);
 			comboIsoKantonArray[kantonIndex] = tmpCombo1;
 			tmpCombo1.addModifyListener(kantonIsoModifyListener);
+			Point currSize = tmpCombo1.getSize();
+			theHeight = currSize.y;
+			maxWidth  = (currSize.x > maxWidth) ? currSize.x : maxWidth;
 			
 			// Combo für KantonName
 			Combo tmpCombo2 = new Combo(tmpComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
@@ -264,6 +270,11 @@ public class PlzDialog extends TitleAreaDialog {
 			
 			// link back
 			tmpCombo1.setData("linkedCombo", tmpCombo2);
+		}
+		for (int kantonIndex=0; kantonIndex<numOfRegions; kantonIndex++)	{
+			compKantonArray[kantonIndex].setSize(maxWidth, theHeight);
+			compKantonArray[kantonIndex].setBounds(0, 0, maxWidth, theHeight);
+			//compKantonArray[kantonIndex].pack();
 		}
 		top.pack();
 	}
