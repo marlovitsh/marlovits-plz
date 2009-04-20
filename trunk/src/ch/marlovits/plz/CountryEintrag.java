@@ -26,7 +26,7 @@ public class CountryEintrag extends PersistentObject {
 		"id					character varying(25) NOT NULL,	" +
 		"iso2				character(2),					" + // innerhalb Elexis gebraucht
 		"iso3				character(3),					" +
-		"isonum				int,							" +
+		"isonum				integer,						" +
 		"fips				character(2),					" + // US-Variante
 		"name				character varying,				" +
 		"tld				character(3),					" + // top level domain
@@ -63,7 +63,7 @@ public class CountryEintrag extends PersistentObject {
 		addMapping(	TABLENAME,
 					"Iso2=iso2",
 					"Iso3=iso3",
-					"Isonum=isonum",
+					"S:N:Isonum=isonum",
 					"Fips=fips",
 					"Name=name",
 					"Tld=tld",
@@ -125,16 +125,16 @@ public class CountryEintrag extends PersistentObject {
 		create(null);
 		set(new String[]{"Iso2", "Iso3", "Fips", "Name", "Tld", "Currencycode", "Currencyname", "Phone", "Postalcodeformat", "Postalcoderegex", "Languages", "Neigbours", "Entrylanguage"},
 			new String[]{ iso2,   iso3,   fips,   name,   tld,   currencyCode,   currencyName,   phone,   postalCodeFormat,   postalCodeRegex,   languages,   neigbours,   entryLanguage});
-		setIsoNum(isoNum);
 		setGeoNameId(geonameId);
+		setIsoNum(isoNum);
 	}
 	
 	public void setIsoNum(final int isoNum)	{
-		super.setInt("Isonum", isoNum);
+		super.setInt("S:N:Isonum", isoNum);
 	}
 	
 	public void setGeoNameId(final int geoNameId)	{
-		super.setInt("Geonameid", geoNameId);
+		super.setInt("S:N:Geonameid", geoNameId);
 	}
 	
 	public String toString() {
