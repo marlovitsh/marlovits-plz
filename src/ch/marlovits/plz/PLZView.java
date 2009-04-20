@@ -110,6 +110,7 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 	private Action newAction;
 	private Action importAction;
 	private Action importFromWiki;
+	private Action testingAction;
 	
 	// column indices
 	private static final int COL_LAND            = 0;
@@ -311,7 +312,7 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		
 		// Erstellen des ViewMenus
 		ViewMenus menu = new ViewMenus(getViewSite());
-		menu.createMenu(exportToClipboardAction, null, copyAction, null, importFromWiki);
+		menu.createMenu(exportToClipboardAction, null, copyAction, null, importFromWiki, null, testingAction);
 		
 		// Erstellen des KontextMenus
 		menu.createViewerContextMenu(plzViewer, newAction, null, copyAction, deleteAction, null, importAction);
@@ -505,6 +506,28 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		};
 		newAction.setActionDefinitionId("WIKI_LAND_REGION_IMPORT");
 		GlobalActions.registerActionHandler(this, importFromWiki);
+		
+		// Importieren von Ländern und Regionen aus Wikipedia
+		testingAction = new Action("Testing...")	{
+			{
+			setToolTipText("Aufruf der Testroutine");
+			}
+			public void run(){
+				try {
+					testingAction();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		};
+		testingAction.setActionDefinitionId("CH_MARLOVITS_PLU_TESTINGACTION");
+		GlobalActions.registerActionHandler(this, testingAction);
+	}
+	
+	public void testingAction()	{
+		OpenGeoDB openGeoDB = new OpenGeoDB();
+		openGeoDB.createOpenGeoDBTables();
 	}
 	
 	/**
