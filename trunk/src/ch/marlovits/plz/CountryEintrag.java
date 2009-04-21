@@ -13,6 +13,7 @@
 
 package ch.marlovits.plz;
 
+import ch.elexis.data.Patient;
 import ch.elexis.data.PersistentObject;
 
 public class CountryEintrag extends PersistentObject {
@@ -63,7 +64,7 @@ public class CountryEintrag extends PersistentObject {
 		addMapping(	TABLENAME,
 					"Iso2=iso2",
 					"Iso3=iso3",
-					"S:N:Isonum=isonum",
+					"Isonum=S:N:isonum",
 					"Fips=fips",
 					"Name=name",
 					"Tld=tld",
@@ -73,13 +74,13 @@ public class CountryEintrag extends PersistentObject {
 					"Postalcodeformat=postalcodeformat",
 					"Postalcoderegex=postalcoderegex",
 					"Languages=languages",
-					"Geonameid=geonameid",
+					"Geonameid=S:N:geonameid",
 					"Neigbours=neigbours",
 					"Entrylanguage=entrylanguage",
 					"Postalcodemessage=postalcodemessage",
-					"Landsorting=landsorting",
-					"Strasseerlaubt=strasseerlaubt",
-					"Kantonauswaehlen=kantonauswaehlen",
+					"Landsorting=S:N:landsorting",
+					"Strasseerlaubt=S:N:strasseerlaubt",
+					"Kantonauswaehlen=S:N:kantonauswaehlen",
 					"Deleted=deleted",
 					"Lastupdate=lastupdate");
 		
@@ -123,18 +124,12 @@ public class CountryEintrag extends PersistentObject {
 						  String neigbours,
 						  String entryLanguage) {
 		create(null);
-		set(new String[]{"Iso2", "Iso3", "Fips", "Name", "Tld", "Currencycode", "Currencyname", "Phone", "Postalcodeformat", "Postalcoderegex", "Languages", "Neigbours", "Entrylanguage"},
-			new String[]{ iso2,   iso3,   fips,   name,   tld,   currencyCode,   currencyName,   phone,   postalCodeFormat,   postalCodeRegex,   languages,   neigbours,   entryLanguage});
-		setGeoNameId(geonameId);
-		setIsoNum(isoNum);
+		set(new String[]{"Iso2", "Iso3",   "Isonum", "Fips", "Name", "Tld", "Currencycode", "Currencyname", "Phone", "Postalcodeformat", "Postalcoderegex", "Languages",   "Geonameid", "Neigbours", "Entrylanguage"},
+			new String[]{ iso2,   iso3,  ""+isoNum,   fips,   name,   tld,   currencyCode,   currencyName,   phone,   postalCodeFormat,   postalCodeRegex,   languages,  ""+geonameId,   neigbours,   entryLanguage});
 	}
 	
-	public void setIsoNum(final int isoNum)	{
-		super.setInt("S:N:Isonum", isoNum);
-	}
-	
-	public void setGeoNameId(final int geoNameId)	{
-		super.setInt("S:N:Geonameid", geoNameId);
+	protected CountryEintrag(final String id){
+		super(id);
 	}
 	
 	public String toString() {
@@ -172,4 +167,12 @@ public class CountryEintrag extends PersistentObject {
 	public String getCountryName(){
 		return get("Name");
 	}
+	/**
+	 * Importiert von GeoNames die aktuelle Iso-Länderliste. 
+	 * Falls schon Einträge vorhanden sind, werden alle als deleted markiert.
+	 * Für jeden neuen Eintrag wird der alte gelöscht (Iso2 ist gleich)
+	 * Auf diese Weise wird die Liste aktualisiert; wenn Länder in der Source-Liste
+	 * gelöscht werden, dann verbleibt der Eintrag als gelöscht in der Datenbank.
+	 * So bleiben Referenzen gültig, das Land kann aber nicht mehr neu ausgewählt werden.
+	 */
 }
