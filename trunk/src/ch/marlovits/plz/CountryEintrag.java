@@ -13,7 +13,6 @@
 
 package ch.marlovits.plz;
 
-import ch.elexis.data.Patient;
 import ch.elexis.data.PersistentObject;
 
 public class CountryEintrag extends PersistentObject {
@@ -106,38 +105,49 @@ public class CountryEintrag extends PersistentObject {
 		}
 		*/
 	}
-	
-	// Erstellen eines Eintrages in der Datenbank
-	public CountryEintrag(String iso2,
-						  String iso3,
-						  int    isoNum,
-						  String fips,
-						  String name,
-						  String tld,
-						  String currencyCode,
-						  String currencyName,
-						  String phone,
-						  String postalCodeFormat,
-						  String postalCodeRegex,
-						  String languages,
-						  int    geonameId,
-						  String neigbours,
-						  String entryLanguage) {
-		create(null);
+		
+	/**
+	 * Aktualisierung eines Eintrages in der Datenbank
+	 * @param iso2, iso3, isoNum, fips, name, tld, currencyCode, currencyName, phone, 
+	 * @param postalCodeFormat, postalCodeRegex, languages, geonameId, neigbours, entryLanguage
+	 */
+	public void updateEntry(String iso2,
+							String iso3,
+							int    isoNum,
+							String fips,
+							String name,
+							String tld,
+							String currencyCode,
+							String currencyName,
+							String phone,
+							String postalCodeFormat,
+							String postalCodeRegex,
+							String languages,
+							int    geonameId,
+							String neigbours,
+							String entryLanguage)	{
 		set(new String[]{"Iso2", "Iso3",   "Isonum", "Fips", "Name", "Tld", "Currencycode", "Currencyname", "Phone", "Postalcodeformat", "Postalcoderegex", "Languages",   "Geonameid", "Neigbours", "Entrylanguage"},
 			new String[]{ iso2,   iso3,  ""+isoNum,   fips,   name,   tld,   currencyCode,   currencyName,   phone,   postalCodeFormat,   postalCodeRegex,   languages,  ""+geonameId,   neigbours,   entryLanguage});
 	}
 	
-	protected CountryEintrag(final String id){
+	/**
+	 * Constructor: erstellt einen neuen Eintrag in der Datenbank, lediglich mit der ID. 
+	 * Die ID besteht aus dem Iso2-Ländercode und der Sprache. 
+	 * Diese Kombination darf jeweils nur einmal vorkommen. 
+	 * Ein etwas "falscher"/seltsamer Constructor: falls die ID schon in der Datenbank vorhanden ist, dann wird
+	 * dieser CountryEintrag verwendet, falls noch nicht vorhanden, dann wird ein neuer Eintrag in der 
+	 * Datenbank erstellt.
+	 * @param id: Iso2_Language, zBsp: CH_de
+	 */
+	public CountryEintrag(final String id){
 		super(id);
+		if (!exists())	{
+			create(id);
+		}
 	}
 	
 	public String toString() {
-/*		return getName() + ", " + getZusatz() + ", " + getAdresse() + ", " //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-				+ getPlz() + " " + getOrt() + " " + getTelefon(); //$NON-NLS-1$ //$NON-NLS-2$
-	*/
-		System.out.print("toString() in LandIsoEntry not implemented");
-		return "toString not implemented";
+		return super.toString();
 	}
 
 	@Override
@@ -154,25 +164,10 @@ public class CountryEintrag extends PersistentObject {
 		return TABLENAME;
 	}
 	
-	
-	/*
-	public static CountryEintrag load(String id){
-		//return new LandEintrag(id, "", "", "", "", "", "", "", "");
-		return new CountryEintrag( "dummylandname", "", "", "", "", "", "", "", "", "", "", "", "", "", "");
-	}
-	*/
 	/**
 	 * Name des Landes zurückgeben
 	 */
 	public String getCountryName(){
 		return get("Name");
 	}
-	/**
-	 * Importiert von GeoNames die aktuelle Iso-Länderliste. 
-	 * Falls schon Einträge vorhanden sind, werden alle als deleted markiert.
-	 * Für jeden neuen Eintrag wird der alte gelöscht (Iso2 ist gleich)
-	 * Auf diese Weise wird die Liste aktualisiert; wenn Länder in der Source-Liste
-	 * gelöscht werden, dann verbleibt der Eintrag als gelöscht in der Datenbank.
-	 * So bleiben Referenzen gültig, das Land kann aber nicht mehr neu ausgewählt werden.
-	 */
 }
