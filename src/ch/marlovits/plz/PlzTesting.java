@@ -174,7 +174,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		}
 
 		public void focusLost(FocusEvent e) {
-			DataImporter.importCountryData();
+			DataImporter.importCountryData("it");
 		}
 			//tmp("CH", "C:\\Temp\\");
 /*			String land	= landIso2Field.getText().toString();
