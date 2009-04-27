@@ -20,6 +20,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
@@ -35,6 +36,8 @@ import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.part.ViewPart;
+import org.geonames.PostalCode;
+import org.geonames.WebService;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -43,18 +46,25 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import au.com.bytecode.opencsv.CSVReader;
+import ch.elexis.Desk;
 import ch.elexis.actions.GlobalActions;
 import ch.elexis.actions.GlobalEvents;
 import ch.elexis.actions.GlobalEvents.ActivationListener;
 import ch.elexis.actions.GlobalEvents.SelectionListener;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
+import ch.elexis.util.ViewMenus;
 import ch.rgw.tools.ExHandler;
 
 import com.sun.org.apache.xerces.internal.parsers.DOMParser;
 
 public class PlzTesting extends ViewPart implements SelectionListener, ActivationListener,
 		ISaveablePart2 {
+	
+	private Action testingAction;
+	private Action importNamesAction;
+	private Action importCountriesAction;
+	private Action importTabDelimitedAction;
 	
 	private static final String SRC_ENCODING				= "UTF-8";
 	public static final String ID							= "ch.marlovits.plz.PLZView";
@@ -94,16 +104,20 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	private Text plzField;
 	private Text ort;
 	private FocusListener plzFocusListener;
+	private FocusListener ortFocusListener;
 	
 	public PlzTesting() {
 		super();
 		landModifyListener   = new LandModifyListener();
+		plzFocusListener   = new PlzFocusListener();
+		ortFocusListener   = new OrtFocusListener();
 	}
 
 	public void createPartControl(Composite parent){
 		landModifyListener   = new LandModifyListener();
 		plzFocusListener   =   new PlzFocusListener();
-
+		ortFocusListener   = new OrtFocusListener();
+		
 		top = new Composite(parent, SWT.NONE);
 		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
 		top.setLayout(new GridLayout(2, false));
@@ -152,11 +166,11 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		//this.form.setText("Harrys Postleitzahlen aus OpenNames");		
 		
 		// Erstellen der Actions für die Menus, etc
-		//makeActions();
+		makeActions();
 		
 		// Erstellen des ViewMenus
-		//ViewMenus menu = new ViewMenus(getViewSite());
-		//menu.createMenu(exportToClipboardAction, null, copyAction, null, importFromWiki);
+		ViewMenus menu = new ViewMenus(getViewSite());
+		menu.createMenu(testingAction, importCountriesAction, importNamesAction, importTabDelimitedAction);
 		
 		// Erstellen des KontextMenus
 		//menu.createViewerContextMenu(plzViewer, newAction, null, copyAction, deleteAction, null, importAction);
@@ -166,6 +180,70 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		//GlobalEvents.getInstance().addActivationListener(this, this);
 		cbLandCombo.addModifyListener(landModifyListener);
 		plzField.addFocusListener(plzFocusListener);
+		ort.addFocusListener(ortFocusListener);
+		
+	}
+	
+	private void makeActions(){
+		// Tester Menu Item
+		testingAction = new Action("Testing") {
+			{
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_REFRESH));
+				setToolTipText("Testing Methods");
+			}			
+			public void run(){
+				String[][] tmp = DataImporter.getLanguagesTable("de");
+				for (int i = 0; i < tmp.length; i++)	{
+					for (int j = 0; j < 3; j++)	{
+						System.out.print(tmp[i][j] + "  ");
+					}
+					System.out.println();
+				}
+			}
+		};
+		testingAction.setActionDefinitionId("testingAction");
+		GlobalActions.registerActionHandler(this, testingAction);
+		
+		// alle Names importieren
+		importNamesAction = new Action("Names importieren") {
+			{
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_IMPORT));
+				setToolTipText("Übersetzungen importieren (dauert lange!!!)");
+			}			
+			public void run(){
+				DataImporter.importNameData();
+			}
+		};
+		importNamesAction.setActionDefinitionId("importNamesAction");
+		GlobalActions.registerActionHandler(this, importNamesAction);
+		
+		// alle Names importieren
+		importCountriesAction = new Action("Länder importieren") {
+			{
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_IMPORT));
+				setToolTipText("Länder Iso-Daten importieren (dauert lange!!!)");
+			}			
+			public void run(){
+				DataImporter.importCountryData("en,de,it,fr");
+			}
+		};
+		importCountriesAction.setActionDefinitionId("importCountriesAction");
+		GlobalActions.registerActionHandler(this, importCountriesAction);
+		
+		// alle Names importieren
+		importTabDelimitedAction = new Action("Postleitzahlen importieren") {
+			{
+				setImageDescriptor(Desk.getImageDescriptor(Desk.IMG_IMPORT));
+				setToolTipText("Importieren PLZ Schweiz");
+			}			
+			public void run(){
+				DataImporter.importTabDelimited();
+			}
+		};
+		importTabDelimitedAction.setActionDefinitionId("importTabDelimitedAction");
+		GlobalActions.registerActionHandler(this, importTabDelimitedAction);
+		
+		
 	}
 	
 	class PlzFocusListener implements FocusListener	{
@@ -174,16 +252,50 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		}
 
 		public void focusLost(FocusEvent e) {
-			DataImporter.importCountryData("it");
-		}
 			//tmp("CH", "C:\\Temp\\");
-/*			String land	= landIso2Field.getText().toString();
+			String land	= landIso2Field.getText().toString();
 			String plz	= plzField.getText().toString();
 			String lang	= "de";
-			String[] result = geoNames_PlaceNameFromPostalCode(land, plz, lang);
-			System.out.print(result);
+			
+			List<PostalCode> postalCode;
+			try {
+				postalCode = WebService.postalCodeSearch(plz, "", land);
+				String resultText = "";
+				for (int i = 0; i < postalCode.size(); i++)	{
+					resultText = resultText + postalCode.get(i).getPlaceName() + " / ";
+				}
+				ort.setText(resultText);
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
-*/		
+	}
+	
+	class OrtFocusListener implements FocusListener	{
+		public void focusGained(FocusEvent e) {
+			// nichts
+		}
+
+		public void focusLost(FocusEvent e) {
+			//tmp("CH", "C:\\Temp\\");
+			String land	= landIso2Field.getText().toString();
+			String lOrt	= ort.getText().toString();
+			String lang	= "de";
+			
+			List<PostalCode> postalCode;
+			try {
+				postalCode = WebService.postalCodeSearch("", lOrt, land);
+				String resultText = "";
+				for (int i = 0; i < postalCode.size(); i++)	{
+					resultText = resultText + postalCode.get(i).getPostalCode() + " / ";
+				}
+				plzField.setText(resultText);
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
 	}
 	
 	class LandModifyListener implements ModifyListener	{
