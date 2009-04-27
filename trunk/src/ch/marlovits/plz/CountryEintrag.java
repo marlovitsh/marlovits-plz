@@ -132,10 +132,10 @@ public class CountryEintrag extends PersistentObject {
 	
 	/**
 	 * Constructor: erstellt einen neuen Eintrag in der Datenbank, lediglich mit der ID. 
-	 * Die ID besteht aus dem Iso2-Ländercode und der Sprache. 
+	 * Die ID besteht aus dem Iso2-Ländercode und der Sprache, getrennt durch einen Underscore. 
 	 * Diese Kombination darf jeweils nur einmal vorkommen. 
-	 * Ein etwas "falscher"/seltsamer Constructor: falls die ID schon in der Datenbank vorhanden ist, dann wird
-	 * dieser CountryEintrag verwendet, falls noch nicht vorhanden, dann wird ein neuer Eintrag in der 
+	 * Dies ist ein etwas "falscher"/seltsamer Constructor: falls die ID schon in der Datenbank vorhanden 
+	 * ist, dann wird dieser CountryEintrag verwendet, falls noch nicht vorhanden, dann wird ein neuer Eintrag in der 
 	 * Datenbank erstellt.
 	 * @param id: Iso2_Language, zBsp: CH_de
 	 */
@@ -164,6 +164,9 @@ public class CountryEintrag extends PersistentObject {
 		return TABLENAME;
 	}
 	
+	static String getTableName1()	{
+		return TABLENAME;
+	}
 	/**
 	 * Name des Landes zurückgeben
 	 */
