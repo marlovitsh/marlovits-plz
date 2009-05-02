@@ -240,11 +240,17 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
+				List<PlzEintrag> plzList = PlzSearch.searchGeoNames(landIso2Field.getText(),
 						plzField.getText(),
 						ortField.getText(),
 						false,
 						"Land", "Plz", "Ort27");
+				
+				/*List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
+						plzField.getText(),
+						ortField.getText(),
+						false,
+						"Land", "Plz", "Ort27");*/
 				SWTHelper.alert("Alert...", "" + plzList.size());
 				SWTHelper.alert("ddd", plzList.get(0).get("Ort27"));
 				}

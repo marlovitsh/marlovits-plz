@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.geonames.PostalCode;
 import org.geonames.WebService;
+import org.jdom.Element;
 
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Query;
@@ -126,19 +127,21 @@ class PlzSearch	{
 												  final String... orderBy)	{
 		List<PostalCode> postalCodes;
 		List<PlzEintrag> plzs = new ArrayList();
-
-		PlzEintrag plz = new PlzEintrag();
 		
 		try {
 			postalCodes = WebService.postalCodeSearch(plzStr, "", landStr);
+			//PostalCode[] postalCodeArray = (PostalCode[]) postalCodes.toArray();
+			
 			String resultText = "";
 			for (int i = 0; i < postalCodes.size(); i++)	{
-				plz.set("Land",		postalCodes.get(i).getCountryCode());
+				PlzEintrag plz = new PlzEintrag();
 				plz.set("Plz",		postalCodes.get(i).getPostalCode());
 				plz.set("Ort27",	postalCodes.get(i).getPlaceName());
-				plz.set("Strasse",	"");
+				plz.set("Land",		postalCodes.get(i).getCountryCode());
 				plz.set("Kanton",	postalCodes.get(i).getAdminCode1());
-				plzs.add(plz);			
+				plz.set("Strasse",	"");
+				
+				plzs.add(plz);
 			}
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
