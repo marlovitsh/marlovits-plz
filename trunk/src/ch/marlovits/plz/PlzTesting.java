@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -19,8 +20,12 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.dialogs.ProgressMonitorDialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
@@ -28,16 +33,17 @@ import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.part.ViewPart;
-import org.geonames.PostalCode;
-import org.geonames.WebService;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
@@ -51,10 +57,12 @@ import ch.elexis.actions.GlobalActions;
 import ch.elexis.actions.GlobalEvents;
 import ch.elexis.actions.GlobalEvents.ActivationListener;
 import ch.elexis.actions.GlobalEvents.SelectionListener;
+import ch.elexis.commands.Handler;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
 import ch.rgw.tools.ExHandler;
+import ch.rgw.tools.StringTool;
 
 import com.sun.org.apache.xerces.internal.parsers.DOMParser;
 
@@ -99,10 +107,9 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	private GridLayout tmpGrid;
 	private Combo cbLandCombo;
 	private Text landIso2Field;
-	private String lang = "DE";
 	private ModifyListener landModifyListener;
 	private Text plzField;
-	private Text ort;
+	private Text ortField;
 	private FocusListener plzFocusListener;
 	private FocusListener ortFocusListener;
 	
@@ -154,16 +161,62 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		// Ort **************************************
 		// Label::Ort
 		new Label(top, SWT.NONE).setText("Ort");
-		ort = new Text(top, SWT.BORDER);
-		ort.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		ortField = new Text(top, SWT.BORDER);
+		ortField.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
 		cbLandCombo.  setText("Prefs Land");
 		landIso2Field.setText("Prefs LandISO2");
 		plzField.     setText("Prefs Plz");
-		ort.          setText("Prefs Ort");
+		ortField.     setText("Prefs Ort");
 		
-		// Titel setzen
-		//this.form.setText("Harrys Postleitzahlen aus OpenNames");		
+
+		
+		
+		
+		
+		   /* ------ ProgressMonitorDialog ------------- */
+	    final Button buttonProgressDialog = new Button(top, SWT.PUSH);
+	    buttonProgressDialog.setText("Demo: ProgressMonitorDialog");
+	    buttonProgressDialog.addListener(SWT.Selection, new Listener() {
+	      public void handleEvent(Event event) {
+	        IRunnableWithProgress runnableWithProgress = new IRunnableWithProgress() {
+	          public void run(IProgressMonitor monitor)
+	            throws InvocationTargetException, InterruptedException {
+	            monitor.beginTask("Number counting", 10);
+	            for(int i=0; i<10; i++) {
+	              if(monitor.isCanceled()) {
+	                monitor.done();
+	                return;
+	              }
+	                
+	              System.out.println("Count number: " + i);
+	              monitor.worked(1);
+	              Thread.sleep(500); // 0.5s.
+	            }
+	            monitor.done();
+	          }
+	        };
+	        
+	        ProgressMonitorDialog dialog = new ProgressMonitorDialog(null);
+	        try {
+	          dialog.run(true, true, runnableWithProgress);
+	        } catch (InvocationTargetException e) {
+	          e.printStackTrace();
+	        } catch (InterruptedException e) {
+	          e.printStackTrace();
+	        }
+	      }
+	    }
+	      );
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		// Erstellen der Actions für die Menus, etc
 		makeActions();
@@ -172,15 +225,10 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		ViewMenus menu = new ViewMenus(getViewSite());
 		menu.createMenu(testingAction, importCountriesAction, importNamesAction, importTabDelimitedAction);
 		
-		// Erstellen des KontextMenus
-		//menu.createViewerContextMenu(plzViewer, newAction, null, copyAction, deleteAction, null, importAction);
-
-		//menu.createToolbar(newAction, deleteAction);		
-		
 		//GlobalEvents.getInstance().addActivationListener(this, this);
 		cbLandCombo.addModifyListener(landModifyListener);
 		plzField.addFocusListener(plzFocusListener);
-		ort.addFocusListener(ortFocusListener);
+		ortField.addFocusListener(ortFocusListener);
 		
 	}
 	
@@ -192,14 +240,32 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				String[][] tmp = DataImporter.getLanguagesTable("de");
-				for (int i = 0; i < tmp.length; i++)	{
-					for (int j = 0; j < 3; j++)	{
-						System.out.print(tmp[i][j] + "  ");
-					}
-					System.out.println();
+				List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
+						plzField.getText(),
+						ortField.getText(),
+						false,
+						"Land", "Plz", "Ort27");
+				SWTHelper.alert("Alert...", "" + plzList.size());
+				SWTHelper.alert("ddd", plzList.get(0).get("Ort27"));
 				}
-			}
+				// PROGRESS MONITOR
+				/*ExecutionEvent eev = new ExecutionEvent();
+				IProgressMonitor monitor = Handler.getMonitor(eev);
+				monitor.beginTask("theName", 100);
+				for (int i=0; i< 100; i++)	{
+					monitor.worked(i);
+				}
+				*/
+				
+				
+				//progressMonitor = new ProgressMonitor(ProgressMonitorDemo.this,
+                //        "Running a Long Task",
+                //        "", 0, task.getLengthOfTask());
+				
+				//PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), landIso2Field.toString(), plzField.toString(), "");
+				//if (dlog.open() == Dialog.OK) {
+				//	System.out.print("ok selected");
+				//}
 		};
 		testingAction.setActionDefinitionId("testingAction");
 		GlobalActions.registerActionHandler(this, testingAction);
@@ -242,8 +308,6 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		};
 		importTabDelimitedAction.setActionDefinitionId("importTabDelimitedAction");
 		GlobalActions.registerActionHandler(this, importTabDelimitedAction);
-		
-		
 	}
 	
 	class PlzFocusListener implements FocusListener	{
@@ -252,8 +316,47 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		}
 
 		public void focusLost(FocusEvent e) {
+			// Land muss ausgewählt sein
+			String land	= landIso2Field.getText();
+			if (StringTool.isNothing(land))	{
+				SWTHelper.alert("Feld nicht ausgefüllt", "Sie müssen zuerst das Land auswählen");
+				// TODO
+				// cbLandCombo.setFocus();
+				return;
+				}
+			
+			// plz einlesen
+			String plz	= plzField.getText();
+			
+			// wenn kein         Eintrag gefunden, dann Anzeige, dass kein Ort gefunde, verbieten
+			// wenn ein einziger Eintrag gefunden, dann direkt Ort einsetzen
+			// wenn mehr als ein Eintrag gefunden, dann Auswahl-Dialog
+			List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
+														plzField.getText(),
+														ortField.getText(),
+														false,
+														"Land", "Plz", "Ort27");
+			long theSize = plzList.size();
+			if (theSize == 0)	{
+				SWTHelper.alert("", "Es wurden keine Orte mit der Postleitzahl " + plzField.getText() + " im Land " + landIso2Field.getText() + " gefunden.");
+				return;
+			}
+			if (theSize == 1)	{
+				ortField.setText(plzList.get(0).getFieldData("Ort27"));
+				return;
+			}
+			
+			// den Auswahl-Dialog anzeigen
+			PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), land, plz, "");
+			if (dlog.open() == Dialog.OK) {
+				System.out.print("ok selected");
+			}
+			else	{
+				
+					
+			}
 			//tmp("CH", "C:\\Temp\\");
-			String land	= landIso2Field.getText().toString();
+			/*String land	= landIso2Field.getText().toString();
 			String plz	= plzField.getText().toString();
 			String lang	= "de";
 			
@@ -264,11 +367,13 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				for (int i = 0; i < postalCode.size(); i++)	{
 					resultText = resultText + postalCode.get(i).getPlaceName() + " / ";
 				}
+				//if (new PlzDialog(getSite().getShell(), plz).open() == Dialog.OK) {
+				//	{
 				ort.setText(resultText);
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
-			}
+			}*/
 		}
 	}
 	
@@ -278,7 +383,14 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		}
 
 		public void focusLost(FocusEvent e) {
+		//	String land	= landIso2Field.getText();
+		//	String ort	= ortField.getText();
+		//	PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), land, "", ort);
+		//	if (dlog.open() == Dialog.OK) {
+		//		System.out.print("ok selected");
+		//	}
 			//tmp("CH", "C:\\Temp\\");
+			/*
 			String land	= landIso2Field.getText().toString();
 			String lOrt	= ort.getText().toString();
 			String lang	= "de";
@@ -294,7 +406,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
-			}
+			}*/
 		}
 	}
 	

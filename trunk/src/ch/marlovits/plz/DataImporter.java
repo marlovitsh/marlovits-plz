@@ -408,6 +408,7 @@ public class DataImporter {
 								fieldsArray[PlzInputFields.briefZustellung.	ordinal()],
 								fieldsArray[PlzInputFields.gemeindeNr.		ordinal()],
 								fieldsArray[PlzInputFields.gueltigAb.		ordinal()],
+								"",
 								"de");
 			}
 			return;

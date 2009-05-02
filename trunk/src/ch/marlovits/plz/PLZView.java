@@ -151,7 +151,7 @@ public class PLZView extends ViewPart implements SelectionListener, ActivationLi
 		80, // Kantonkürzel
 	};
 
-	private List<ch.marlovits.plz.Plz> getPostleitzahlen(){
+	List<ch.marlovits.plz.Plz> getPostleitzahlen(){
 		// Erstellen des Return-Arrays
 		List<ch.marlovits.plz.Plz> postleitzahlen = new ArrayList<ch.marlovits.plz.Plz>(); 		
 		
