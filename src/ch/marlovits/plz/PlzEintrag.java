@@ -14,16 +14,18 @@
 package ch.marlovits.plz;
 
 import ch.elexis.data.PersistentObject;
+import ch.rgw.tools.StringTool;
 
 public class PlzEintrag extends PersistentObject {
 	// Tabellenname in der Datenbank
-	private static final String TABLENAME = "CH_MARLOVITS_PLZ";
+	private static final String TABLENAME = "ch_marlovits_plz";	
 	// die Version der Tabelle
 	public static final String VERSION = "2.0";
 	// CreateScript für die Tabelle
 	private static final String createDB =
 		"CREATE TABLE " + TABLENAME + " (" +
 		"id					character varying(25) NOT NULL,	" +
+		"land				character(6),					" + // Iso2
 		"onrp				character(5),					" + // Ordnungsnummer Post
 		"plztyp				character(2),					" + // PLZ-Typ,
 																// 10 = Domizil- und Fachadressen,
@@ -48,6 +50,7 @@ public class PlzEintrag extends PersistentObject {
 		"gemeindenr			character(5),					" + // Gemeindenr BfS
 		"gueltigab			character(8),					" + // YYYYMMDD
 		"entrylanguage		character(2),					" +	// Sprache dieses Eintrages
+		"strasse			character varying(50),			" +	// Sprache dieses Eintrages
 		"deleted			CHAR(1) default '0',			" +
 		"lastupdate			bigint,							" +
 		"CONSTRAINT	" + TABLENAME + "_pkey PRIMARY KEY (id)	" + // Primary key erstellen
@@ -55,13 +58,14 @@ public class PlzEintrag extends PersistentObject {
 		"WITH (OIDS=FALSE);									" +
 		"ALTER TABLE " + TABLENAME + " OWNER TO elexisuser;	" + // den owner für die Tabelle setzen
 		// die Indizes erstellen
-		"CREATE INDEX ch_marlovits_plz0 ON CH_MARLOVITS_PLZ USING btree (plz);		" +
-		"CREATE INDEX ch_marlovits_plz1 ON CH_MARLOVITS_PLZ USING btree (ort18);		" +
-		"CREATE INDEX ch_marlovits_plz2 ON CH_MARLOVITS_PLZ USING btree (ort27);		";
+		"CREATE INDEX " + TABLENAME + "0 ON " + TABLENAME + " USING btree (plz);		" +
+		"CREATE INDEX " + TABLENAME + "1 ON " + TABLENAME + " USING btree (ort18);		" +
+		"CREATE INDEX " + TABLENAME + "2 ON " + TABLENAME + " USING btree (ort27);		";
 	
 	static	{
 		// ziemlich einfaches Mapping - einheitlich einfach der erste Buchstaben der Feldbezeichnung in der Datenbank als Capital
 		addMapping(	TABLENAME,
+					"Land=land",
 					"Onrp=onrp",
 					"Plztyp=plztyp",
 					"Plz=plz",
@@ -75,7 +79,8 @@ public class PlzEintrag extends PersistentObject {
 					"Briefzustellung=briefzustellung",
 					"Gemeindenr=gemeindenr",
 					"Gueltigab=gueltigab",
-					"Entrylanguage=entrylanguage");
+					"Entrylanguage=entrylanguage",
+					"Strasse=strasse");
 		
 		// Erstellen der Tabelle in der Datenbank
 		createOrModifyTable(createDB);
@@ -117,10 +122,18 @@ public class PlzEintrag extends PersistentObject {
 						String briefZustellung,
 						String gemeindeNr,
 						String gueltigAb,
-						String entryLanguage)	{
+						String entryLanguage,
+						String strasse)		{
 		create(null);
-		set(new String[]{"Onrp", "Plztyp", "Plz", "Zusatzziffer", "Ort18", "Ort27", "Kanton", "Sprachcode", "Sprachcode2", "Sortierfile", "Briefzustellung", "Gemeindenr", "Gueltigab", "Entrylanguage"},
-			new String[]{ onrp,   plzTyp,   plz,   zusatzZiffer,   ort18,   ort27,   kanton,   sprachCode,   sprachCode2,   sortierFile,   briefZustellung,   gemeindeNr,   gueltigAb,   entryLanguage});
+		set(new String[]{"Onrp", "Plztyp", "Plz", "Zusatzziffer", "Ort18", "Ort27", "Kanton", "Sprachcode", "Sprachcode2", "Sortierfile", "Briefzustellung", "Gemeindenr", "Gueltigab", "Entrylanguage", "Strasse"},
+			new String[]{ onrp,   plzTyp,   plz,   zusatzZiffer,   ort18,   ort27,   kanton,   sprachCode,   sprachCode2,   sortierFile,   briefZustellung,   gemeindeNr,   gueltigAb,   entryLanguage,   strasse});
+	}
+	
+	public static PlzEintrag load(String id){
+		if(StringTool.isNothing(id)){
+			return null;
+		}
+		return new PlzEintrag(id);
 	}
 	
 	/**
@@ -133,21 +146,26 @@ public class PlzEintrag extends PersistentObject {
 	 * @param id: Iso2_Language, zBsp: CH_de
 	 */
 	// TODO hier nötig???
-	public PlzEintrag(final String id){
+	public PlzEintrag(String id){
 		super(id);
-		if (!exists())	{
-			create(id);
-		}
+//		if (!exists())	{
+//			create(id);
+//		}
 	}
 	
-	public String toString() {
+	/*public String toString() {
 		return super.toString();
 	}
-
+*/
+	
+	public PlzEintrag(){
+		super(null);
+	}
+	
 	@Override
 	public String getLabel() {
-		String[] f = new String[9];
-		get(new String[]{"Bezeichnung", "WikiLink", "Iso3166Alpha2", "Iso3166Alpha3", "Iso3166Numeric", "TopLevelDomain", "OlympicCountryCodeIOC", "Iso3166_2", "Language"},f);
+		String[] f = new String[14];
+		get(new String[]{"Onrp", "Plztyp", "Plz", "Zusatzziffer", "Ort18", "Ort27", "Kanton", "Sprachcode", "Sprachcode2", "Sortierfile", "Briefzustellung", "Gemeindenr", "Gueltigab", "Entrylanguage"}, f);
 		StringBuilder ret=new StringBuilder();
 		ret.append(f[0]).append(" ").append(f[1]).append(" ").append(f[2]);
 		return ret.toString();
@@ -157,4 +175,37 @@ public class PlzEintrag extends PersistentObject {
 	protected String getTableName() {
 		return TABLENAME;
 	}
+	public static String getTableName2() {
+		return TABLENAME;
+	}
+	@Override
+	public int getCacheTime() {
+		return Integer.MAX_VALUE;
+	}
+	
+	public String getFieldData(String fieldName)	{
+		//return "some data";
+		return get(fieldName);
+	}
+	public void setStructLand(final String land)	{
+		Land = land;
+	}
+	private String	Land;
+	private String	Onrp;
+	private String	Plztyp;
+	private String	Plz;
+	private String	Zusatzziffer;
+	private String	Ort18;
+	private String	Ort27;
+	private String	Kanton;
+	private String	Sprachcode;
+	private String	Sprachcode2;
+	private String	Sortierfile;
+	private String	Briefzustellung;
+	private String	Gemeindenr;
+	private String	Gueltigab;
+	private String	Entrylanguage;
+	private String	Strasse;
+
+
 }

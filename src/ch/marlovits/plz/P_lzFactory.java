@@ -5,9 +5,9 @@ import java.lang.reflect.Method;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.PersistentObjectFactory;
 
-public class PlzFactory extends PersistentObjectFactory {
+public class P_lzFactory extends PersistentObjectFactory {
 	
-	public PlzFactory(){}
+	public P_lzFactory(){}
 	
 	@Override
 	public PersistentObject createFromString(String code){
