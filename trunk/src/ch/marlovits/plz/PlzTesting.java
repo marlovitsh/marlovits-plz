@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -269,7 +270,46 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 			}
 			
 			public void keyReleased(KeyEvent e) {
-
+				String currText = myCCombo.getText();
+				if (currText.length() == 0)	{
+					myCCombo.removeAll();
+					return;
+				}
+				
+				// passende Einträge aus der Datenbank auslesen
+				if (PlzSearch.isCountryInDatabase(landIso2Field.getText()))	{
+					Stm stm = PersistentObject.getConnection().getStatement();
+					
+					int numOfEntries = 0;
+					ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")");
+					try {
+						rs.next();
+						numOfEntries = Integer.decode(rs.getString("cnt"));
+						rs.close();
+					} catch (SQLException exc) {
+					} finally	{
+					}
+					
+					// ausnahmsweise direkte Abfrage auf der Datenbank
+					// aufgrund der Geschwindigkeit, die hier relevant ist
+					rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") order by ort27");
+					myCCombo.removeAll();
+					try {
+						String[] plzStrings = new String[numOfEntries];
+						int iii = 0;
+						while (rs.next())	{
+							plzStrings[iii] = rs.getString("Ort27");
+							iii++;
+						}
+						myCCombo.setItems(plzStrings);
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				} else	{
+					myCCombo.removeAll();
+				}
+				cbOrtCombo.setText(currText);
 				//myCCombo.dropDown(true);
 				//System.out.println("pressed, KeyCode: " + e.keyCode);
 				//e.doit = false;
