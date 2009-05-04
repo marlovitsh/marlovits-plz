@@ -1,5 +1,13 @@
 package ch.marlovits.plz;
 
+
+import java.awt.AWTEvent;
+import java.awt.Toolkit;
+import java.awt.event.AWTEventListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -13,6 +21,8 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -20,7 +30,14 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.eclipse.core.commands.ExecutionEvent;
+import javax.swing.ImageIcon;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.border.BevelBorder;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.Dialog;
@@ -30,19 +47,28 @@ import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.TraverseEvent;
+import org.eclipse.swt.events.TraverseListener;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.part.DrillDownComposite;
 import org.eclipse.ui.part.ViewPart;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -57,25 +83,27 @@ import ch.elexis.actions.GlobalActions;
 import ch.elexis.actions.GlobalEvents;
 import ch.elexis.actions.GlobalEvents.ActivationListener;
 import ch.elexis.actions.GlobalEvents.SelectionListener;
-import ch.elexis.commands.Handler;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
 import ch.rgw.tools.ExHandler;
+import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.StringTool;
+import ch.rgw.tools.JdbcLink.Stm;
 
 import com.sun.org.apache.xerces.internal.parsers.DOMParser;
 
 public class PlzTesting extends ViewPart implements SelectionListener, ActivationListener,
 		ISaveablePart2 {
 	
+	private static int maxRowsShownInMenu = 30;
 	private Action testingAction;
 	private Action importNamesAction;
 	private Action importCountriesAction;
 	private Action importTabDelimitedAction;
 	
 	private static final String SRC_ENCODING				= "UTF-8";
-	public static final String ID							= "ch.marlovits.plz.PLZView";
+	public  static final String ID							= "ch.marlovits.plz.PLZView";
 
 	private static final String BASE_URL_DE					= "http://de.wikipedia.org";
 	private static final String URL_DE						= "http://de.wikipedia.org/wiki/ISO-3166-1-Kodierliste";
@@ -106,28 +134,61 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	private Composite rightComposite;
 	private GridLayout tmpGrid;
 	private Combo cbLandCombo;
+	private Combo cbOrtCombo;
 	private Text landIso2Field;
 	private ModifyListener landModifyListener;
 	private Text plzField;
 	private Text ortField;
 	private FocusListener plzFocusListener;
 	private FocusListener ortFocusListener;
+	private KeyListener	ortKeyListener;
+	private KeyListener	ortCBKeyListener;
+	private MyCCombo myCCombo;
+	private DrillDownComposite cDrillDown;
+	private List list;
 	
 	public PlzTesting() {
 		super();
 		landModifyListener   = new LandModifyListener();
 		plzFocusListener   = new PlzFocusListener();
 		ortFocusListener   = new OrtFocusListener();
+		ortKeyListener     = new OrtKeyListener();
+		ortCBKeyListener     = new OrtCBKeyListener();
 	}
 
 	public void createPartControl(Composite parent){
-		landModifyListener   = new LandModifyListener();
-		plzFocusListener   =   new PlzFocusListener();
+		landModifyListener = new LandModifyListener();
+		plzFocusListener   = new PlzFocusListener();
 		ortFocusListener   = new OrtFocusListener();
+		ortKeyListener     = new OrtKeyListener();
+		ortCBKeyListener     = new OrtCBKeyListener();
 		
 		top = new Composite(parent, SWT.NONE);
 		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
 		top.setLayout(new GridLayout(2, false));
+		
+		Toolkit.getDefaultToolkit().addAWTEventListener(new AWTEventListener(){
+			public void eventDispatched(AWTEvent evt){ 
+			        System.out.println("AWT: " + evt); 
+			   } 
+			}, AWTEvent.KEY_EVENT_MASK);
+		
+		parent.addKeyListener(new KeyListener(){
+			public void keyPressed(KeyEvent e) {
+				System.out.println("keyPressed(KeyEvent");
+			}
+
+			public void keyReleased(KeyEvent e) {
+				System.out.println("keyReleased(KeyEvent");
+			}
+		});
+		parent.addTraverseListener(new TraverseListener(){
+
+			public void keyTraversed(TraverseEvent e) {
+				System.out.println("TraverseEvent");
+			}
+			
+		});
 		
 		// Land *************************************
 		// Label::LandCombo:LandIso2Text
@@ -169,17 +230,89 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		plzField.     setText("Prefs Plz");
 		ortField.     setText("Prefs Ort");
 		
+//		Shell popup;
+//		int style = SWT.V_SCROLL;
+//		popup = new Shell (parent.getShell(), SWT.NO_TRIM);
+//		int listStyle = SWT.SINGLE | SWT.V_SCROLL;
+//		if ((style & SWT.FLAT) != 0) listStyle |= SWT.FLAT;
+//		if ((style & SWT.RIGHT_TO_LEFT) != 0) listStyle |= SWT.RIGHT_TO_LEFT;
+//		if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
+//		//List list = new List (popup, listStyle);
+//		list = new List(popup, listStyle);
 
+		// LandCombo
+		cbOrtCombo = new Combo(rightComposite, SWT.DROP_DOWN);
 		
+		myCCombo = new MyCCombo(top, SWT.READ_ONLY + SWT.BORDER);
+		String[] cComboStr = {"Item1", "Item2", "Item3", "Item4", "Item5"};
+		myCCombo.setItems(cComboStr);
+		myCCombo.setVisible(true);
+		myCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		myCCombo.addKeyListener(new KeyListener() {
+			public void keyPressed(KeyEvent e) {
+				//myCCombo.setListVisible(true);
+				//System.out.println("pressed, KeyCode: " + e.keyCode);
+				//e.doit = false;
+				//myCCombo.setEditable(true);
+/*				if (e.keyCode == SWT.ARROW_LEFT)	{
+					System.out.println("Arrow_Left");
+					int theLen = cCombo.getText().length();
+					e.doit = false;
+					cCombo.setSelection(new Point(theLen, theLen));
+				}
+				if (e.keyCode == SWT.ARROW_RIGHT)	{
+					System.out.println("Arrow_Right");
+					int theLen = cCombo.getText().length();
+					e.doit = false;
+					cCombo.setSelection(new Point(theLen, theLen));
+				}*/
+			}
+			
+			public void keyReleased(KeyEvent e) {
+
+				//myCCombo.dropDown(true);
+				//System.out.println("pressed, KeyCode: " + e.keyCode);
+				//e.doit = false;
+				//myCCombo.setEditable(false);
+				if (e.keyCode == SWT.ARROW_LEFT)	{
+					//System.out.println("Arrow_Left Testing");
+					int theLen = myCCombo.getText().length();
+					//myCCombo.setFocus();
+					Point currSelection = myCCombo.getSelection();
+					//myCCombo.setSelection(new Point(currSelection.x - 1, currSelection.x - 1));
+					//myCCombo.setText("aaaaaaaaaaaaaaa");
+					//e.doit = false;
+					return;
+				}
+				if (e.keyCode == SWT.ARROW_RIGHT)	{
+					//System.out.println("Arrow_Right Testing");
+					int theLen = myCCombo.getText().length();
+					//myCCombo.setFocus();
+					Point currSelection = myCCombo.getSelection();
+					//myCCombo.setSelection(new Point(currSelection.x + 1, currSelection.x + 1));
+					//myCCombo.setText("ddddddddddd");
+					//e.doit = false;
+					return;
+				}
+//				Point currSelection = myCCombo.getSelection();
+//				String currText = myCCombo.getText();
+//				String leftPart  = currText.substring(0, currSelection.x);
+//				String rightPart = currText.substring(currSelection.x, currText.length());
+//				myCCombo.setText(leftPart + e.character + rightPart);
+//				myCCombo.setSelection(new Point(currSelection.x + 1, currSelection.x + 1));
+			}
+			
+		});
 		
+		cDrillDown = new DrillDownComposite(top, SWT.DROP_DOWN);
 		
-		
-		   /* ------ ProgressMonitorDialog ------------- */
+		/* ------ ProgressMonitorDialog ------------- */
 	    final Button buttonProgressDialog = new Button(top, SWT.PUSH);
 	    buttonProgressDialog.setText("Demo: ProgressMonitorDialog");
 	    buttonProgressDialog.addListener(SWT.Selection, new Listener() {
 	      public void handleEvent(Event event) {
-	        IRunnableWithProgress runnableWithProgress = new IRunnableWithProgress() {
+	        myCCombo.dropDown(!myCCombo.isDropped());
+	    	/*  IRunnableWithProgress runnableWithProgress = new IRunnableWithProgress() {
 	          public void run(IProgressMonitor monitor)
 	            throws InvocationTargetException, InterruptedException {
 	            monitor.beginTask("Number counting", 10);
@@ -204,21 +337,19 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	          e.printStackTrace();
 	        } catch (InterruptedException e) {
 	          e.printStackTrace();
-	        }
+	        }*/
 	      }
 	    }
 	      );
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		// Erstellen der Actions für die Menus, etc
+	    
+//	    JFrame frame = new JFrame("Popup Menu Example");
+//	    frame.setContentPane(new PopupMenuExample());
+//	    frame.setSize(300, 300);
+//	    frame.setVisible(true);
+
+	    new PopupMenuExample();
+	    
+	    // Erstellen der Actions für die Menus, etc
 		makeActions();
 		
 		// Erstellen des ViewMenus
@@ -230,6 +361,8 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		plzField.addFocusListener(plzFocusListener);
 		ortField.addFocusListener(ortFocusListener);
 		
+		ortField.addKeyListener(ortKeyListener);
+		cbOrtCombo.addKeyListener(ortCBKeyListener);
 	}
 	
 	private void makeActions(){
@@ -316,6 +449,163 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		GlobalActions.registerActionHandler(this, importTabDelimitedAction);
 	}
 	
+	class OrtCBKeyListener implements KeyListener	{
+
+		public void keyPressed(KeyEvent e) {
+		}
+		
+		public void keyReleased(KeyEvent e) {
+			// aktuellen Text einlesen
+			String currText = cbOrtCombo.getText();
+			
+			// passende Einträge aus der Datenbank auslesen
+			if (PlzSearch.isCountryInDatabase(landIso2Field.getText()))	{
+				List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
+															"",
+															currText,
+															false,
+															"Ort27");
+				cbOrtCombo.removeKeyListener(ortCBKeyListener);
+				cbOrtCombo.removeAll();
+				for (int i = 0; i < (plzList.size() < maxRowsShownInMenu ? plzList.size() : maxRowsShownInMenu); i++){
+					cbOrtCombo.add(plzList.get(i).get("Ort27"));
+				}
+				cbOrtCombo.addKeyListener(ortCBKeyListener);
+				cbOrtCombo.setText(currText);
+				cbOrtCombo.setSelection(new Point(0, currText.length()));
+				/*
+				for (int i = 0; i < (plzList.size() < maxRowsShownInMenu ? plzList.size() : maxRowsShownInMenu); i++){
+					MenuItem item = new MenuItem(menu, SWT.PUSH);
+					item.setText(plzList.get(i).get("Ort27"));
+					item.addListener(0xFFFFFFF, new Listener() {
+						public void handleEvent(Event e) {
+							System.out.println("asdfasdfasdf");
+						}});
+					item.addListener(SWT.Selection, new Listener() {
+						public void handleEvent(Event e) {
+							String str = ((MenuItem)e.widget).getText();
+							System.out.println("Item Selected: " + str);
+							ortField.setText(str);
+							ortField.setSelection(str.length());
+						}});
+				}
+				menu.setVisible(true);
+				ortField.setFocus();
+				while (!menu.isDisposed() && menu.isVisible()) {
+//					Display.getCurrent().addListener(SWT.Selection, listener);
+					if (!Display.getCurrent().readAndDispatch())
+						Display.getCurrent().sleep();
+					}
+				menu.dispose();*/
+			}
+		}
+	}
+		
+	class OrtKeyListener implements KeyListener	{
+
+		public void keyPressed(KeyEvent e) {
+		}
+
+		public void keyReleased(KeyEvent e) {
+			// aktuellen Text einlesen
+			String currText = ortField.getText();
+			
+			// passende Einträge aus der Datenbank auslesen
+			// SQL-Version: massiv schneller - ist hier wichtig!!!
+			boolean sqlVersion = true;
+			if (PlzSearch.isCountryInDatabase(landIso2Field.getText()))	{
+				if (sqlVersion == true)	{
+					Stm stm = PersistentObject.getConnection().getStatement();
+					ResultSet rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") order by ort27");
+					// das Menu mit Items leeren/füllen und anzeigen
+					Point popupPoint = ortField.getLocation();
+					popupPoint = top.toDisplay(popupPoint);
+					popupPoint.y = popupPoint.y + ortField.getBounds().height; 
+					Menu menu = new Menu(top);
+					menu.addListener(0xFFFFFFFF, new Listener()	{
+						public void handleEvent(Event event) {
+							System.out.println("KeyDown, Got one");
+						}
+					});
+					menu.setLocation(popupPoint.x, popupPoint.y);
+					menu.addListener(SWT.KEY_MASK, new Listener()	{
+						public void handleEvent(Event event) {
+							System.out.println("Hello!!!");
+						}
+						
+					});
+					try {
+						while (rs.next())	{
+							String itemName;
+							try {
+								itemName = rs.getString("ort27");
+								MenuItem item = new MenuItem(menu, SWT.PUSH);
+								item.setText(itemName);
+								item.addListener(SWT.Selection, new Listener() {
+									public void handleEvent(Event e) {
+										String str = ((MenuItem)e.widget).getText();
+										System.out.println("Item Selected: " + str);
+										ortField.setText(str);
+										ortField.setSelection(str.length());
+									}});
+							} catch (SQLException e1) {
+								return;
+							}
+						}
+					} catch (SQLException e1) {
+						return;
+					}
+					menu.setVisible(true);
+					//ortField.setText("asdfasdfadf");
+					ortField.setSelection(ortField.getText().length());
+					while (!menu.isDisposed() && menu.isVisible()) {
+						if (!Display.getCurrent().readAndDispatch())
+							Display.getCurrent().sleep();
+						}
+					menu.dispose();
+				} else	{
+					List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
+					"",
+					currText,
+					false,
+					"Ort27");
+					// das Menu mit Items leeren/füllen und anzeigen
+					Point popupPoint = ortField.getLocation();
+					popupPoint = top.toDisplay(popupPoint);
+					popupPoint.y = popupPoint.y + ortField.getBounds().height; 
+					Menu menu = new Menu(top);
+					menu.setLocation(popupPoint.x, popupPoint.y);
+					for (int i = 0; i < (plzList.size() < maxRowsShownInMenu ? plzList.size() : maxRowsShownInMenu); i++){
+						MenuItem item = new MenuItem(menu, SWT.PUSH);
+						item.setText(plzList.get(i).get("Ort27"));
+						item.addListener(0xFFFFFFF, new Listener() {
+							public void handleEvent(Event e) {
+								System.out.println("asdfasdfasdf");
+							}});
+						//item.addListener(eventType, listener)
+						item.addListener(SWT.Selection, new Listener() {
+							public void handleEvent(Event e) {
+								String str = ((MenuItem)e.widget).getText();
+								System.out.println("Item Selected: " + str);
+								ortField.setText(str);
+								ortField.setSelection(str.length());
+							}});
+						}
+					menu.setVisible(true);
+					ortField.setText("asdfasdfadf");
+					ortField.setSelection(ortField.getText().length());
+					while (!menu.isDisposed() && menu.isVisible()) {
+//						Display.getCurrent().addListener(SWT.Selection, listener);
+						if (!Display.getCurrent().readAndDispatch())
+							Display.getCurrent().sleep();
+						}
+					menu.dispose();
+				}
+				
+			}
+		}
+	}
+		
 	class PlzFocusListener implements FocusListener	{
 		public void focusGained(FocusEvent e) {
 			// nichts
@@ -353,13 +643,17 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 			}
 			
 			// den Auswahl-Dialog anzeigen
-			PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), land, plz, "");
-			if (dlog.open() == Dialog.OK) {
-				System.out.print("ok selected");
+			//PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), land, plz, "");
+			PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), plzList);
+			if ((dlog.open() == Dialog.OK) ||(dlog.getDoubleClicked() == true)) {
+				System.out.println("ok selected");
+				PlzEintrag res = dlog.getResult();
+				System.out.println("result: " + res.get("Ort27") + "/" + res.get("Plz"));
 			}
 			else	{
-				
-					
+				System.out.println("ok NOT selected");
+				PlzEintrag res = dlog.getResult();
+				System.out.println("result: " + res.get("Ort27") + "/" + res.get("Plz"));
 			}
 			//tmp("CH", "C:\\Temp\\");
 			/*String land	= landIso2Field.getText().toString();
@@ -1361,5 +1655,79 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 			e.printStackTrace();
 		}
 	}
+
+	public class PopupMenuExample extends JPanel {
+		private static final long serialVersionUID = 1L;
+		public JPopupMenu popup;
+
+		  public PopupMenuExample() {
+		    popup = new JPopupMenu();
+		    ActionListener menuListener = new ActionListener() {
+		      public void actionPerformed(ActionEvent event) {
+		        System.out.println("Popup menu item ["
+		            + event.getActionCommand() + "] was pressed.");
+		      }
+		    };
+		    JMenuItem item;
+		    popup.add(item = new JMenuItem("Left", new ImageIcon("1.gif")));
+		    item.setHorizontalTextPosition(JMenuItem.RIGHT);
+		    item.addActionListener(menuListener);
+		    popup.add(item = new JMenuItem("Center", new ImageIcon("2.gif")));
+		    item.setHorizontalTextPosition(JMenuItem.RIGHT);
+		    item.addActionListener(menuListener);
+		    popup.add(item = new JMenuItem("Right", new ImageIcon("3.gif")));
+		    item.setHorizontalTextPosition(JMenuItem.RIGHT);
+		    item.addActionListener(menuListener);
+		    popup.add(item = new JMenuItem("Full", new ImageIcon("4.gif")));
+		    item.setHorizontalTextPosition(JMenuItem.RIGHT);
+		    item.addActionListener(menuListener);
+		    popup.addSeparator();
+		    popup.add(item = new JMenuItem("Settings . . ."));
+		    item.addActionListener(menuListener);
+
+		    popup.setLabel("Justification");
+		    popup.setBorder(new BevelBorder(BevelBorder.RAISED));
+		    popup.addPopupMenuListener(new PopupPrintListener());
+
+		    addMouseListener(new MousePopupListener());
+		  }
+
+		  // An inner class to check whether mouse events are the popup trigger
+		  class MousePopupListener extends MouseAdapter {
+		    public void mousePressed(MouseEvent e) {
+		      checkPopup(e);
+		    }
+
+		    public void mouseClicked(MouseEvent e) {
+		      checkPopup(e);
+		    }
+
+		    public void mouseReleased(MouseEvent e) {
+		      checkPopup(e);
+		    }
+
+		    private void checkPopup(MouseEvent e) {
+		      if (e.isPopupTrigger()) {
+		        popup.show(PopupMenuExample.this, e.getX(), e.getY());
+		      }
+		    }
+		  }
+
+		  // An inner class to show when popup events occur
+		  class PopupPrintListener implements PopupMenuListener {
+		    public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+		      System.out.println("Popup menu will be visible!");
+		    }
+
+		    public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+		      System.out.println("Popup menu will be invisible!");
+		    }
+
+		    public void popupMenuCanceled(PopupMenuEvent e) {
+		      System.out.println("Popup menu is hidden!");
+		    }
+		  }
+
+		}
 
 }
