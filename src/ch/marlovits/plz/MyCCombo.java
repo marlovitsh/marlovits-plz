@@ -30,14 +30,12 @@ import org.eclipse.swt.accessibility.AccessibleAdapter;
 import org.eclipse.swt.accessibility.AccessibleControlAdapter;
 import org.eclipse.swt.accessibility.AccessibleControlEvent;
 import org.eclipse.swt.accessibility.AccessibleEvent;
-import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
@@ -71,8 +69,8 @@ public final class MyCCombo extends Composite {
 	Text text;
 	List list;
 	Shell popup;
-	Button arrow;
 	boolean hasFocus;
+	String theText;
 	
 /**
  * Constructs a new instance of this class given its parent
@@ -132,16 +130,10 @@ public MyCCombo (Composite parent, int style) {
 	if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
 	list = new List (popup, listStyle);
 	
-	// der DropDown-Pfeil rechts des Textfeldes
-	int arrowStyle = SWT.ARROW | SWT.DOWN;
-	if ((style & SWT.FLAT) != 0) arrowStyle |= SWT.FLAT;
-	arrow = new Button (this, arrowStyle);
-	arrow.setVisible(false);
-	
 	Listener listener = new Listener () {
 		public void handleEvent (Event event) {
 			if (popup == event.widget) {
-				System.out.println("event.widget == popup");
+				//System.out.println("event.widget == popup");
 				popupEvent (event);
 				return;
 			}
@@ -151,18 +143,12 @@ public MyCCombo (Composite parent, int style) {
 				return;
 			}
 			if (list == event.widget) {
-				System.out.println("event.widget == list");
+				//System.out.println("event.widget == list");
 				listEvent (event);
 				return;
 			}
-			if (arrow == event.widget) {
-				System.out.println("event.widget == arrow");
-				System.out.println("arrowEvent");
-				arrowEvent (event);
-				return;
-			}
 			if (MyCCombo.this == event.widget) {
-				System.out.println("event.widget == MyCCombo");
+				//System.out.println("event.widget == MyCCombo");
 				comboEvent (event);
 				return;
 			}
@@ -181,9 +167,6 @@ public MyCCombo (Composite parent, int style) {
 	
 	int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut};
 	for (int i=0; i<listEvents.length; i++) list.addListener (listEvents [i], listener);
-	
-	int [] arrowEvents = {SWT.Selection, SWT.FocusIn, SWT.FocusOut};
-	for (int i=0; i<arrowEvents.length; i++) arrow.addListener (arrowEvents [i], listener);
 	
 	initAccessible();
 }
@@ -253,12 +236,12 @@ public void add (String string, int index) {
 *	when listener is null
 */
 public void addModifyListener (ModifyListener listener) {;
-System.out.println("addModifyListener");
+//System.out.println("addModifyListener");
 	checkWidget();
 	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	TypedListener typedListener = new TypedListener (listener);
 	addListener (SWT.Modify, typedListener);
-	System.out.println("ModifyListener");
+	//System.out.println("ModifyListener");
 }
 /**	 
 * Adds the listener to receive events.
@@ -274,50 +257,15 @@ System.out.println("addModifyListener");
 *	when listener is null
 */
 public void addSelectionListener(SelectionListener listener) {
-	System.out.println("addSelectionListener");
+	//System.out.println("addSelectionListener");
 	checkWidget();
 	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	TypedListener typedListener = new TypedListener (listener);
 	addListener (SWT.Selection,typedListener);
 	addListener (SWT.DefaultSelection,typedListener);
-	System.out.println("SelectionListener");
+	//System.out.println("SelectionListener");
 }
-void arrowEvent (Event event) {
-	switch (event.type) {
-		case SWT.FocusIn: {
-			if (hasFocus) return;
-			hasFocus = true;
-			if (getEditable ()) text.selectAll ();
-			Event e = new Event();
-			e.time = event.time;
-			notifyListeners(SWT.FocusIn, e);
-			break;
-		}
-		case SWT.FocusOut: {
-			event.display.asyncExec(new Runnable() {
-				public void run() {
-					if (MyCCombo.this.isDisposed()) return;
-					Control focusControl = getDisplay().getFocusControl();
-					if (focusControl == list || focusControl == text) return;
-					hasFocus = false;
-					Event e = new Event();
-					notifyListeners(SWT.FocusOut, e);
-				}
-			});
-			break;
-		}
-		case SWT.Selection: {
-			System.out.println("SWT.Selection");
-			if ((event.keyCode == SWT.ARROW_LEFT) || (event.keyCode == SWT.ARROW_RIGHT))	{
-				System.out.println("event.doit = false");
-				event.doit = false;
-				break;
-			}
-			dropDown (!isDropped ());
-			break;
-		}
-	}
-}
+
 /**
 * Clears the current selection.
 * <p>
@@ -339,10 +287,9 @@ void comboEvent (Event event) {
 			popup = null;  
 			text = null;  
 			list = null;  
-			arrow = null;
 			break;
 		case SWT.Move:
-			System.out.println("SWT.Move");
+			//System.out.println("SWT.Move");
 			dropDown(false);
 			break;
 		case SWT.Resize:
@@ -354,13 +301,12 @@ void comboEvent (Event event) {
 public Point computeSize (int wHint, int hHint, boolean changed) {
 	checkWidget();
 	int width = 0, height = 0;
-	Point textSize = text.computeSize (wHint, SWT.DEFAULT, changed);
-	Point arrowSize = arrow.computeSize(SWT.DEFAULT, SWT.DEFAULT, changed);
-	Point listSize = list.computeSize (wHint, SWT.DEFAULT, changed);
+	Point textSize  = text.computeSize (wHint, SWT.DEFAULT, changed);
+	Point listSize  = list.computeSize (wHint, SWT.DEFAULT, changed);
 	int borderWidth = getBorderWidth();
 	
-	height = Math.max (hHint, Math.max(textSize.y, arrowSize.y)  + 2*borderWidth);
-	width = Math.max (wHint, Math.max(textSize.x + arrowSize.x + 2*borderWidth, listSize.x + 2)  );
+	height = Math.max (hHint, textSize.y  + 2*borderWidth);
+	width = Math.max (wHint, Math.max(textSize.x + 2*borderWidth, listSize.x + 2)  );
 	return new Point (width, height);
 }
 /**
@@ -679,7 +625,7 @@ boolean isDropped () {
 }
 public boolean isFocusControl () {
 	checkWidget();
-	if (text.isFocusControl() || arrow.isFocusControl() || list.isFocusControl() || popup.isFocusControl()) {
+	if (text.isFocusControl() || list.isFocusControl() || popup.isFocusControl()) {
 		return true;
 	} else {
 		return super.isFocusControl();
@@ -695,9 +641,7 @@ void internalLayout () {
 	Rectangle rect = getClientArea();
 	int width = rect.width;
 	int height = rect.height;
-	Point arrowSize = arrow.computeSize(SWT.DEFAULT, height);
-	text.setBounds (0, 0, width - arrowSize.x, height);
-	arrow.setBounds (width - arrowSize.x, 0, arrowSize.x, arrowSize.y);
+	text.setBounds (0, 0, width, height);
 	
 	Point size = getSize();
 	int itemHeight = list.getItemHeight () * ITEMS_SHOWING;
@@ -718,12 +662,12 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.FocusOut: {
-			System.out.println("SWT.FocusOut");
+			//System.out.println("SWT.FocusOut");
 			event.display.asyncExec(new Runnable() {
 				public void run() {
 					if (MyCCombo.this.isDisposed()) return;
 					Control focusControl = getDisplay().getFocusControl();
-					if (focusControl == text || focusControl == arrow) return;
+					if (focusControl == text) return;
 					hasFocus = false;
 					Event e = new Event();
 					notifyListeners(SWT.FocusOut, e);
@@ -740,7 +684,7 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.Selection: {
-			System.out.println("SWT.Selection");
+			//System.out.println("SWT.Selection");
 			int index = list.getSelectionIndex ();
 			if (index == -1) return;
 			text.setText (list.getItem (index));
@@ -755,7 +699,7 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.Traverse: {
-			System.out.println("SWT.Traverse: before switch");
+			//System.out.println("SWT.Traverse: before switch");
 			switch (event.detail) {
 				case SWT.TRAVERSE_TAB_NEXT:
 				case SWT.TRAVERSE_RETURN:
@@ -765,7 +709,7 @@ void listEvent (Event event) {
 					event.doit = false;
 					break;
 			}
-			System.out.println("SWT.Traverse: after switch");
+			//System.out.println("SWT.Traverse: after switch");
 			Event e = new Event();
 			e.time = event.time;
 			e.detail = event.detail;
@@ -778,14 +722,14 @@ void listEvent (Event event) {
 //				break;
 //			}
 			notifyListeners(SWT.Traverse, e);
-			System.out.println(event.keyCode);
-			System.out.println(SWT.ARROW_LEFT);
-			System.out.println(SWT.ARROW_RIGHT);
+			//System.out.println(event.keyCode);
+			//System.out.println(SWT.ARROW_LEFT);
+			//System.out.println(SWT.ARROW_RIGHT);
 			event.doit = e.doit;
 			break;
 		}
 		case SWT.KeyUp: {		
-			System.out.println("SWT.KeyUp");
+			//System.out.println("SWT.KeyUp");
 			Event e = new Event();
 			e.time = event.time;
 			e.character = event.character;
@@ -794,14 +738,14 @@ void listEvent (Event event) {
 			if	((event.keyCode == SWT.ARROW_LEFT) || (event.keyCode == SWT.ARROW_RIGHT))	{
 				event.doit = false;
 				e.doit = false;
-				System.out.println("keyUp cancel");
+				//System.out.println("keyUp cancel");
 				break;
 			}
 			notifyListeners(SWT.KeyUp, e);
 			break;
 		}
 		case SWT.KeyDown: {
-			System.out.println("SWT.KeyDown");
+			//System.out.println("SWT.KeyDown");
 			if (event.character == SWT.ESC) { 
 				// escape key cancels popup list
 				//dropDown (false);
@@ -853,10 +797,6 @@ public void redraw (int x, int y, int width, int height, boolean all) {
 	text.redraw(x - location.x, y - location.y, width, height, all);
 	location = list.getLocation();
 	list.redraw(x - location.x, y - location.y, width, height, all);
-	if (arrow != null) {
-		location = arrow.getLocation();
-		arrow.redraw(x - location.x, y - location.y, width, height, all);
-	}
 }
 
 /**
@@ -1013,7 +953,6 @@ public void setBackground (Color color) {
 	super.setBackground(color);
 	if (text != null) text.setBackground(color);
 	if (list != null) list.setBackground(color);
-	if (arrow != null) arrow.setBackground(color);
 }
 public boolean setFocus () {
 	checkWidget();
@@ -1029,7 +968,6 @@ public void setForeground (Color color) {
 	super.setForeground(color);
 	if (text != null) text.setForeground(color);
 	if (list != null) list.setForeground(color);
-	if (arrow != null) arrow.setForeground(color);
 }
 /**
 * Sets the text of an item; indexing is zero based.
@@ -1140,7 +1078,6 @@ public void setTextLimit (int limit) {
 public void setToolTipText (String string) {
 	checkWidget();
 	super.setToolTipText(string);
-	arrow.setToolTipText (string);
 	text.setToolTipText (string);		
 }
 
@@ -1165,7 +1102,7 @@ void textEvent (Event event) {
 				public void run() {
 					if (MyCCombo.this.isDisposed()) return;
 					Control focusControl = getDisplay().getFocusControl();
-					if (focusControl == list || focusControl == arrow) return;
+					if (focusControl == list) return;
 					hasFocus = false;
 					Event e = new Event();
 					notifyListeners(SWT.FocusOut, e);
@@ -1193,11 +1130,14 @@ void textEvent (Event event) {
 				if (event.keyCode == SWT.ARROW_UP) {
 					switch (oldIndex) {
 					case -1: {
-						list.select(getItemCount () - 1);
+						theText = text.getText();
+						select(getItemCount () - 1);
 						break;
 					}
 					case 0: {
 						deselect (oldIndex);
+						text.setText(theText);
+						text.setSelection(text.getText().length());
 						break;
 					}
 					default: {
@@ -1208,12 +1148,15 @@ void textEvent (Event event) {
 				if (event.keyCode == SWT.ARROW_DOWN) {
 					switch (oldIndex) {
 					case -1: {
-						list.select(0);
+						theText = text.getText();
+						select(0);
 						break;
 					}
 					default: {
 						if (oldIndex == getItemCount () - 1)	{
 							deselect(oldIndex);
+							text.setText(theText);
+							text.setSelection(text.getText().length());
 						} else {
 							select (Math.min (oldIndex + 1, getItemCount () - 1));
 						}
@@ -1240,7 +1183,7 @@ void textEvent (Event event) {
 			e.keyCode = event.keyCode;
 			e.stateMask = event.stateMask;
 			notifyListeners(SWT.KeyDown, e);
-			System.out.println("textEvent.KeyDown: " + e.character);
+			//System.out.println("textEvent.KeyDown: " + e.character);
 			break;
 		}
 		case SWT.KeyUp: {
@@ -1253,14 +1196,15 @@ void textEvent (Event event) {
 			if (ch != SWT.DEL) {
 				if (Character.isLetterOrDigit(ch) || (ch>= 32 && ch <= 126)) { 
 					text.insert("" + ch);
+					notifyListeners(SWT.KeyUp, e);
 				} else {
 					text.setFocus();
 					notifyListeners(SWT.KeyUp, e);
 				}
 			} else {
-				System.out.println("doDelete");
+				//System.out.println("doDelete");
 			}
-			System.out.println("textEvent.keyUp: " + e.character + "/" + e.keyCode);
+			//System.out.println("textEvent.keyUp: " + e.character + "/" + e.keyCode);
 			break;
 		}
 		case SWT.Modify: {
@@ -1268,7 +1212,7 @@ void textEvent (Event event) {
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.Modify, e);
-			System.out.println("textEvent.Modify");
+			//System.out.println("textEvent.Modify");
 			break;
 		}
 		case SWT.MouseDown: {
