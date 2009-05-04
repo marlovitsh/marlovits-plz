@@ -1,5 +1,6 @@
 package ch.marlovits.plz;
 
+import java.awt.AWTEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -9,9 +10,11 @@ import org.eclipse.jface.dialogs.TrayDialog;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ILabelProviderListener;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITableLabelProvider;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
@@ -19,13 +22,10 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 
@@ -96,6 +96,10 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 	Combo[]			comboNameKantonArray = {null, null, null, null, null, null, null, null, null, null};
 	Composite		top;
 	String			currLandIso;
+	List<PlzEintrag> plzList;
+	PlzEintrag		resultPlz;
+	Composite			fParent;
+	boolean		isOK = false;
 	
 	/**
 	 * Constructor für PlzDialog bei vorhandener Plz (PLZ editieren)
@@ -107,6 +111,7 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 		this.landStr	= land;
 		this.plzStr		= plz;
 		this.ortStr		= ort;
+		plzList = null;
 	}
 	
 	/**
@@ -117,11 +122,36 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 		super(shell);
 	}
 	
+	public boolean getDoubleClicked()	{
+		return isOK;
+	}
+	
+	@Override
+	public boolean close() {
+		System.out.println("Close called");
+		resultPlz = plzList.get(0);
+		return super.close();
+	}
+	
+	public PlzEintrag getResult()	{
+		return resultPlz;
+	}
+	
+	/**
+	 * Constructor für PlzDialog bei noch nicht vorhandener Plz (PLZ erfassen)
+	 * @param shell
+	 */
+	PlzSelectorDialog(Shell shell, List<PlzEintrag> plzList){
+		super(shell);
+		this.plzList = plzList;
+	}
+	
 	/**
 	 * Dialog für die Änderung vorhandener/Eingabe neuer Postleitzahlen
 	 */
 	@Override // createPartControl createDialogArea
 	protected Control createDialogArea(Composite parent){
+		fParent = parent;
 		FormToolkit tk = Desk.getToolkit();
 		//Form form = tk.createForm(parent);
 		//form.getBody().setLayout(new GridLayout(1, false));
@@ -146,7 +176,11 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 		// Tabellen-Inhalt
 		plzViewer.setContentProvider(new IStructuredContentProvider() {
 			public Object[] getElements(Object inputElement){
-				return getPostleitzahlen().toArray();
+				if (plzList == null)	{
+					return getPostleitzahlen().toArray();
+				} else {
+					return plzList.toArray();
+				}
 			}
 			
 			public void dispose(){
@@ -157,23 +191,36 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 			// nothing to do
 			}
 		});
-		plzViewer.addDoubleClickListener(new IDoubleClickListener() {
-			public void doubleClick(DoubleClickEvent event) {
-				IStructuredSelection sel = (IStructuredSelection) plzViewer.getSelection();
-				System.out.println(event.toString());
-				System.out.println(event.getViewer());
-				System.out.println(event.getSource());
-				System.out.println(sel.toList());
-				if (!sel.isEmpty()) {
-					PlzEintrag plz = (PlzEintrag) sel.getFirstElement();
-					//System.out.println(plz);
-				}
-/*				IStructuredSelection selection = (IStructuredSelection) event.getSelection();
-				System.out.println("Doubleclick: " + event.getSelection());
-				System.out.println(((IStructuredSelection)event.getSelection()).toArray());*/
+		
+		/**
+		 * setzt das Feld resultPlz
+		 */
+		plzViewer.addSelectionChangedListener(new ISelectionChangedListener()	{
+			public void selectionChanged(SelectionChangedEvent event) {
+				IStructuredSelection selection = (IStructuredSelection)event.getSelection();
+				resultPlz = (PlzEintrag) selection.getFirstElement();
+				System.out.println("Selection Changed");
+				System.out.println(resultPlz.get("Ort27") + "/" + resultPlz.get("Plz"));
 			}
 		});
-
+		
+		/**
+		 * schliesst das Fenster
+		 */
+		plzViewer.addDoubleClickListener(new IDoubleClickListener() {
+			public void doubleClick(DoubleClickEvent event) {
+				//Window w = null;
+				//processWindowEvent(WindowEvent esss);
+				//w.getToolkit().getSystemEventQueue().postEvent(new WindowEvent(w, WindowEvent.WINDOW_CLOSING)); 
+				isOK = true;
+				IStructuredSelection selection = (IStructuredSelection)event.getSelection();
+				resultPlz = (PlzEintrag) selection.getFirstElement();
+				System.out.println("Doubleclick");			
+				getShell().close();
+			}
+		});
+		
+		
 		
 		plzViewer.setLabelProvider(new ITableLabelProvider() {
 			public void addListener(ILabelProviderListener listener){
@@ -250,29 +297,6 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 		super.okPressed();
 	}
 
-	@Override
-	public void clearEvent(Class<? extends PersistentObject> template) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void selectionEvent(PersistentObject obj) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void activation(boolean mode) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void visible(boolean mode) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	private List<PlzEintrag> getPostleitzahlen(){
 		// Erstellen des Return-Arrays
@@ -332,6 +356,26 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 			}
 		});
 		return postleitzahlen;
+	}
+
+	public void clearEvent(Class<? extends PersistentObject> template) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void selectionEvent(PersistentObject obj) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void activation(boolean mode) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void visible(boolean mode) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

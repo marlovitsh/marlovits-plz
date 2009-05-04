@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.geonames.PostalCode;
+import org.geonames.Style;
 import org.geonames.WebService;
-import org.jdom.Element;
 
 import ch.elexis.data.PersistentObject;
 import ch.elexis.data.Query;
@@ -56,6 +56,23 @@ class PlzSearch	{
 													final boolean   exact,
 													final String... orderBy)	{
 		return search(landStr, null, ortStr, exact, orderBy);
+	}
+	
+	public static boolean isCountryInDatabase(final String    landStr)	{
+		Stm stm = PersistentObject.getConnection().getStatement();
+		ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landStr) + ")");
+		try {
+			rs.next();
+			long numOfEntries = Integer.decode(rs.getString("cnt"));
+			rs.close();
+			if (numOfEntries <= 0)	{
+				return false;
+			} 
+		} catch (SQLException e) {
+			return false;
+		} finally	{
+		}
+		return true;
 	}
 	
 	public static List<PlzEintrag> search(final String    landStr,
@@ -126,12 +143,14 @@ class PlzSearch	{
 												  final boolean   exact,
 												  final String... orderBy)	{
 		List<PostalCode> postalCodes;
-		List<PlzEintrag> plzs = new ArrayList();
+		//List<PlzEintrag> plzs = new ArrayList<PlzEintrag>();
 		
 		try {
+			WebService.setDefaultStyle(Style.FULL);
 			postalCodes = WebService.postalCodeSearch(plzStr, "", landStr);
 			//PostalCode[] postalCodeArray = (PostalCode[]) postalCodes.toArray();
 			
+			List<PlzEintrag> plzs = new ArrayList<PlzEintrag>();
 			String resultText = "";
 			for (int i = 0; i < postalCodes.size(); i++)	{
 				PlzEintrag plz = new PlzEintrag();
@@ -147,7 +166,7 @@ class PlzSearch	{
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		return plzs;
+		return null;
 	}
 	
 }
