@@ -18,8 +18,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.ResultSet;
@@ -42,8 +40,6 @@ import javax.swing.event.PopupMenuListener;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.dialogs.ProgressMonitorDialog;
-import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusEvent;
@@ -290,8 +286,13 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					} finally	{
 					}
 					
+					if (numOfEntries > 0)	{
+						myCCombo.dropDown(true);
+					} else	{
+						myCCombo.dropDown(false);
+					}
 					// ausnahmsweise direkte Abfrage auf der Datenbank
-					// aufgrund der Geschwindigkeit, die hier relevant ist
+					// aufgrund der Geschwindigkeit, die hier relevant ist via Persistent/Query unsäglich langsam
 					rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") order by ort27");
 					myCCombo.removeAll();
 					try {
@@ -424,8 +425,9 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 						ortField.getText(),
 						false,
 						"Land", "Plz", "Ort27");*/
-				SWTHelper.alert("Alert...", "" + plzList.size());
-				SWTHelper.alert("ddd", plzList.get(0).get("Ort27"));
+				//SWTHelper.alert("Alert...", "" + plzList.size());
+				String tmp = plzList.get(0).get("Ort27");
+				SWTHelper.alert("ddd", tmp);
 				}
 				// PROGRESS MONITOR
 				/*ExecutionEvent eev = new ExecutionEvent();
