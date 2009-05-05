@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import javax.swing.AbstractButton;
 import javax.swing.ImageIcon;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -36,6 +37,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
+import javax.swing.table.DefaultTableModel;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
@@ -227,48 +229,31 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		plzField.     setText("Prefs Plz");
 		ortField.     setText("Prefs Ort");
 		
-//		Shell popup;
-//		int style = SWT.V_SCROLL;
-//		popup = new Shell (parent.getShell(), SWT.NO_TRIM);
-//		int listStyle = SWT.SINGLE | SWT.V_SCROLL;
-//		if ((style & SWT.FLAT) != 0) listStyle |= SWT.FLAT;
-//		if ((style & SWT.RIGHT_TO_LEFT) != 0) listStyle |= SWT.RIGHT_TO_LEFT;
-//		if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
-//		//List list = new List (popup, listStyle);
-//		list = new List(popup, listStyle);
-
 		// LandCombo
 		cbOrtCombo = new Combo(rightComposite, SWT.DROP_DOWN);
 		
-		myCCombo = new MyCCombo(top, SWT.READ_ONLY + SWT.BORDER);
+		
+		
+		AbstractButton table = null;
+		String[] columnLabels = {"Label 1", "Label 2"};
+		String[][] rowData = {{"cell1", "cell2"}, {"cell21", "cell22"}, {"cel31", "cell32"}};
+		DefaultTableModel dtm = new DefaultTableModel();
+		dtm.setDataVector(rowData, columnLabels);
+		
+		myCCombo = new MyCCombo(top, SWT.BORDER);
 		String[] cComboStr = {"Item1", "Item2", "Item3", "Item4", "Item5"};
 		myCCombo.setItems(cComboStr);
 		myCCombo.setVisible(true);
 		myCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		myCCombo.addKeyListener(new KeyListener() {
 			public void keyPressed(KeyEvent e) {
-				//myCCombo.setListVisible(true);
-				//System.out.println("pressed, KeyCode: " + e.keyCode);
-				//e.doit = false;
-				//myCCombo.setEditable(true);
-/*				if (e.keyCode == SWT.ARROW_LEFT)	{
-					System.out.println("Arrow_Left");
-					int theLen = cCombo.getText().length();
-					e.doit = false;
-					cCombo.setSelection(new Point(theLen, theLen));
-				}
-				if (e.keyCode == SWT.ARROW_RIGHT)	{
-					System.out.println("Arrow_Right");
-					int theLen = cCombo.getText().length();
-					e.doit = false;
-					cCombo.setSelection(new Point(theLen, theLen));
-				}*/
 			}
 			
 			public void keyReleased(KeyEvent e) {
 				String currText = myCCombo.getText();
 				if (currText.length() == 0)	{
 					myCCombo.removeAll();
+					myCCombo.dropDown(false);
 					return;
 				}
 				
@@ -277,7 +262,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					Stm stm = PersistentObject.getConnection().getStatement();
 					
 					int numOfEntries = 0;
-					ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")");
+					ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") and plztyp != 80");
 					try {
 						rs.next();
 						numOfEntries = Integer.decode(rs.getString("cnt"));
@@ -293,8 +278,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					}
 					// ausnahmsweise direkte Abfrage auf der Datenbank
 					// aufgrund der Geschwindigkeit, die hier relevant ist via Persistent/Query unsäglich langsam
-					rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") order by ort27");
-					myCCombo.removeAll();
+					rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 					try {
 						String[] plzStrings = new String[numOfEntries];
 						int iii = 0;
@@ -309,50 +293,17 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					}
 				} else	{
 					myCCombo.removeAll();
+					myCCombo.dropDown(false);
 				}
-				cbOrtCombo.setText(currText);
-				//myCCombo.dropDown(true);
-				//System.out.println("pressed, KeyCode: " + e.keyCode);
-				//e.doit = false;
-				//myCCombo.setEditable(false);
-				if (e.keyCode == SWT.ARROW_LEFT)	{
-					//System.out.println("Arrow_Left Testing");
-					int theLen = myCCombo.getText().length();
-					//myCCombo.setFocus();
-					Point currSelection = myCCombo.getSelection();
-					//myCCombo.setSelection(new Point(currSelection.x - 1, currSelection.x - 1));
-					//myCCombo.setText("aaaaaaaaaaaaaaa");
-					//e.doit = false;
-					return;
-				}
-				if (e.keyCode == SWT.ARROW_RIGHT)	{
-					//System.out.println("Arrow_Right Testing");
-					int theLen = myCCombo.getText().length();
-					//myCCombo.setFocus();
-					Point currSelection = myCCombo.getSelection();
-					//myCCombo.setSelection(new Point(currSelection.x + 1, currSelection.x + 1));
-					//myCCombo.setText("ddddddddddd");
-					//e.doit = false;
-					return;
-				}
-//				Point currSelection = myCCombo.getSelection();
-//				String currText = myCCombo.getText();
-//				String leftPart  = currText.substring(0, currSelection.x);
-//				String rightPart = currText.substring(currSelection.x, currText.length());
-//				myCCombo.setText(leftPart + e.character + rightPart);
-//				myCCombo.setSelection(new Point(currSelection.x + 1, currSelection.x + 1));
 			}
 			
 		});
-		
-		cDrillDown = new DrillDownComposite(top, SWT.DROP_DOWN);
 		
 		/* ------ ProgressMonitorDialog ------------- */
 	    final Button buttonProgressDialog = new Button(top, SWT.PUSH);
 	    buttonProgressDialog.setText("Demo: ProgressMonitorDialog");
 	    buttonProgressDialog.addListener(SWT.Selection, new Listener() {
 	      public void handleEvent(Event event) {
-	        myCCombo.dropDown(!myCCombo.isDropped());
 	    	/*  IRunnableWithProgress runnableWithProgress = new IRunnableWithProgress() {
 	          public void run(IProgressMonitor monitor)
 	            throws InvocationTargetException, InterruptedException {
