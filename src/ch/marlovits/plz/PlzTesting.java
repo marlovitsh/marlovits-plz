@@ -142,25 +142,28 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	private FocusListener ortFocusListener;
 	private KeyListener	ortKeyListener;
 	private KeyListener	ortCBKeyListener;
+	private KeyListener	myCComboKeyListener;
 	private MyCCombo myCCombo;
 	private DrillDownComposite cDrillDown;
 	private List list;
 	
 	public PlzTesting() {
 		super();
-		landModifyListener   = new LandModifyListener();
-		plzFocusListener   = new PlzFocusListener();
-		ortFocusListener   = new OrtFocusListener();
-		ortKeyListener     = new OrtKeyListener();
-		ortCBKeyListener     = new OrtCBKeyListener();
+		landModifyListener  = new LandModifyListener();
+		plzFocusListener    = new PlzFocusListener();
+		ortFocusListener    = new OrtFocusListener();
+		ortKeyListener      = new OrtKeyListener();
+		ortCBKeyListener    = new OrtCBKeyListener();
+		myCComboKeyListener = new CComboKeyListener();
 	}
 
 	public void createPartControl(Composite parent){
-		landModifyListener = new LandModifyListener();
-		plzFocusListener   = new PlzFocusListener();
-		ortFocusListener   = new OrtFocusListener();
-		ortKeyListener     = new OrtKeyListener();
-		ortCBKeyListener     = new OrtCBKeyListener();
+		landModifyListener  = new LandModifyListener();
+		plzFocusListener    = new PlzFocusListener();
+		ortFocusListener    = new OrtFocusListener();
+		ortKeyListener      = new OrtKeyListener();
+		ortCBKeyListener    = new OrtCBKeyListener();
+		myCComboKeyListener = new CComboKeyListener();
 		
 		top = new Composite(parent, SWT.NONE);
 		top.setLayoutData(SWTHelper.getFillGridData(1, true, 1, true));
@@ -245,59 +248,6 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		myCCombo.setItems(cComboStr);
 		myCCombo.setVisible(true);
 		myCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		myCCombo.addKeyListener(new KeyListener() {
-			public void keyPressed(KeyEvent e) {
-			}
-			
-			public void keyReleased(KeyEvent e) {
-				String currText = myCCombo.getText();
-				if (currText.length() == 0)	{
-					myCCombo.removeAll();
-					myCCombo.dropDown(false);
-					return;
-				}
-				
-				// passende Einträge aus der Datenbank auslesen
-				if (PlzSearch.isCountryInDatabase(landIso2Field.getText()))	{
-					Stm stm = PersistentObject.getConnection().getStatement();
-					
-					int numOfEntries = 0;
-					ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") and plztyp != 80");
-					try {
-						rs.next();
-						numOfEntries = Integer.decode(rs.getString("cnt"));
-						rs.close();
-					} catch (SQLException exc) {
-					} finally	{
-					}
-					
-					if (numOfEntries > 0)	{
-						myCCombo.dropDown(true);
-					} else	{
-						myCCombo.dropDown(false);
-					}
-					// ausnahmsweise direkte Abfrage auf der Datenbank
-					// aufgrund der Geschwindigkeit, die hier relevant ist via Persistent/Query unsäglich langsam
-					rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
-					try {
-						String[] plzStrings = new String[numOfEntries];
-						int iii = 0;
-						while (rs.next())	{
-							plzStrings[iii] = rs.getString("Ort27");
-							iii++;
-						}
-						myCCombo.setItems(plzStrings);
-					} catch (SQLException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				} else	{
-					myCCombo.removeAll();
-					myCCombo.dropDown(false);
-				}
-			}
-			
-		});
 		
 		/* ------ ProgressMonitorDialog ------------- */
 	    final Button buttonProgressDialog = new Button(top, SWT.PUSH);
@@ -355,6 +305,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		
 		ortField.addKeyListener(ortKeyListener);
 		cbOrtCombo.addKeyListener(ortCBKeyListener);
+		myCCombo.addKeyListener(myCComboKeyListener);
 	}
 	
 	private void makeActions(){
@@ -1722,5 +1673,86 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		  }
 
 		}
+	
+	class CComboKeyListener implements KeyListener	{
+		public void keyPressed(KeyEvent e) {
+		}
+		
+		public void keyReleased(KeyEvent e) {
+			try	{
+				// der KeyListener muss deaktiviert werden, sonst interagiert das ganz heftig
+				// erst nach dem neuen Einlesen der Liste wieder zurücksetzen (in finally)
+				myCCombo.removeKeyListener(myCComboKeyListener);
+				
+				// den aktuell im Textfeld eingegebenen Text einlesen
+				String currText = myCCombo.getText();
+				
+				// wenn kein Text vorhanden, dann Liste leeren und schliessen
+				if (currText.length() == 0)	{
+					myCCombo.removeAll();
+					myCCombo.dropDown(false);
+					throw new FakeFinally();
+				}
+				
+				// wenn schon ein Item ausgewählt ist, dann die Liste nicht neu berechnen,
+				// sonst bleibt nur dieses Einzel-Item in der Liste
+				if (myCCombo.getSelectionIndex() >= 0)	{
+					throw new FakeFinally();
+				}
+				
+				// alle passenden Einträge aus der Datenbank auslesen
+				// ausnahmsweise direkte Abfrage auf der Datenbank aufgrund der Geschwindigkeit, die hier relevant
+				// ist via Persistent/Query unsäglich langsam (Buchstabe A hat mehrere hundert Einträge...)
+				// Datenbank anzapfen - oozapft is...
+				Stm stm = PersistentObject.getConnection().getStatement();
+				
+				// Anzahl Einträge ermitteln, die passen
+				int numOfEntries = 0;
+				// wenn kein Land ausgewählt ist, dann via sql alle Länder abfragen
+				String landClause = " 1=1 ";
+				if (!StringTool.isNothing(landIso2Field.getText().toString()))	{
+					landClause = " lower(land) = lower(" + JdbcLink.wrap(landIso2Field.getText()) + ") "; 
+				}
+				ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ") and plztyp != 80");
+				try {
+					rs.next();
+					numOfEntries = Integer.decode(rs.getString("cnt"));
+					rs.close();
+				} catch (SQLException exc) {
+				}
+				
+				// wenn Einträge gefunden, dann Liste anzeigen, sonst verstecken
+				if (numOfEntries > 0)	{
+					myCCombo.dropDown(true);
+				} else	{
+					myCCombo.dropDown(false);
+				}
+				
+				// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
+				rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
+				try {
+					String[] plzStrings = new String[numOfEntries];
+					int iii = 0;
+					while (rs.next())	{
+						plzStrings[iii] = rs.getString("Ort27");
+						iii++;
+					}
+					myCCombo.setItems(plzStrings);
+				} catch (SQLException e1) {
+				}
+			}
+			catch(FakeFinally ff) {
+			}
+			finally	{
+				// den Listener wieder installieren - sonst läuft nix mehr
+				myCCombo.addKeyListener(myCComboKeyListener);
+			}
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	// ugly, but I like it...
+	class FakeFinally extends Exception {
+	}
 
 }
