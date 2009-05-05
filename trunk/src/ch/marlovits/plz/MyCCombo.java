@@ -99,16 +99,7 @@ public final class MyCCombo extends Composite {
  * @see SWT#READ_ONLY
  * @see SWT#FLAT
  * @see Widget#getStyle
- */
-	
-public List getList()	{
-	return list;
-}
-
-public void setListVisible(boolean visibility)	{
-	list.setVisible(visibility);
-}
-
+ */	
 public MyCCombo (Composite parent, int style) {
 	super (parent, checkStyle (style));
 	
@@ -169,6 +160,12 @@ public MyCCombo (Composite parent, int style) {
 	for (int i=0; i<listEvents.length; i++) list.addListener (listEvents [i], listener);
 	
 	initAccessible();
+}
+public List getList()	{
+	return list;
+}
+public void setListVisible(boolean visibility)	{
+	list.setVisible(visibility);
 }
 static int checkStyle (int style) {
 	int mask = SWT.BORDER | SWT.READ_ONLY | SWT.FLAT | SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT;
@@ -263,7 +260,6 @@ public void addSelectionListener(SelectionListener listener) {
 	TypedListener typedListener = new TypedListener (listener);
 	addListener (SWT.Selection,typedListener);
 	addListener (SWT.DefaultSelection,typedListener);
-	//System.out.println("SelectionListener");
 }
 
 /**
@@ -776,7 +772,7 @@ void popupEvent(Event event) {
 	switch (event.type) {
 		case SWT.Paint:
 			// draw black rectangle around list
-			//System.out.println("popup: draw");
+			System.out.println("popup: draw");
 			Rectangle listRect = list.getBounds();
 			Color black = getDisplay().getSystemColor(SWT.COLOR_BLACK);
 			event.gc.setForeground(black);
@@ -1092,48 +1088,63 @@ public void setVisible (boolean visible) {
 }
 
 void textEvent (Event event) {
+	/*
 	System.out.println("textEvent");
+	Event e = new Event();
+	e.time      = event.time;
+	e.character = event.character;
+	e.keyCode   = event.keyCode;
+	e.stateMask = event.stateMask;
+	char ch = event.character;
 	if (1==1){
 		switch (event.type) {
 		case SWT.FocusIn: {
-			notifyListeners(SWT.FocusIn, event);
+			notifyListeners(SWT.FocusIn, e);
+			System.out.println("textEvent: FocusIn");
 			break;
 		}
 		case SWT.FocusOut: {
-			notifyListeners(SWT.FocusOut, event);
+			notifyListeners(SWT.FocusOut, e);
+			System.out.println("textEvent: FocusOut");
 			break;
 		}
 		case SWT.KeyDown: {
-			notifyListeners(SWT.KeyDown, event);
+			notifyListeners(SWT.KeyDown, e);
+			System.out.println("textEvent: keyDown");
 			break;
 		}
 		case SWT.KeyUp: {
-			notifyListeners(SWT.KeyUp, event);
+			notifyListeners(SWT.KeyUp, e);
 			System.out.println("textEvent: keyUp");
 			break;
 		}
 		case SWT.Modify: {
-			notifyListeners(SWT.Modify, event);
+			notifyListeners(SWT.Modify, e);
+			System.out.println("textEvent: Modify");
 			break;
 		}
 		case SWT.MouseDown: {
-			notifyListeners(SWT.MouseDown, event);
+			notifyListeners(SWT.MouseDown, e);
+			System.out.println("textEvent: MouseDown");
 			break;
 		}
 		case SWT.MouseUp: {
-			notifyListeners(SWT.MouseUp, event);
+			notifyListeners(SWT.MouseUp, e);
+			System.out.println("textEvent: MouseUp");
 			break;
 		}
 		case SWT.Traverse: {
-			notifyListeners(SWT.Traverse, event);
+			notifyListeners(SWT.Traverse, e);
+			System.out.println("textEvent: Traverse");
 			break;
 		}
 		
 		}
 	}
-	/*
+	*/
 	switch (event.type) {
 		case SWT.FocusIn: {
+			System.out.println("textEvent: FocusIn");
 			if (hasFocus) return;
 			hasFocus = true;
 			if (getEditable ()) text.selectAll ();
@@ -1143,6 +1154,7 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.FocusOut: {
+			System.out.println("textEvent: FocusOut");
 			event.display.asyncExec(new Runnable() {
 				public void run() {
 					if (MyCCombo.this.isDisposed()) return;
@@ -1156,6 +1168,7 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
+			System.out.println("textEvent: KeyDown");
 			if (event.character == SWT.ESC) { // escape key cancels popup list
 				dropDown (false);
 			}
@@ -1170,6 +1183,7 @@ void textEvent (Event event) {
 			// If so, do not continue.
 			if (isDisposed()) break;
 			
+			dropDown (true);
 			if (event.keyCode == SWT.ARROW_UP || event.keyCode == SWT.ARROW_DOWN) {
 				int oldIndex = getSelectionIndex ();
 				if (event.keyCode == SWT.ARROW_UP) {
@@ -1177,16 +1191,19 @@ void textEvent (Event event) {
 					case -1: {
 						theText = text.getText();
 						select(getItemCount () - 1);
+						text.setSelection(text.getText().length());
 						break;
 					}
 					case 0: {
 						deselect (oldIndex);
-						//text.setText(theText);
-						//text.setSelection(text.getText().length());
+						text.setText(theText);
+						text.setSelection(text.getText().length());
 						break;
 					}
 					default: {
 						select (Math.min (oldIndex - 1, getItemCount () - 1));
+						text.setSelection(32000);
+						//text.setSelection(text.getText().length()+1);
 					}
 					}
 				}
@@ -1200,8 +1217,8 @@ void textEvent (Event event) {
 					default: {
 						if (oldIndex == getItemCount () - 1)	{
 							deselect(oldIndex);
-							//text.setText(theText);
-							//text.setSelection(text.getText().length());
+							text.setText(theText);
+							text.setSelection(text.getText().length());
 						} else {
 							select (Math.min (oldIndex + 1, getItemCount () - 1));
 						}
@@ -1209,12 +1226,12 @@ void textEvent (Event event) {
 					}
 				}
 				
-				if (oldIndex != getSelectionIndex ()) {
-					Event e = new Event();
-					e.time = event.time;
-					e.stateMask = event.stateMask;
-					notifyListeners(SWT.Selection, e);
-				}
+//				if (oldIndex != getSelectionIndex ()) {
+//					Event e = new Event();
+//					e.time = event.time;
+//					e.stateMask = event.stateMask;
+//					notifyListeners(SWT.Selection, e);
+//				}
 				//At this point the widget may have been disposed.
 				// If so, do not continue.
 				if (isDisposed()) break;
@@ -1222,16 +1239,18 @@ void textEvent (Event event) {
 			
 			// Further work : Need to add support for incremental search in 
 			// pop up list as characters typed in text widget
-			Event e = new Event();
-			e.time = event.time;
-			e.character = event.character;
-			e.keyCode = event.keyCode;
-			e.stateMask = event.stateMask;
-			notifyListeners(SWT.KeyDown, e);
+//			Event e = new Event();
+//			e.time = event.time;
+//			e.character = event.character;
+//			e.keyCode = event.keyCode;
+//			e.stateMask = event.stateMask;
+//			notifyListeners(SWT.KeyDown, e);
 			//System.out.println("textEvent.KeyDown: " + e.character);
 			break;
 		}
 		case SWT.KeyUp: {
+			if (1==1) break;
+			System.out.println("textEvent: FocusUp");
 			Event e = new Event();
 			e.time = event.time;
 			e.character = event.character;
@@ -1253,6 +1272,8 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.Modify: {
+			if (1==1) break;
+			System.out.println("textEvent: Modify");
 			list.deselectAll ();
 			Event e = new Event();
 			e.time = event.time;
@@ -1261,13 +1282,14 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.MouseDown: {
+			System.out.println("textEvent: MouseDown");
 			if (event.button != 1) return;
 			if (text.getEditable ()) return;
 			boolean dropped = isDropped ();
 			text.selectAll ();
 			//if (!dropped) setFocus ();
 			//dropDown (!dropped);
-			//dropDown(true);
+			dropDown(true);
 			Event e = new Event();
 			e.time = event.time;
 			e.x = event.x;
@@ -1276,12 +1298,14 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.MouseUp: {
+			System.out.println("textEvent: FocusUp");
 			if (event.button != 1) return;
 			if (text.getEditable ()) return;
 			text.selectAll ();
 			break;
 		}
 		case SWT.Traverse: {		
+			System.out.println("textEvent: Traverse");
 			switch (event.detail) {
 				case SWT.TRAVERSE_RETURN:
 				case SWT.TRAVERSE_ARROW_PREVIOUS:
@@ -1302,7 +1326,7 @@ void textEvent (Event event) {
 			event.doit = e.doit;
 			break;
 		}
-	}*/
+	}
 	}
 /*
 public boolean isPrintableChar(char c)	{
