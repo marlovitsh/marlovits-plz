@@ -86,7 +86,8 @@ public final class MyCCombo extends Composite {
 	// isOldStyle
 	String      theText;
 	// !isOldStyle
-	TableViewer	dropTable;
+	TableViewer	tableViewer;
+	Table		table;
 	
 /**
  * Constructs a new instance of this class given its parent
@@ -139,17 +140,17 @@ public MyCCombo (Composite parent, int style) {
 		list = new List (popup, listStyle);
 	} else	{
 		// meine eigene Popup-Liste mit mehreren Spalten erstellen in popup2 ********
-		dropTable = new TableViewer(popup, SWT.BORDER | SWT.SINGLE | SWT.FULL_SELECTION);
+		tableViewer = new TableViewer(popup, SWT.BORDER | SWT.SINGLE | SWT.FULL_SELECTION);
 		GridData gd = new GridData();
 		gd.horizontalAlignment = SWT.FILL;
 		gd.verticalAlignment = SWT.FILL;
 		gd.grabExcessHorizontalSpace = true;
 		gd.grabExcessVerticalSpace = true;
 		
-		dropTable.getControl().setLayoutData(gd);
-		Table myTable2 = dropTable.getTable();
-		myTable2.setHeaderVisible(false);
-		myTable2.setLinesVisible(false);
+		tableViewer.getControl().setLayoutData(gd);
+		table = tableViewer.getTable();
+		table.setHeaderVisible(false);
+		table.setLinesVisible(false);
 		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 		//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 		Stm stm = PersistentObject.getConnection().getStatement();
@@ -157,18 +158,18 @@ public MyCCombo (Composite parent, int style) {
 		String landClause = " lower(land) = lower(" + JdbcLink.wrap("CH") + ") "; 
 		ResultSet rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap("D" + "%") + ")  and plztyp != 80 order by ort27");
 		for (int iiii = 0; iiii < 3; iiii++)	{
-			TableColumn col1 = new TableColumn(myTable2, SWT.NULL);
+			TableColumn col1 = new TableColumn(table, SWT.NULL);
 			col1.setText("Column " + iiii);
 			col1.pack();			
 		}
 		try {
 			while (rs.next())	{
-				TableItem tableItem1 = new TableItem(myTable2, SWT.NULL);
+				TableItem tableItem1 = new TableItem(table, SWT.NULL);
 				tableItem1.setText(new String[] {rs.getString("ort27"), rs.getString("plz"), rs.getString("land")});
 			}
 		} catch (SQLException e1) {
 		}
-		myTable2.setTopIndex(40);
+		table.setTopIndex(40);
 	}
 	
 	// die Listener installieren ************************************************
@@ -185,7 +186,12 @@ public MyCCombo (Composite parent, int style) {
 				return;
 			}
 			if (list == event.widget) {
-				System.out.println("event.widget == list, calling listEvent(event)");
+				//System.out.println("event.widget == list, calling listEvent(event)");
+				listEvent (event);
+				return;
+			}
+			if (table == event.widget) {
+				//System.out.println("event.widget == list, calling listEvent(event)");
 				listEvent (event);
 				return;
 			}
@@ -212,7 +218,7 @@ public MyCCombo (Composite parent, int style) {
 		for (int i=0; i<listEvents.length; i++) list.addListener (listEvents [i], listener);
 	} else {
 		int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut};
-		for (int i=0; i<listEvents.length; i++) dropTable.getTable().addListener (listEvents [i], listener);
+		for (int i=0; i<listEvents.length; i++) table.addListener (listEvents [i], listener);
 	}
 	
 	initAccessible();
@@ -221,10 +227,10 @@ public List getList()	{
 	return list;
 }
 public TableViewer getTableViewer()	{
-	return dropTable;
+	return tableViewer;
 }
 public Table getTable()	{
-	return dropTable.getTable();
+	return table;
 }
 public void setListVisible(boolean visibility)	{
 	list.setVisible(visibility);
@@ -233,7 +239,7 @@ public void setTableViewerVisible(boolean visibility)	{
 	popup.setVisible(visibility);
 	}
 public void setTableVisible(boolean visibility)	{
-	dropTable.getTable().setVisible(visibility);
+	table.setVisible(visibility);
 	}
 static int checkStyle (int style) {
 	int mask = SWT.BORDER | SWT.READ_ONLY | SWT.FLAT | SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT;
@@ -347,7 +353,7 @@ public void clearSelection () {
 	if (isOldStyle){
 		list.deselectAll ();
 	} else {
-		dropTable.getTable().deselectAll();
+		table.deselectAll();
 	}
 }
 void comboEvent (Event event) {
@@ -359,7 +365,7 @@ void comboEvent (Event event) {
 			if (isOldStyle){
 				list = null;
 			} else {
-				dropTable = null;
+				tableViewer = null;
 			}
 			break;
 		case SWT.Move:
@@ -380,7 +386,7 @@ public Point computeSize (int wHint, int hHint, boolean changed) {
 	if (isOldStyle){
 		listSize  = list.computeSize (wHint, SWT.DEFAULT, changed);
 	} else {
-		listSize  = dropTable.getTable().computeSize(wHint, SWT.DEFAULT, changed);
+		listSize  = table.computeSize(wHint, SWT.DEFAULT, changed);
 	}
 	int borderWidth = getBorderWidth();
 	
@@ -409,7 +415,7 @@ public void deselect (int index) {
 	if (isOldStyle){
 		list.deselect (index);
 	} else {
-		dropTable.getTable().deselect(index);
+		table.deselect(index);
 	}
 }
 /**
@@ -429,7 +435,7 @@ public void deselectAll () {
 	if (isOldStyle){
 		list.deselectAll ();
 	} else {
-		dropTable.getTable().deselectAll();
+		table.deselectAll();
 	}
 }
 public void dropDown (boolean drop) {
@@ -451,16 +457,16 @@ public void dropDown (boolean drop) {
 		popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
 		popup.setVisible (true);
 	} else {
-		int index = dropTable.getTable().getSelectionIndex ();
-		if (index != -1) dropTable.getTable().setTopIndex (index);
-		Rectangle listRect = dropTable.getTable().getBounds ();
+		int index = table.getSelectionIndex ();
+		if (index != -1) table.setTopIndex (index);
+		Rectangle listRect = table.getBounds ();
 		Display display = getDisplay ();
 		Rectangle rect = display.map (getParent (), null, getBounds ());
 		Point comboSize = getSize ();
 		int width = Math.max (comboSize.x, listRect.width + 2);
 		popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
 		popup.setVisible (true);
-		dropTable.getTable().setFocus ();
+		table.setFocus ();
 	}
 }
 public Control [] getChildren () {
@@ -496,7 +502,7 @@ public String getItem (int index) {
 }
 public TableItem getItemNew (int index) {
 	checkWidget();
-	return dropTable.getTable().getItem(index);
+	return table.getItem(index);
 }
 /**
 * Gets the number of items.
@@ -518,7 +524,7 @@ public int getItemCount () {
 	if (isOldStyle){
 		return list.getItemCount ();
 	} else {
-		return dropTable.getTable().getItemCount ();
+		return table.getItemCount ();
 	}
 }
 /**
@@ -541,7 +547,7 @@ public int getItemHeight () {
 	if (isOldStyle){
 		return list.getItemHeight ();
 	} else {
-		return dropTable.getTable().getItemHeight ();
+		return table.getItemHeight ();
 	}
 }
 /**
@@ -566,7 +572,7 @@ public String[] getItems() {
 }
 public TableItem[] getItemsNew() {
 	checkWidget();
-	return dropTable.getTable().getItems();
+	return table.getItems();
 }
 /**
 * Gets the selection.
@@ -600,7 +606,7 @@ public int getSelectionIndex () {
 	if (isOldStyle){
 		return list.getSelectionIndex();
 	} else {
-		return dropTable.getTable().getSelectionIndex();
+		return table.getSelectionIndex();
 	}
 }
 /**
@@ -755,7 +761,7 @@ public boolean isFocusControl () {
 			return super.isFocusControl();
 		}
 	} else {
-		if (text.isFocusControl() || dropTable.getTable().isFocusControl() || popup.isFocusControl()) {
+		if (text.isFocusControl() || table.isFocusControl() || popup.isFocusControl()) {
 			return true;
 		} else {
 			return super.isFocusControl();
@@ -780,15 +786,14 @@ void internalLayout () {
 		Point listSize = list.computeSize (SWT.DEFAULT, itemHeight);
 		list.setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
 	} else {
-		int itemHeight = dropTable.getTable().getItemHeight () * ITEMS_SHOWING;
-		Point listSize = dropTable.getTable().computeSize (SWT.DEFAULT, itemHeight);
-		dropTable.getTable().setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
+		int itemHeight = table.getItemHeight () * ITEMS_SHOWING;
+		Point listSize = table.computeSize (SWT.DEFAULT, itemHeight);
+		table.setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
 	}
 }
 
-// TODO
 void listEvent (Event event) {
-	System.out.println("listEvent called");
+	//System.out.println("listEvent called");
 	switch (event.type) {
 		case SWT.FocusIn: {
 			if (hasFocus) return;
@@ -823,11 +828,14 @@ void listEvent (Event event) {
 		}
 		case SWT.Selection: {
 			//System.out.println("SWT.Selection");
-			int index = list.getSelectionIndex ();
+			int index = table.getSelectionIndex ();
 			if (index == -1) return;
-			text.setText (list.getItem (index));
-			text.selectAll ();
-			list.setSelection(index);
+			text.setText(table.getItem(index).getText(0));
+			text.selectAll();
+			table.setSelection(index);
+			table.setFocus();
+			event.doit = false;
+			if (1==1) break;
 			Event e = new Event();
 			e.time = event.time;
 			e.stateMask = event.stateMask;
@@ -837,7 +845,7 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.Traverse: {
-			//System.out.println("SWT.Traverse: before switch");
+			System.out.println("listEvent: SWT.Traverse: before switch");
 			switch (event.detail) {
 				case SWT.TRAVERSE_TAB_NEXT:
 				case SWT.TRAVERSE_RETURN:
@@ -849,9 +857,9 @@ void listEvent (Event event) {
 			}
 			//System.out.println("SWT.Traverse: after switch");
 			Event e = new Event();
-			e.time = event.time;
-			e.detail = event.detail;
-			e.doit = event.doit;
+			e.time    = event.time;
+			e.detail  = event.detail;
+			e.doit    = event.doit;
 			e.keyCode = event.keyCode;
 //			if	((event.keyCode == SWT.ARROW_LEFT) || (event.keyCode == SWT.ARROW_RIGHT))	{
 //				event.doit = false;
@@ -865,15 +873,18 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.KeyUp: {		
-			//System.out.println("SWT.KeyUp");
+			System.out.println("listEvent: SWT.KeyUp");
+			int index = table.getSelectionIndex ();
+			if (index == -1) return;
+			text.setText(table.getItem(index).getText(0));
 			Event e = new Event();
-			e.time = event.time;
+			e.time      = event.time;
 			e.character = event.character;
-			e.keyCode = event.keyCode;
+			e.keyCode   = event.keyCode;
 			e.stateMask = event.stateMask;
 			if	((event.keyCode == SWT.ARROW_LEFT) || (event.keyCode == SWT.ARROW_RIGHT))	{
-				event.doit = false;
-				e.doit = false;
+				//event.doit = false;
+				//e.doit = false;
 				//System.out.println("keyUp cancel");
 				break;
 			}
@@ -881,26 +892,50 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
-			//System.out.println("SWT.KeyDown");
+			System.out.println("listEvent: SWT.KeyDown");
 			if (event.character == SWT.ESC) { 
 				// escape key cancels popup list
-				//dropDown (false);
+				dropDown (false);
 			}
 			if (event.character == SWT.CR || event.character == '\t') {
 				// Enter and Tab cause default selection
 				dropDown (false);
 				Event e = new Event();
-				e.time = event.time;
+				e.time      = event.time;
 				e.stateMask = event.stateMask;
 				notifyListeners(SWT.DefaultSelection, e);
+			}
+			if ((event.keyCode == SWT.ARROW_LEFT) || (event.keyCode == SWT.ARROW_RIGHT)) {
+				// Enter and Tab cause default selection
+				//text.setSelection(text.getText().length());
+				text.setFocus();
+				event.doit = false;
+				Event e = new Event();
+				e.time      = event.time;
+				e.type = event.type;
+				e.button = event.button;
+				e.character = event.character;
+				e.keyCode = event.keyCode;
+				e.stateMask = event.stateMask;
+				notifyListeners(SWT.DefaultSelection, e);
+			}
+			int oldIndex = table.getSelectionIndex ();
+			if (event.keyCode == SWT.ARROW_UP) {
+				switch(oldIndex)	{
+				case(0):
+					text.setText("set from keyup");
+					break;
+				default:
+					break;
+				}
 			}
 			//At this point the widget may have been disposed.
 			// If so, do not continue.
 			if (isDisposed()) break;
 			Event e = new Event();
-			e.time = event.time;
+			e.time      = event.time;
 			e.character = event.character;
-			e.keyCode = event.keyCode;
+			e.keyCode   = event.keyCode;
 			e.stateMask = event.stateMask;
 			notifyListeners(SWT.KeyDown, e);
 			break;
@@ -913,7 +948,12 @@ void popupEvent(Event event) {
 		case SWT.Paint:
 			// draw black rectangle around list
 			System.out.println("popup: draw");
-			Rectangle listRect = list.getBounds();
+			Rectangle listRect;
+			if (isOldStyle)	{
+				listRect = list.getBounds();
+			} else {
+				listRect = table.getBounds();
+			}
 			Color black = getDisplay().getSystemColor(SWT.COLOR_BLACK);
 			event.gc.setForeground(black);
 			event.gc.drawRectangle(0, 0, listRect.width + 1, listRect.height + 1);
@@ -940,8 +980,8 @@ public void redraw (int x, int y, int width, int height, boolean all) {
 		location = list.getLocation();
 		list.redraw(x - location.x, y - location.y, width, height, all);
 	} else {
-		location = dropTable.getTable().getLocation();
-		dropTable.getTable().redraw(x - location.x, y - location.y, width, height, all);
+		location = table.getLocation();
+		table.redraw(x - location.x, y - location.y, width, height, all);
 	}
 }
 
@@ -969,7 +1009,7 @@ public void remove (int index) {
 	if (isOldStyle){
 		list.remove (index);
 	} else {
-		dropTable.getTable().remove (index);
+		table.remove (index);
 	}
 }
 /**
@@ -998,7 +1038,7 @@ public void remove (int start, int end) {
 	if (isOldStyle){
 		list.remove (start, end);
 	} else {
-		dropTable.getTable().remove (start, end);
+		table.remove (start, end);
 	}
 }
 /**
@@ -1025,7 +1065,7 @@ public void remove (String string) {
 	if (isOldStyle){
 		list.remove (string);
 	} else {
-		//dropTable.getTable().remove (string);
+		//table.remove (string);
 	}
 }
 /**
@@ -1042,7 +1082,7 @@ public void removeAll () {
 	if (isOldStyle){
 		list.removeAll ();
 	} else {
-		dropTable.getTable().removeAll ();
+		table.removeAll ();
 	}
 }
 /**	 
@@ -1102,7 +1142,7 @@ public void select (int index) {
 		if (isOldStyle){
 			list.deselectAll ();
 		} else {
-			dropTable.getTable().deselectAll ();
+			table.deselectAll ();
 		}
 		text.setText (""); //$NON-NLS-1$
 		return;
@@ -1115,8 +1155,8 @@ public void select (int index) {
 				list.select (index);
 				list.showSelection ();
 			} else {
-				dropTable.getTable().select (index);
-				dropTable.getTable().showSelection ();
+				table.select (index);
+				table.showSelection ();
 			}
 		}
 	}
@@ -1127,7 +1167,7 @@ public void setBackground (Color color) {
 	if (isOldStyle){
 		if (list != null) list.setBackground(color);
 	} else {
-		if (dropTable.getTable() != null) dropTable.getTable().setBackground(color);
+		if (table != null) table.setBackground(color);
 	}
 }
 public boolean setFocus () {
@@ -1140,7 +1180,7 @@ public void setFont (Font font) {
 	if (isOldStyle){
 		list.setFont (font);
 	} else {
-		dropTable.getTable().setFont (font);
+		table.setFont (font);
 	}
 	internalLayout ();
 }
@@ -1150,7 +1190,7 @@ public void setForeground (Color color) {
 	if (isOldStyle){
 		if (list != null) list.setForeground(color);
 	} else {
-		if (dropTable.getTable() != null) dropTable.getTable().setForeground(color);
+		if (table != null) table.setForeground(color);
 	}
 }
 /**
@@ -1172,6 +1212,7 @@ public void setForeground (Color color) {
 * @exception SWTError(ERROR_ITEM_NOT_MODIFIED)
 *	when the operation fails
 */
+// TODO
 public void setItem (int index, String string) {
 	checkWidget();
 	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
@@ -1204,7 +1245,7 @@ public void setItemsNew (String [] items) {
 	if (items == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	int style = getStyle();
 	if ((style & SWT.READ_ONLY) != 0) text.setText (""); //$NON-NLS-1$
-	//dropTable.getTable().setItems (items);
+	//table.setItems (items);
 }
 /**
 * Sets the new selection.
@@ -1257,14 +1298,14 @@ public void setTextNew (String string) {
 	// TODO int index = list.indexOf (string);
 	int index = 0;  // TODO muss weg
 	if (index == -1) {
-		dropTable.getTable().deselectAll ();
+		table.deselectAll ();
 		text.setText (string);
 		return;
 	}
 	text.setText (string);
 	text.selectAll ();
-	// TODO dropTable.getTable().setSelection (index);
-	dropTable.getTable().showSelection ();
+	// TODO table.setSelection (index);
+	table.showSelection ();
 }
 /**
 * Sets the text limit.
@@ -1315,7 +1356,7 @@ void textEvent (Event event) {
 					if (isOldStyle)	{
 						if (focusControl == list) return;
 					} else {
-						if (focusControl == dropTable.getTable()) return;
+						if (focusControl == table) return;
 					}
 					hasFocus = false;
 					Event e = new Event();
@@ -1346,58 +1387,62 @@ void textEvent (Event event) {
 			// If so, do not continue.
 			if (isDisposed()) break;
 			
-			if (isOldStyle)	{
-				if (list.getTopIndex() != -1) dropDown (true);
-			} else {
-				if (dropTable.getTable().getTopIndex() != -1) dropDown (true);
-			}
+			if (table.getTopIndex() != -1) dropDown (true);
 			if (event.keyCode == SWT.ARROW_UP || event.keyCode == SWT.ARROW_DOWN) {
 				int oldIndex = getSelectionIndex ();
 				if (event.keyCode == SWT.ARROW_UP) {
 					switch (oldIndex) {
 					case -1: {
+						// no item is currently selected -> save Text in theText, select last item, set text field, select end of text
 						theText = text.getText();
-						select(getItemCount () - 1);
+						table.setSelection(table.getItemCount() - 1);
+						text.setText(table.getSelection()[0].getText());
 						text.setSelection(text.getText().length());
-						event.doit = false;
 						break;
 					}
 					case 0: {
-						deselect (oldIndex);
+						// first item is currently selected -> deselect, set saved text, select end of text
+						table.deselectAll();
 						text.setText(theText);
 						text.setSelection(text.getText().length());
-						event.doit = false;
 						break;
 					}
 					default: {
-						select (Math.min (oldIndex - 1, getItemCount () - 1));
+						// another item is selected -> select previous item, set text field, select end of text
+						table.setSelection(oldIndex - 1);
+						text.setText(table.getSelection()[0].getText());
 						text.setSelection(text.getText().length());
-						event.doit = false;
+						break;
 					}
 					}
+					event.doit = false;
 				}
 				if (event.keyCode == SWT.ARROW_DOWN) {
 					switch (oldIndex) {
 					case -1: {
+						// no item is currently selected -> save Text in theText, select first item, set text field, select end of text
 						theText = text.getText();
-						select(0);
+						table.setSelection(0);
+						text.setText(table.getSelection()[0].getText());
 						text.setSelection(text.getText().length());
-						event.doit = false;
 						break;
 					}
 					default: {
-						if (oldIndex == getItemCount () - 1)	{
-							deselect(oldIndex);
+						if (oldIndex == table.getItemCount () - 1)	{
+							// last item is currently selected -> deselect, set saved text, select end of text
+							table.deselectAll();
 							text.setText(theText);
 							text.setSelection(text.getText().length());
 						} else {
-							select (Math.min (oldIndex + 1, getItemCount () - 1));
+							// another item is selected -> select next item, set text field, select end of text
+							table.setSelection(oldIndex + 1);
+							text.setText(table.getSelection()[0].getText());
 							text.setSelection(text.getText().length());
 						}
-						event.doit = false;
 						break;
 					}
 					}
+					event.doit = false;
 				}
 				
 				if (oldIndex != getSelectionIndex ()) {
@@ -1451,9 +1496,9 @@ void textEvent (Event event) {
 					System.out.println("first fitting item: " + list.getItem(0));
 				}
 			} else {
-				long itemCount = dropTable.getTable().getItemCount();
+				long itemCount = table.getItemCount();
 				if (itemCount > 0)	{
-					System.out.println("first fitting item: " + dropTable.getTable().getItem(0));
+					System.out.println("first fitting item: " + table.getItem(0));
 				}
 				//select(0);
 			}
@@ -1462,13 +1507,9 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.Modify: {
-			//if (1==1) break;
+			if (1==1) break;
 			System.out.println("textEvent: Modify");
-			if (isOldStyle)	{
-				list.deselectAll ();
-			} else {
-				dropTable.getTable().deselectAll ();
-			}
+			table.deselectAll ();
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.Modify, e);
