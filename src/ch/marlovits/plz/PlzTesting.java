@@ -2,6 +2,9 @@ package ch.marlovits.plz;
 
 
 import java.awt.AWTEvent;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
@@ -29,15 +32,14 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import javax.swing.AbstractButton;
 import javax.swing.ImageIcon;
+import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
-import javax.swing.table.DefaultTableModel;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
@@ -53,6 +55,7 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -63,6 +66,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
@@ -236,16 +242,10 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		cbOrtCombo = new Combo(rightComposite, SWT.DROP_DOWN);
 		
 		
-		
-		AbstractButton table = null;
-		String[] columnLabels = {"Label 1", "Label 2"};
-		String[][] rowData = {{"cell1", "cell2"}, {"cell21", "cell22"}, {"cel31", "cell32"}};
-		DefaultTableModel dtm = new DefaultTableModel();
-		dtm.setDataVector(rowData, columnLabels);
-		
+				
 		myCCombo = new MyCCombo(top, SWT.BORDER);
 		String[] cComboStr = {"Item1", "Item2", "Item3", "Item4", "Item5"};
-		myCCombo.setItems(cComboStr);
+		//myCCombo.setItems(cComboStr);
 		myCCombo.setVisible(true);
 		myCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 		
@@ -290,6 +290,40 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 //	    frame.setVisible(true);
 
 	    new PopupMenuExample();
+/*	    
+		// *************************************************************************
+	    TableViewer myTableViewer = new TableViewer(top, SWT.BORDER | SWT.SINGLE | SWT.FULL_SELECTION);
+	    GridData gd = new GridData();
+	    gd.horizontalAlignment = SWT.FILL;
+	    gd.verticalAlignment = SWT.FILL;
+	    gd.grabExcessHorizontalSpace = true;
+	    gd.grabExcessVerticalSpace = true;
+
+	    myTableViewer.getControl().setLayoutData(gd);
+	    Table myTable2 = myTableViewer.getTable();
+	    myTable2 .setHeaderVisible(false);
+	    myTable2 .setLinesVisible(false);
+		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
+		//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
+		Stm stm = PersistentObject.getConnection().getStatement();
+		String shownFields = "ort27, plz, land";
+		String landClause = " lower(land) = lower(" + JdbcLink.wrap("CH") + ") "; 
+		ResultSet rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap("D" + "%") + ")  and plztyp != 80 order by ort27");
+		for (int iiii = 0; iiii < 3; iiii++)	{
+		      TableColumn col1 = new TableColumn(myTable2, SWT.NULL);
+		      col1.setText("Column " + iiii);
+		      col1.pack();			
+		}
+		try {
+			while (rs.next())	{
+			      TableItem tableItem1 = new TableItem(myTable2, SWT.NULL);
+			      tableItem1.setText(new String[] {rs.getString("ort27"), rs.getString("plz"), rs.getString("land")});
+			}
+		} catch (SQLException e1) {
+		}
+	     myTable2.setTopIndex(40);
+	     */
+		  // *************************************************************************
 	    
 	    // Erstellen der Actions für die Menus, etc
 		makeActions();
@@ -1680,6 +1714,10 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		
 		public void keyReleased(KeyEvent e) {
 			try	{
+				// was soll angezeigt werden sql-string
+				// TODO VORSICHT: DATENBANKABHÄNGIG???
+				String shownFields = "(ort27 || chr(9) || plz || land) as result";
+				
 				// der KeyListener muss deaktiviert werden, sonst interagiert das ganz heftig
 				// erst nach dem neuen Einlesen der Liste wieder zurücksetzen (in finally)
 				myCCombo.removeKeyListener(myCComboKeyListener);
@@ -1689,7 +1727,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				
 				// wenn kein Text vorhanden, dann Liste leeren und schliessen
 				if (currText.length() == 0)	{
-					myCCombo.removeAll();
+					////////////////////////////////myCCombo.removeAll();
 					myCCombo.dropDown(false);
 					throw new FakeFinally();
 				}
@@ -1729,15 +1767,16 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				}
 				
 				// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
-				rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
+				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
+				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				try {
 					String[] plzStrings = new String[numOfEntries];
 					int iii = 0;
 					while (rs.next())	{
-						plzStrings[iii] = rs.getString("Ort27");
+						plzStrings[iii] = rs.getString("result");
 						iii++;
 					}
-					myCCombo.setItems(plzStrings);
+					/////////////////////myCCombo.setItems(plzStrings);
 				} catch (SQLException e1) {
 				}
 			}
@@ -1754,5 +1793,4 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	// ugly, but I like it...
 	class FakeFinally extends Exception {
 	}
-
 }
