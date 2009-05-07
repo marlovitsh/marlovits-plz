@@ -2,9 +2,6 @@ package ch.marlovits.plz;
 
 
 import java.awt.AWTEvent;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Container;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
@@ -33,7 +30,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.swing.ImageIcon;
-import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -41,6 +37,7 @@ import javax.swing.border.BevelBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
+import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.Dialog;
@@ -55,7 +52,6 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -66,9 +62,6 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
@@ -88,6 +81,7 @@ import ch.elexis.actions.GlobalActions;
 import ch.elexis.actions.GlobalEvents;
 import ch.elexis.actions.GlobalEvents.ActivationListener;
 import ch.elexis.actions.GlobalEvents.SelectionListener;
+import ch.elexis.commands.Handler;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
@@ -350,29 +344,14 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				List<PlzEintrag> plzList = PlzSearch.searchGeoNames(landIso2Field.getText(),
-						plzField.getText(),
-						ortField.getText(),
-						false,
-						"Land", "Plz", "Ort27");
-				
-				/*List<PlzEintrag> plzList = PlzSearch.search(landIso2Field.getText(),
-						plzField.getText(),
-						ortField.getText(),
-						false,
-						"Land", "Plz", "Ort27");*/
-				//SWTHelper.alert("Alert...", "" + plzList.size());
-				String tmp = plzList.get(0).get("Ort27");
-				SWTHelper.alert("ddd", tmp);
-				}
 				// PROGRESS MONITOR
-				/*ExecutionEvent eev = new ExecutionEvent();
+				ExecutionEvent eev = new ExecutionEvent();
 				IProgressMonitor monitor = Handler.getMonitor(eev);
 				monitor.beginTask("theName", 100);
 				for (int i=0; i< 100; i++)	{
 					monitor.worked(i);
 				}
-				*/
+				
 				
 				
 				//progressMonitor = new ProgressMonitor(ProgressMonitorDemo.this,
@@ -382,7 +361,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				//PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), landIso2Field.toString(), plzField.toString(), "");
 				//if (dlog.open() == Dialog.OK) {
 				//	System.out.print("ok selected");
-				//}
+				}
 		};
 		testingAction.setActionDefinitionId("testingAction");
 		GlobalActions.registerActionHandler(this, testingAction);

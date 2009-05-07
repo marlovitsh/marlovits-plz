@@ -59,21 +59,6 @@ import ch.elexis.data.PersistentObject;
 import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.JdbcLink.Stm;
 
-/**
- * The CCombo class represents a selectable user interface object
- * that combines a text field and a list and issues notificiation
- * when an item is selected from the list.
- * <p>
- * Note that although this class is a subclass of <code>Composite</code>,
- * it does not make sense to add children to it, or set a layout on it.
- * </p>
- * <dl>
- * <dt><b>Styles:</b>
- * <dd>BORDER, READ_ONLY, FLAT</dd>
- * <dt><b>Events:</b>
- * <dd>Selection</dd>
- * </dl>
- */
 public final class MyCCombo extends Composite {
 	static final boolean isOldStyle = false;
 	
@@ -89,34 +74,6 @@ public final class MyCCombo extends Composite {
 	TableViewer	tableViewer;
 	Table		table;
 	
-/**
- * Constructs a new instance of this class given its parent
- * and a style value describing its behavior and appearance.
- * <p>
- * The style value is either one of the style constants defined in
- * class <code>SWT</code> which is applicable to instances of this
- * class, or must be built by <em>bitwise OR</em>'ing together 
- * (that is, using the <code>int</code> "|" operator) two or more
- * of those <code>SWT</code> style constants. The class description
- * lists the style constants that are applicable to the class.
- * Style bits are also inherited from superclasses.
- * </p>
- *
- * @param parent a widget which will be the parent of the new instance (cannot be null)
- * @param style the style of widget to construct
- *
- * @exception IllegalArgumentException <ul>
- *    <li>ERROR_NULL_ARGUMENT - if the parent is null</li>
- * </ul>
- * @exception SWTException <ul>
- *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the parent</li>
- * </ul>
- *
- * @see SWT#BORDER
- * @see SWT#READ_ONLY
- * @see SWT#FLAT
- * @see Widget#getStyle
- */	
 public MyCCombo (Composite parent, int style) {
 	super (parent, checkStyle (style));
 	
@@ -245,69 +202,18 @@ static int checkStyle (int style) {
 	int mask = SWT.BORDER | SWT.READ_ONLY | SWT.FLAT | SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT;
 	return style & mask;
 }
-/**
-* Adds an item.
-* <p>
-* The item is placed at the end of the list.
-* Indexing is zero based.
-*
-* @param string the new item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when the string is null
-* @exception SWTError(ERROR_ITEM_NOT_ADDED)
-*	when the item cannot be added
-*/
 public void add (String string) {
 	checkWidget();
 	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	list.add (string);
 }
 //TODO: add für Table, mehrere Spalten, etc
-/**
-* Adds an item at an index.
-* <p>
-* The item is placed at an index in the list.
-* Indexing is zero based.
-*
-* This operation will fail when the index is
-* out of range.
-*
-* @param string the new item
-* @param index the index for the item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when the string is null
-* @exception SWTError(ERROR_ITEM_NOT_ADDED)
-*	when the item cannot be added
-*/
 public void add (String string, int index) {
 	checkWidget();
 	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	list.add (string, index);
 }
 // TODO: add für Table, mehrere Spalten, etc
-/**	 
-* Adds the listener to receive events.
-* <p>
-*
-* @param listener the listener
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when listener is null
-*/
 public void addModifyListener (ModifyListener listener) {;
 //System.out.println("addModifyListener");
 	checkWidget();
@@ -316,19 +222,6 @@ public void addModifyListener (ModifyListener listener) {;
 	addListener (SWT.Modify, typedListener);
 	//System.out.println("ModifyListener");
 }
-/**	 
-* Adds the listener to receive events.
-* <p>
-*
-* @param listener the listener
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when listener is null
-*/
 public void addSelectionListener(SelectionListener listener) {
 	//System.out.println("addSelectionListener");
 	checkWidget();
@@ -337,16 +230,6 @@ public void addSelectionListener(SelectionListener listener) {
 	addListener (SWT.Selection,typedListener);
 	addListener (SWT.DefaultSelection,typedListener);
 }
-
-/**
-* Clears the current selection.
-* <p>
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public void clearSelection () {
 	checkWidget();
 	text.clearSelection ();
@@ -394,22 +277,6 @@ public Point computeSize (int wHint, int hHint, boolean changed) {
 	width = Math.max (wHint, Math.max(textSize.x + 2*borderWidth, listSize.x + 2)  );
 	return new Point (width, height);
 }
-/**
-* Deselects an item.
-* <p>
-* If the item at an index is selected, it is
-* deselected.  If the item at an index is not
-* selected, it remains deselected.  Indices
-* that are out of range are ignored.  Indexing
-* is zero based.
-*
-* @param index the index of the item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public void deselect (int index) {
 	checkWidget();
 	if (isOldStyle){
@@ -418,18 +285,6 @@ public void deselect (int index) {
 		table.deselect(index);
 	}
 }
-/**
-* Deselects all items.
-* <p>
-*
-* If an item is selected, it is deselected.
-* If an item is not selected, it remains unselected.
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public void deselectAll () {
 	checkWidget();
 	if (isOldStyle){
@@ -445,29 +300,16 @@ public void dropDown (boolean drop) {
 		text.setFocus();
 		return;
 	}
-	
-	if (isOldStyle)	{
-		int index = list.getSelectionIndex ();
-		if (index != -1) list.setTopIndex (index);
-		Rectangle listRect = list.getBounds ();
-		Display display = getDisplay ();
-		Rectangle rect = display.map (getParent (), null, getBounds ());
-		Point comboSize = getSize ();
-		int width = Math.max (comboSize.x, listRect.width + 2);
-		popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
-		popup.setVisible (true);
-	} else {
-		int index = table.getSelectionIndex ();
-		if (index != -1) table.setTopIndex (index);
-		Rectangle listRect = table.getBounds ();
-		Display display = getDisplay ();
-		Rectangle rect = display.map (getParent (), null, getBounds ());
-		Point comboSize = getSize ();
-		int width = Math.max (comboSize.x, listRect.width + 2);
-		popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
-		popup.setVisible (true);
-		table.setFocus ();
-	}
+	int index = table.getSelectionIndex ();
+	if (index != -1) table.setTopIndex (index);
+	Rectangle listRect = table.getBounds ();
+	Display display = getDisplay ();
+	Rectangle rect = display.map (getParent (), null, getBounds ());
+	Point comboSize = getSize ();
+	int width = Math.max (comboSize.x, listRect.width + 2);
+	popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
+	popup.setVisible (true);
+	//table.setFocus ();
 }
 public Control [] getChildren () {
 	checkWidget();
@@ -476,25 +318,6 @@ public Control [] getChildren () {
 boolean getEditable () {
 	return text.getEditable ();
 }
-/**
-* Gets an item at an index.
-* <p>
-* Indexing is zero based.
-*
-* This operation will fail when the index is out
-* of range or an item could not be queried from
-* the OS.
-*
-* @param index the index of the item
-* @return the item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_CANNOT_GET_ITEM)
-*	when the operation fails
-*/
 // ToDo
 public String getItem (int index) {
 	checkWidget();
@@ -504,21 +327,6 @@ public TableItem getItemNew (int index) {
 	checkWidget();
 	return table.getItem(index);
 }
-/**
-* Gets the number of items.
-* <p>
-* This operation will fail if the number of
-* items could not be queried from the OS.
-*
-* @return the number of items in the widget
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_CANNOT_GET_COUNT)
-*	when the operation fails
-*/
 public int getItemCount () {
 	checkWidget();
 	if (isOldStyle){
@@ -527,21 +335,6 @@ public int getItemCount () {
 		return table.getItemCount ();
 	}
 }
-/**
-* Gets the height of one item.
-* <p>
-* This operation will fail if the height of
-* one item could not be queried from the OS.
-*
-* @return the height of one item in the widget
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_CANNOT_GET_ITEM_HEIGHT)
-*	when the operation fails
-*/
 public int getItemHeight () {
 	checkWidget();
 	if (isOldStyle){
@@ -550,21 +343,6 @@ public int getItemHeight () {
 		return table.getItemHeight ();
 	}
 }
-/**
-* Gets the items.
-* <p>
-* This operation will fail if the items cannot
-* be queried from the OS.
-*
-* @return the items in the widget
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_CANNOT_GET_ITEM)
-*	when the operation fails
-*/
 //ToDo
 public String[] getItems() {
 	checkWidget();
@@ -574,33 +352,10 @@ public TableItem[] getItemsNew() {
 	checkWidget();
 	return table.getItems();
 }
-/**
-* Gets the selection.
-* <p>
-* @return a point representing the selection start and end
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public Point getSelection () {
 	checkWidget();
 	return text.getSelection ();
 }
-/**
-* Gets the index of the selected item.
-* <p>
-* Indexing is zero based.
-* If no item is selected -1 is returned.
-*
-* @return the index of the selected item.
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public int getSelectionIndex () {
 	checkWidget();
 	if (isOldStyle){
@@ -609,73 +364,18 @@ public int getSelectionIndex () {
 		return table.getSelectionIndex();
 	}
 }
-/**
-* Gets the widget text.
-* <p>
-* If the widget has no text, an empty string is returned.
-*
-* @return the widget text
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public String getText () {
 	checkWidget();
 	return text.getText ();
 }
-/**
-* Gets the height of the combo's text field.
-* <p>
-* The operation will fail if the height cannot 
-* be queried from the OS.
-
-* @return the height of the combo's text field.
-* 
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_ERROR_CANNOT_GET_ITEM_HEIGHT)
-*	when the operation fails
-*/
 public int getTextHeight () {
 	checkWidget();
 	return text.getLineHeight();
 }
-/**
-* Gets the text limit.
-* <p>
-* @return the text limit
-* 
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public int getTextLimit () {
 	checkWidget();
 	return text.getTextLimit ();
 }
-/**
-* Gets the index of an item.
-* <p>
-* The list is searched starting at 0 until an
-* item is found that is equal to the search item.
-* If no item is found, -1 is returned.  Indexing
-* is zero based.
-*
-* @param string the search item
-* @return the index of the item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when string is null
-*/
 // TODO
 public int indexOf (String string) {
 	checkWidget();
@@ -984,26 +684,6 @@ public void redraw (int x, int y, int width, int height, boolean all) {
 		table.redraw(x - location.x, y - location.y, width, height, all);
 	}
 }
-
-/**
-* Removes an item at an index.
-* <p>
-* Indexing is zero based.
-*
-* This operation will fail when the index is out
-* of range or an item could not be removed from
-* the OS.
-*
-* @param index the index of the item
-* @return the selection state
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_ITEM_NOT_REMOVED)
-*	when the operation fails
-*/
 public void remove (int index) {
 	checkWidget();
 	if (isOldStyle){
@@ -1012,27 +692,6 @@ public void remove (int index) {
 		table.remove (index);
 	}
 }
-/**
-* Removes a range of items.
-* <p>
-* Indexing is zero based.  The range of items
-* is from the start index up to and including
-* the end index.
-*
-* This operation will fail when the index is out
-* of range or an item could not be removed from
-* the OS.
-*
-* @param start the start of the range
-* @param end the end of the range
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_ITEM_NOT_REMOVED)
-*	when the operation fails
-*/
 public void remove (int start, int end) {
 	checkWidget();
 	if (isOldStyle){
@@ -1041,23 +700,6 @@ public void remove (int start, int end) {
 		table.remove (start, end);
 	}
 }
-/**
-* Removes an item.
-* <p>
-* This operation will fail when the item
-* could not be removed from the OS.
-*
-* @param string the search item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when string is null
-* @exception SWTError(ERROR_ITEM_NOT_REMOVED)
-*	when the operation fails
-*/
 // TODO
 public void remove (String string) {
 	checkWidget();
@@ -1068,14 +710,6 @@ public void remove (String string) {
 		//table.remove (string);
 	}
 }
-/**
-* Removes all items.
-* <p>
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public void removeAll () {
 	checkWidget();
 	text.setText (""); //$NON-NLS-1$
@@ -1085,57 +719,17 @@ public void removeAll () {
 		table.removeAll ();
 	}
 }
-/**	 
-* Removes the listener.
-* <p>
-*
-* @param listener the listener
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when listener is null
-*/
 public void removeModifyListener (ModifyListener listener) {
 	checkWidget();
 	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	removeListener(SWT.Modify, listener);	
 }
-/**	 
-* Removes the listener.
-* <p>
-*
-* @param listener the listener
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when listener is null
-*/
 public void removeSelectionListener (SelectionListener listener) {
 	checkWidget();
 	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	removeListener(SWT.Selection, listener);
 	removeListener(SWT.DefaultSelection,listener);	
 }
-/**
-* Selects an item.
-* <p>
-* If the item at an index is not selected, it is
-* selected. Indices that are out of
-* range are ignored.  Indexing is zero based.
-*
-* @param index the index of the item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-*/
 public void select (int index) {
 	checkWidget();
 	if (index == -1) {
@@ -1193,46 +787,12 @@ public void setForeground (Color color) {
 		if (table != null) table.setForeground(color);
 	}
 }
-/**
-* Sets the text of an item; indexing is zero based.
-*
-* This operation will fail when the index is out
-* of range or an item could not be changed in
-* the OS.
-*
-* @param index the index for the item
-* @param string the item
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when items is null
-* @exception SWTError(ERROR_ITEM_NOT_MODIFIED)
-*	when the operation fails
-*/
 // TODO
 public void setItem (int index, String string) {
 	checkWidget();
 	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	list.setItem (index, string);
 }
-/**
-* Sets all items.
-*
-* @param items the array of items
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when items is null
-* @exception SWTError(ERROR_ITEM_NOT_ADDED)
-*	when the operation fails
-*/
-// TODO
 public void setItems(String[][] items) {
 	checkWidget();
 	if (items == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
@@ -1242,6 +802,8 @@ public void setItems(String[][] items) {
 	
 	// remove old content
 	table.removeAll();
+	Control[] ctrlList = table.getChildren();
+	
 	
 	// create columns
 	int numOfRows    = items.length;
@@ -1250,45 +812,19 @@ public void setItems(String[][] items) {
 		// create column
 		TableColumn col = new TableColumn(table, SWT.NULL);
 		// insert data into colums
-		for (long rowIx = 0; rowIx < numOfRows; rowIx++)	{
+		for (int rowIx = 0; rowIx < numOfRows; rowIx++)	{
 			TableItem tableItem = new TableItem(table, SWT.NULL);
-			tableItem.setText(items[0]);
-			//tableItem.setText(new String[] {"ort27", "plz", "land"});
+			tableItem.setText(items[rowIx]);
 		}
 		// optimize size of column
 		col.pack();
 	}
 }
-/**
-* Sets the new selection.
-*
-* @param selection point representing the start and the end of the new selection
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when selection is null
-*/
 public void setSelection (Point selection) {
 	checkWidget();
 	if (selection == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	text.setSelection (selection.x, selection.y);
 }
-
-/**
-* Sets the widget text.
-*
-* @param string the widget text
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_NULL_ARGUMENT)
-*	when string is null
-*/
 // TODO
 public void setText (String string) {
 	checkWidget();
@@ -1319,18 +855,6 @@ public void setTextNew (String string) {
 	// TODO table.setSelection (index);
 	table.showSelection ();
 }
-/**
-* Sets the text limit.
-* 
-* @param limit new text limit
-*
-* @exception SWTError(ERROR_THREAD_INVALID_ACCESS)
-*	when called from the wrong thread
-* @exception SWTError(ERROR_WIDGET_DISPOSED)
-*	when the widget has been disposed
-* @exception SWTError(ERROR_CANNOT_BE_ZERO)
-*	when limit is 0
-*/
 public void setTextLimit (int limit) {
 	checkWidget();
 	text.setTextLimit (limit);
