@@ -153,7 +153,7 @@ public MyCCombo (Composite parent, int style) {
 		table.setLinesVisible(false);
 		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 		//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
-		Stm stm = PersistentObject.getConnection().getStatement();
+/*		Stm stm = PersistentObject.getConnection().getStatement();
 		String shownFields = "ort27, plz, land";
 		String landClause = " lower(land) = lower(" + JdbcLink.wrap("CH") + ") "; 
 		ResultSet rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap("D" + "%") + ")  and plztyp != 80 order by ort27");
@@ -169,7 +169,7 @@ public MyCCombo (Composite parent, int style) {
 			}
 		} catch (SQLException e1) {
 		}
-		table.setTopIndex(40);
+		table.setTopIndex(40);*/
 	}
 	
 	// die Listener installieren ************************************************
@@ -1233,19 +1233,31 @@ public void setItem (int index, String string) {
 *	when the operation fails
 */
 // TODO
-public void setItems (String [] items) {
+public void setItems(String[][] items) {
 	checkWidget();
 	if (items == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	int style = getStyle();
-	if ((style & SWT.READ_ONLY) != 0) text.setText (""); //$NON-NLS-1$
-	list.setItems (items);
-}
-public void setItemsNew (String [] items) {
-	checkWidget();
-	if (items == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	int style = getStyle();
-	if ((style & SWT.READ_ONLY) != 0) text.setText (""); //$NON-NLS-1$
-	//table.setItems (items);
+	
+	/////////////////////if ((style & SWT.READ_ONLY) != 0) text.setText (""); //$NON-NLS-1$
+	
+	// remove old content
+	table.removeAll();
+	
+	// create columns
+	int numOfRows    = items.length;
+	int numOfColumns = items[0].length;
+	for (int colIx = 0; colIx < numOfColumns; colIx++)	{
+		// create column
+		TableColumn col = new TableColumn(table, SWT.NULL);
+		// insert data into colums
+		for (long rowIx = 0; rowIx < numOfRows; rowIx++)	{
+			TableItem tableItem = new TableItem(table, SWT.NULL);
+			tableItem.setText(items[0]);
+			//tableItem.setText(new String[] {"ort27", "plz", "land"});
+		}
+		// optimize size of column
+		col.pack();
+	}
 }
 /**
 * Sets the new selection.
