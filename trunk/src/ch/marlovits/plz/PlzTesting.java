@@ -1757,13 +1757,6 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 						iii++;
 					}
 					myCCombo.setItems(plzStrings);
-//					String[] plzStrings = new String[numOfEntries];
-//					int iii = 0;
-//					while (rs.next())	{
-//						plzStrings[iii] = rs.getString("result");
-//						iii++;
-//					}
-//					myCCombo.setItems(plzStrings);
 				} catch (SQLException e1) {
 				}
 			}
