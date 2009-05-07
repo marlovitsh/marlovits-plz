@@ -1716,7 +1716,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 			try	{
 				// was soll angezeigt werden sql-string
 				// TODO VORSICHT: DATENBANKABHÄNGIG???
-				String shownFields = "(ort27 || chr(9) || plz || land) as result";
+				String shownFields = "ort27, plz, land";
 				
 				// der KeyListener muss deaktiviert werden, sonst interagiert das ganz heftig
 				// erst nach dem neuen Einlesen der Liste wieder zurücksetzen (in finally)
@@ -1770,13 +1770,21 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				try {
-					String[] plzStrings = new String[numOfEntries];
+					String[][] plzStrings = new String[numOfEntries][3];
 					int iii = 0;
 					while (rs.next())	{
-						plzStrings[iii] = rs.getString("result");
+						String[] rowData = {rs.getString("Ort27"), rs.getString("Plz"), rs.getString("Land")};
+						plzStrings[iii] = rowData;
 						iii++;
 					}
-					/////////////////////myCCombo.setItems(plzStrings);
+					myCCombo.setItems(plzStrings);
+//					String[] plzStrings = new String[numOfEntries];
+//					int iii = 0;
+//					while (rs.next())	{
+//						plzStrings[iii] = rs.getString("result");
+//						iii++;
+//					}
+//					myCCombo.setItems(plzStrings);
 				} catch (SQLException e1) {
 				}
 			}
