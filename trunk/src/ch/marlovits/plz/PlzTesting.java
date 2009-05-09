@@ -1737,7 +1737,6 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					rs.close();
 				} catch (SQLException exc) {
 				}
-								
 				// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
