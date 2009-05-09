@@ -227,7 +227,7 @@ public Point computeSize (int wHint, int hHint, boolean changed) {
 	
 	height = Math.max (hHint, textSize.y  + 2*borderWidth);
 	//width = Math.max (wHint, Math.max(textSize.x + 2*borderWidth, listSize.x + 2)  );
-	width = listSize.x + 2;
+	width = 2*borderWidth + 2;
 	return new Point (width, height);
 }
 public void deselect (int index) {
@@ -258,6 +258,8 @@ public void dropDown (boolean drop) {
 	Point comboSize = getSize ();
 	int width = Math.max (comboSize.x, rect.width + 2);
 	//int width = Math.max (comboSize.x, listRect.width + 2);
+	int tableWidth = table.getBounds().width;
+	popup.setBounds (rect.x, rect.y + comboSize.y, tableWidth + 2, listRect.height + 2);
 	int itemHeight = table.getItemHeight () * ITEMS_SHOWING;
 	popup.setBounds (rect.x, rect.y + comboSize.y, 300, 150);
 	Point preferredTableSize = table.computeSize(500, 500, true);
