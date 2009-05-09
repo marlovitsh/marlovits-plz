@@ -77,7 +77,7 @@ public MyCCombo (Composite parent, int style) {
 	if ((style & SWT.RIGHT_TO_LEFT) != 0) listStyle |= SWT.RIGHT_TO_LEFT;
 	if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
 	
-	// meine eigene Popup-Liste mit mehreren Spalten erstellen in popup2 ********
+	// meine eigene Popup-Liste mit mehreren Spalten erstellen in popup *********
 	tableViewer = new TableViewer(popup, listStyle);
 	GridData gd = new GridData();
 	gd.horizontalAlignment = SWT.FILL;
@@ -215,11 +215,14 @@ void comboEvent (Event event) {
 	}
 }
 public Point computeSize (int wHint, int hHint, boolean changed) {
-	Point listSize;
+	Point listSize = new Point(0, 0);
 	checkWidget();
 	int width = 0, height = 0;
 	Point textSize  = text.computeSize (wHint, SWT.DEFAULT, changed);
-	listSize  = table.computeSize(wHint, SWT.DEFAULT, changed);
+	resizeColums();
+	//listSize  = table.computeSize(wHint, SWT.DEFAULT, changed);
+	listSize.x = table.getBorderWidth();
+	listSize.y = table.getItemHeight () * ITEMS_SHOWING;
 	int borderWidth = getBorderWidth();
 	
 	height = Math.max (hHint, textSize.y  + 2*borderWidth);
@@ -255,9 +258,18 @@ public void dropDown (boolean drop) {
 	Point comboSize = getSize ();
 	int width = Math.max (comboSize.x, rect.width + 2);
 	//int width = Math.max (comboSize.x, listRect.width + 2);
-	popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
+	int itemHeight = table.getItemHeight () * ITEMS_SHOWING;
+	popup.setBounds (rect.x, rect.y + comboSize.y, 300, 150);
+	Point preferredTableSize = table.computeSize(500, 500, true);
+	table.setBounds(1, 1, preferredTableSize.x, preferredTableSize.y);
+	resizeColums();
+	Point listSize = table.getSize();
+	listSize.y = table.getItemHeight () * ITEMS_SHOWING;
+	//listSize = table.computeSize (SWT.DEFAULT, itemHeight);
+	//popup.setBounds (rect.x, rect.y + comboSize.y, listSize.x + 2, listRect.height + 2);
 	//popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
 	popup.setVisible (true);
+	table.setBounds(1, 1, listSize.x, listSize.y);
 	//table.setFocus ();
 }
 public Control [] getChildren () {
@@ -399,7 +411,7 @@ void internalLayout () {
 	
 	Point size = getSize();
 	int itemHeight = table.getItemHeight () * ITEMS_SHOWING;
-	Point listSize = table.computeSize (SWT.DEFAULT, itemHeight);
+	Point listSize = table.computeSize (SWT.DEFAULT, itemHeight, true);
 	table.setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
 }
 
@@ -667,6 +679,21 @@ public void setItem (int index, String string) {
 	list.setItem (index, string);
 }
 */
+protected void resizeColums()	{
+	checkWidget();
+	int width = 0;
+	table.setBounds(0, 0, 500, 500);
+	for (int colIx = 0; colIx < table.getColumnCount(); colIx++)	{
+		TableColumn currColumn = table.getColumns()[colIx];
+		System.out.println("ColumnWidth Col #" + colIx + ": " + currColumn.getWidth());
+		currColumn.setResizable(true);
+		currColumn.pack();
+		System.out.println("ColumnWidth Col #" + colIx + ": " + currColumn.getWidth());
+		width = width + currColumn.getWidth();
+	}
+	table.setSize(width, table.getSize().y);
+	table.pack();
+}
 public void setItems(String[][] items) {
 	checkWidget();
 	if (items == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
@@ -817,7 +844,7 @@ void textEvent (Event event) {
 			// If so, do not continue.
 			if (isDisposed()) break;
 			
-			if (table.getTopIndex() != -1) dropDown (true);
+			//if (table.getTopIndex() != -1) dropDown (true);
 			
 			if (event.keyCode == SWT.HOME) {
 				table.setSelection(0);

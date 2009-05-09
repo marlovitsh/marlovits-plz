@@ -1737,14 +1737,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					rs.close();
 				} catch (SQLException exc) {
 				}
-				
-				// wenn Einträge gefunden, dann Liste anzeigen, sonst verstecken
-				if (numOfEntries > 0)	{
-					myCCombo.dropDown(true);
-				} else	{
-					myCCombo.dropDown(false);
-				}
-				
+								
 				// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
@@ -1758,6 +1751,12 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 					}
 					myCCombo.setItems(plzStrings);
 				} catch (SQLException e1) {
+				}
+				// wenn Einträge gefunden, dann Liste anzeigen, sonst verstecken
+				if (numOfEntries > 0)	{
+					myCCombo.dropDown(true);
+				} else	{
+					myCCombo.dropDown(false);
 				}
 			}
 			catch(FakeFinally ff) {
