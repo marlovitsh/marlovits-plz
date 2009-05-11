@@ -2,6 +2,8 @@ package ch.marlovits.plz;
 
 
 import java.awt.AWTEvent;
+import java.awt.Dimension;
+import java.awt.Frame;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
@@ -30,6 +32,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
@@ -52,6 +56,7 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -129,6 +134,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	private Form form;
 	private TableViewer plzViewer;
 	
+	private Composite parent;
 	private Composite top;
 	private Composite rightComposite;
 	private GridLayout tmpGrid;
@@ -155,6 +161,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		ortKeyListener      = new OrtKeyListener();
 		ortCBKeyListener    = new OrtCBKeyListener();
 		myCComboKeyListener = new CComboKeyListener();
+		this.parent = parent;
 	}
 
 	public void createPartControl(Composite parent){
@@ -242,6 +249,12 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		//myCCombo.setItems(cComboStr);
 		myCCombo.setVisible(true);
 		myCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+		String[] showField = {"ort27", "plz", "landiso2"};
+		myCCombo.setShowFields(showField);
+		String[] sortField = {"ort27", "plz", "landiso2"};
+		myCCombo.setSortFields(sortField);
+		Object[] returnFields = {ortField, plzField, landIso2Field};
+		myCCombo.setReturnFields(returnFields);
 		
 		/* ------ ProgressMonitorDialog ------------- */
 	    final Button buttonProgressDialog = new Button(top, SWT.PUSH);
@@ -328,11 +341,11 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		
 		//GlobalEvents.getInstance().addActivationListener(this, this);
 		cbLandCombo.addModifyListener(landModifyListener);
-		plzField.addFocusListener(plzFocusListener);
-		ortField.addFocusListener(ortFocusListener);
+//		plzField.addFocusListener(plzFocusListener);
+//		ortField.addFocusListener(ortFocusListener);
 		
-		ortField.addKeyListener(ortKeyListener);
-		cbOrtCombo.addKeyListener(ortCBKeyListener);
+//		ortField.addKeyListener(ortKeyListener);
+//		cbOrtCombo.addKeyListener(ortCBKeyListener);
 		myCCombo.addKeyListener(myCComboKeyListener);
 	}
 	
@@ -344,23 +357,41 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				// PROGRESS MONITOR
+				Point pt = new Point(myCCombo.getBounds().x, myCCombo.getBounds().y);
+				System.out.println("pt local:  " + pt);
+				MyCCombo.convertPointToScreen(pt, myCCombo);
+				System.out.println("pt global: " + pt);
+/*				Composite currComposite = top;
+				while(currComposite.getParent() != null)	{
+					currComposite = currComposite.getParent();
+				}
+				System.out.println("top bounds: " + currComposite.getBounds());
+				
+				Display display = top.getDisplay();
+				System.out.println("display.getBounds: " + display.getBounds());
+*///				System.out.println("bounds: " + top.getBounds());
+//				System.out.println("bounds of parent: " + top.getParent().getBounds());
+//				System.out.println("bounds of parents parent: " + top.getParent().getParent().getBounds());
+//				System.out.println("bounds of parents parents parent: " + top.getParent().getParent().getParent().getBounds());
+//				System.out.println("bounds of parents parents parents parent: " + top.getParent().getParent().getParent().getParent().getBounds());
+//				System.out.println("bounds of parents parents parents parents parent: " + top.getParent().getParent().getParent().getParent().getParent().getBounds());
+//				System.out.println("bounds of parents parents parents parents parents parent: " + top.getParent().getParent().getParent().getParent().getParent().getParent().getBounds());
+				Toolkit toolkit = Toolkit.getDefaultToolkit();  
+				Dimension screenSize = toolkit.getScreenSize();
+				System.out.println("screenSize: " + screenSize);
+				//Desktop.getDesktop()
+				
+				//floatingWindow();
+				
+				// PROGRESS MONITOR ***********************************************
+				if (1==0)	{
 				ExecutionEvent eev = new ExecutionEvent();
 				IProgressMonitor monitor = Handler.getMonitor(eev);
 				monitor.beginTask("theName", 100);
 				for (int i=0; i< 100; i++)	{
 					monitor.worked(i);
 				}
-				
-				
-				
-				//progressMonitor = new ProgressMonitor(ProgressMonitorDemo.this,
-                //        "Running a Long Task",
-                //        "", 0, task.getLengthOfTask());
-				
-				//PlzSelectorDialog dlog = new PlzSelectorDialog(getSite().getShell(), landIso2Field.toString(), plzField.toString(), "");
-				//if (dlog.open() == Dialog.OK) {
-				//	System.out.print("ok selected");
+				}
 				}
 		};
 		testingAction.setActionDefinitionId("testingAction");
@@ -1739,7 +1770,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				}
 				// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
-				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
+				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27, plz");
 				try {
 					String[][] plzStrings = new String[numOfEntries][3];
 					int iii = 0;
@@ -1771,4 +1802,15 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	// ugly, but I like it...
 	class FakeFinally extends Exception {
 	}
+
+	public void floatingWindow()	{
+		JFrame frame = new JFrame("Hello!!");
+		frame.setAlwaysOnTop(true);
+		frame.setLocationByPlatform(true);
+		frame.add(new JLabel("             Textbausteinauswahl              "));
+		frame.pack();
+		frame.setVisible(true);
+		}
+
+
 }

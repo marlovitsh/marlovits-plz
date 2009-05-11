@@ -22,6 +22,12 @@
 
 package ch.marlovits.plz;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.Locale;
+
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.accessibility.ACC;
@@ -51,17 +57,35 @@ import org.eclipse.swt.widgets.TypedListener;
 public final class MyCCombo extends Composite {
 	static final int ITEMS_SHOWING = 5;
 	
+	Composite	parent;
 	Text        text;
 	Shell       popup;
 	boolean     hasFocus;
 	String      theText;
 	TableViewer	tableViewer;
 	Table		table;
+	String[]	showFields;    // shown fields in table (database fields)
+	String[]	sortFields;    // sort  fields in table
+	Object[]	returnFields;  // fields into which data should be written
+	                           // same number of items as in showFields, same order
 	
+public void setReturnFields(Object[] returnFields)	{
+	this.returnFields = returnFields;
+	}
+
+public void setShowFields(String[] showFields)	{
+	this.showFields = showFields;
+	}
+
+public void setSortFields(String[] sortFields)	{
+	this.sortFields = sortFields;
+	}
+
 public MyCCombo (Composite parent, int style) {
 	super (parent, checkStyle (style));
 	
 	style = getStyle();
+	this.parent = parent;
 	
 	// das Textfeld erstellen ***************************************************
 	int textStyle = SWT.SINGLE;
@@ -109,7 +133,7 @@ public MyCCombo (Composite parent, int style) {
 				return;
 			}
 			if (MyCCombo.this == event.widget) {
-				System.out.println("event.widget == MyCCombo, calling comboEvent(event)");
+				//System.out.println("event.widget == MyCCombo, calling comboEvent(event)");
 				comboEvent (event);
 				return;
 			}
@@ -239,40 +263,62 @@ public void deselectAll () {
 	table.deselectAll();
 }
 public void dropDown (boolean drop) {
-	if (drop == isDropped ()) return;
+	// need to recalc vertical size
+	//if (drop == isDropped ()) return;
+	boolean justVertical = false;
+	if (drop == isDropped ())	{
+		justVertical = true;
+	}
+	// if no drop then hide popup
 	if (!drop) {
 		popup.setVisible (false);
 		text.setFocus();
 		return;
 	}
-	if (table.getItemCount() <= 1)	{
+	// if no items in list then hide popup
+	if (table.getItemCount() < 1)	{
 		popup.setVisible (false);
 		text.setFocus();
 		return;
 	}
 	int index = table.getSelectionIndex ();
 	if (index != -1) table.setTopIndex (index);
-	Rectangle listRect = table.getBounds ();
-	Display display = getDisplay();
-	Rectangle rect = display.map (getParent (), null, getBounds ());
+	
+	// need the combosize, App main window, parent composite bounds, desktop
 	Point comboSize = getSize ();
-	int width = Math.max (comboSize.x, rect.width + 2);
-	//int width = Math.max (comboSize.x, listRect.width + 2);
-	int tableWidth = table.getBounds().width;
-	popup.setBounds (rect.x, rect.y + comboSize.y, tableWidth + 2, listRect.height + 2);
-	int itemHeight = table.getItemHeight () * ITEMS_SHOWING;
-	popup.setBounds (rect.x, rect.y + comboSize.y, 300, 150);
-	Point preferredTableSize = table.computeSize(500, 500, true);
-	table.setBounds(1, 1, preferredTableSize.x, preferredTableSize.y);
+	Display desktop = getDisplay();
+	
+	// recalc optimized column sizes
 	resizeColums();
-	Point listSize = table.getSize();
-	listSize.y = table.getItemHeight () * ITEMS_SHOWING;
-	//listSize = table.computeSize (SWT.DEFAULT, itemHeight);
-	//popup.setBounds (rect.x, rect.y + comboSize.y, listSize.x + 2, listRect.height + 2);
-	//popup.setBounds (rect.x, rect.y + comboSize.y, width, listRect.height + 2);
+	
+	// get table size, uncorrected
+	Point tableSize = table.getSize();
+	
+	// rect contains the coordinates for placing topleft of popup relative to parent
+	Rectangle rect = desktop.map (getParent(), null, getBounds());
+	
+	// calc  uncorrected vertical table size 
+	tableSize.y = table.getItemHeight() * Math.min(table.getItemCount(), 32000);
+	
+	// correct vertical table size
+	Point popupGlobalTopLeft = new Point(popup.getBounds().x, popup.getBounds().y);
+	int verticalSpace   = desktop.getClientArea().height - popupGlobalTopLeft.y;
+	if (tableSize.y > verticalSpace)	{
+		tableSize.y = (int)(verticalSpace / table.getItemHeight()) * table.getItemHeight();
+	}
+	
+	// correct horizontal table position: hSize remains, we just move the popup to the left
+	int horizontalSpace = desktop.getClientArea().width  - popupGlobalTopLeft.x;
+	if (tableSize.x > horizontalSpace)	{
+		rect.x = desktop.getClientArea().width - tableSize.x;
+	}
+	
+	// set size of table and popup
+	table.setBounds(1, 1, tableSize.x, tableSize.y);
+	popup.setBounds (rect.x, rect.y + comboSize.y, tableSize.x + 2, tableSize.y + 2);
+	
+	// now make the list visible
 	popup.setVisible (true);
-	table.setBounds(1, 1, listSize.x, listSize.y);
-	//table.setFocus ();
 }
 public Control [] getChildren () {
 	checkWidget();
@@ -417,6 +463,11 @@ void internalLayout () {
 	table.setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
 }
 
+public class OneString {
+    public OneString(String s1) {
+    }
+}
+
 void listEvent (Event event) {
 	//System.out.println("listEvent called");
 	switch (event.type) {
@@ -456,6 +507,68 @@ void listEvent (Event event) {
 			int index = table.getSelectionIndex ();
 			if (index == -1) return;
 			text.setText(table.getItem(index).getText(0));
+			
+
+			for (int fieldIx = 0; fieldIx < returnFields.length; fieldIx++){
+				try {
+					Object obj = returnFields[fieldIx];
+				    Class<?> c = Class.forName(obj.getClass().getName());
+				    Object t = c.newInstance();
+
+				    //t = new c();
+				    Class[] par=new Class[1];
+				      par[0]=String.class;
+				      Method thisMethod = c.getMethod("setText", par);
+					String myArgs[] = {new String("testString")};
+					thisMethod.invoke(t, (Object)myArgs);
+				} catch (ClassNotFoundException x) {
+				    x.printStackTrace();
+				} catch (IllegalAccessException x) {
+				    x.printStackTrace();
+				} catch (SecurityException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchMethodException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InstantiationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
+			
+			for (int fieldIx = 0; fieldIx < returnFields.length; fieldIx++){
+				try {
+					Object obj = returnFields[fieldIx];
+					String aClass;
+					String aMethod;
+					// we assume that called methods have no argument
+					Class params[] = {};
+					Object paramsObj[] = {String.class};
+					
+					aClass  = obj.getClass().getName();
+					aMethod = "setText";
+					// get the Class
+					Class thisClass = Class.forName(aClass);
+					// get an instance
+					//Object iClass = thisClass.newInstance();
+					// get the method
+					Method thisMethod = thisClass.getDeclaredMethod(aMethod, String.class);
+					// call the method new Class[] {String.class, String.class},
+					//System.out.println (thisMethod.invoke(iClass, paramsObj));
+					System.out.println (thisMethod.invoke(obj.getClass(), "Helloho!"));
+				} catch (Exception ex) {
+					// ExHandler.handle(ex);
+				}
+			}
+			
 			text.selectAll();
 			table.setSelection(index);
 			table.setFocus();
@@ -687,10 +800,8 @@ protected void resizeColums()	{
 	table.setBounds(0, 0, 500, 500);
 	for (int colIx = 0; colIx < table.getColumnCount(); colIx++)	{
 		TableColumn currColumn = table.getColumns()[colIx];
-		System.out.println("ColumnWidth Col #" + colIx + ": " + currColumn.getWidth());
 		currColumn.setResizable(true);
 		currColumn.pack();
-		System.out.println("ColumnWidth Col #" + colIx + ": " + currColumn.getWidth());
 		width = width + currColumn.getWidth();
 	}
 	table.setSize(width, table.getSize().y);
@@ -837,6 +948,9 @@ void textEvent (Event event) {
 				notifyListeners(SWT.DefaultSelection, e);
 				event.doit = false;
 				theText = text.getText();
+				
+				
+				
 				table.removeAll();
 				table.deselectAll();
 				text.setFocus();
@@ -950,6 +1064,8 @@ void textEvent (Event event) {
 				if (isDisposed()) break;
 			}
 			
+			theText = text.getText();
+			
 			// Further work : Need to add support for incremental search in 
 			// pop up list as characters typed in text widget
 			Event e = new Event();
@@ -1045,6 +1161,14 @@ void textEvent (Event event) {
 		}
 	}
 	}
+protected Composite getTopWindow()	{
+	Composite currComposite = parent;
+	while(currComposite.getParent() != null)	{
+		currComposite = currComposite.getParent();
+	}
+	return currComposite;
+}
+
 /*
 public boolean isPrintableChar(char c)	{
 	Character.UnicodeBlock block = Character.UnicodeBlock.of( c );
@@ -1054,4 +1178,97 @@ public boolean isPrintableChar(char c)	{
 			block != Character.UnicodeBlock.SPECIALS;
 	}
 */
+/** 
+ * Convert a point from a component's coordinate system to 
+ * screen coordinates. 
+ * 
+ * @param p a Point object (converted to the new coordinate system) 
+ * @param c a Component object 
+ */ 
+/*public static void convertPointToScreen(Point p, Composite c) { 
+	Rectangle b;
+	int x,y;
+	
+	do { 
+		if(c instanceof Composite) { 
+			x = c.getBounds().x;
+			y = c.getBounds().y;
+		} else if(c instanceof java.applet.Applet || c instanceof java.awt.Window) { 
+			try { 
+				Point pp = c.getLocationOnScreen();
+				x = pp.x;
+				y = pp.y;
+			} catch (IllegalComponentStateException icse) { 
+				x = c.getX();
+				y = c.getY();
+			}
+		} else { 
+			x = c.getX();
+			y = c.getY();
+		} 
+		
+		p.x += x;
+		p.y += y;
+		
+		if(c instanceof java.awt.Window || c instanceof java.applet.Applet) 
+			break;
+		c = c.getParent();
+		} while(c != null);
+	}
+*/
+/** 
+ * Convert a point from a screen coordinates to a component's  
+ * coordinate system 
+ * 
+ * @param p a Point object (converted to the new coordinate system) 
+ * @param c a Component object 
+ */ 
+/*public static void convertPointFromScreen(Point p,Component c) { 
+    Rectangle b;
+    int x,y;
+
+    do { 
+        if(c instanceof JComponent) { 
+            x = ((JComponent)c).getX();
+            y = ((JComponent)c).getY();
+        } else if(c instanceof java.applet.Applet || 
+                   c instanceof java.awt.Window) { 
+            try { 
+                Point pp = c.getLocationOnScreen();
+                x = pp.x;
+                y = pp.y;
+            } catch (IllegalComponentStateException icse) { 
+        x = c.getX();
+        y = c.getY();
+            } 
+        } else { 
+    x = c.getX();
+    y = c.getY();
+        } 
+
+        p.x -= x;
+        p.y -= y;
+
+        if(c instanceof java.awt.Window || c instanceof java.applet.Applet) 
+            break;
+        c = c.getParent();
+    } while(c != null);
+}*/
+public static void convertPointToScreen(Point p, Composite c) { 
+	int x = 0;
+	int y = 0;
+	
+	do { 
+		if(c instanceof Composite) { 
+			x = c.getBounds().x;
+			y = c.getBounds().y;
+		} 
+		
+		p.x += x;
+		p.y += y;
+		
+		c = c.getParent();
+		} while(c != null);
+	}
+
 }
