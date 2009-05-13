@@ -22,11 +22,8 @@
 
 package ch.marlovits.plz;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.Locale;
 
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
@@ -54,7 +51,7 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
 
-public final class MyCCombo extends Composite {
+public class MyCCombo extends Composite {
 	static final int ITEMS_SHOWING = 5;
 	
 	Composite	parent;
@@ -64,10 +61,10 @@ public final class MyCCombo extends Composite {
 	String      theText;
 	TableViewer	tableViewer;
 	Table		table;
-	String[]	showFields;    // shown fields in table (database fields)
-	String[]	sortFields;    // sort  fields in table
-	Object[]	returnFields;  // fields into which data should be written
-	                           // same number of items as in showFields, same order
+	String[]	showFields   = null;  // shown fields in table (database fields)
+	String[]	sortFields   = null;  // sort  fields in table
+	Object[]	returnFields = null;  // fields into which data should be written
+	                                  // same number of items as in showFields, same order
 	
 public void setReturnFields(Object[] returnFields)	{
 	this.returnFields = returnFields;
@@ -468,6 +465,59 @@ public class OneString {
     }
 }
 
+/**
+ * Sets the fields linked to this control. The data found in the current selection will be inserted 
+ * into these fields. 
+ * The fields are defined in returnFields[]. 
+ * Every object that has the setText method can be used in this array.
+ * @return true on success/if data has been found, false on error
+ */
+boolean setLinkedFields()	{
+	// returnFields must be set
+	if (returnFields == null)	{
+		System.out.println("setLinkedFields(): the field returnFields has not yet been set.");
+		return false;
+	}
+	// loop through returnFields[] which contains the fields as objects-array
+	for (int fieldIx = 0; fieldIx < returnFields.length; fieldIx++){
+		try {
+			// get the object from the list
+			Object obj = returnFields[fieldIx];
+			// find the class of this object
+			Class<?> c = Class.forName(obj.getClass().getName());
+			// create return params class
+			Class[] params = new Class[1];
+			params[0] =String.class;
+			// get the setText method
+			Method setTextCaller = c.getMethod("setText", params);
+			// build params: read currently selected
+			TableItem tableItem = table.getSelection()[0];
+			String[] input={new String(tableItem.getText(fieldIx))};
+			// call the method
+			setTextCaller.invoke(obj, input);
+		} catch (ClassNotFoundException x) {
+		    x.printStackTrace();
+		    return false;
+		} catch (IllegalAccessException x) {
+		    x.printStackTrace();
+		    return false;
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		    return false;
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		    return false;
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		    return false;
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		    return false;
+		}
+	}
+	return true;
+}
+
 void listEvent (Event event) {
 	//System.out.println("listEvent called");
 	switch (event.type) {
@@ -507,68 +557,7 @@ void listEvent (Event event) {
 			int index = table.getSelectionIndex ();
 			if (index == -1) return;
 			text.setText(table.getItem(index).getText(0));
-			
-
-			for (int fieldIx = 0; fieldIx < returnFields.length; fieldIx++){
-				try {
-					Object obj = returnFields[fieldIx];
-				    Class<?> c = Class.forName(obj.getClass().getName());
-				    Object t = c.newInstance();
-
-				    //t = new c();
-				    Class[] par=new Class[1];
-				      par[0]=String.class;
-				      Method thisMethod = c.getMethod("setText", par);
-					String myArgs[] = {new String("testString")};
-					thisMethod.invoke(t, (Object)myArgs);
-				} catch (ClassNotFoundException x) {
-				    x.printStackTrace();
-				} catch (IllegalAccessException x) {
-				    x.printStackTrace();
-				} catch (SecurityException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (NoSuchMethodException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InstantiationException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-
-			
-			for (int fieldIx = 0; fieldIx < returnFields.length; fieldIx++){
-				try {
-					Object obj = returnFields[fieldIx];
-					String aClass;
-					String aMethod;
-					// we assume that called methods have no argument
-					Class params[] = {};
-					Object paramsObj[] = {String.class};
-					
-					aClass  = obj.getClass().getName();
-					aMethod = "setText";
-					// get the Class
-					Class thisClass = Class.forName(aClass);
-					// get an instance
-					//Object iClass = thisClass.newInstance();
-					// get the method
-					Method thisMethod = thisClass.getDeclaredMethod(aMethod, String.class);
-					// call the method new Class[] {String.class, String.class},
-					//System.out.println (thisMethod.invoke(iClass, paramsObj));
-					System.out.println (thisMethod.invoke(obj.getClass(), "Helloho!"));
-				} catch (Exception ex) {
-					// ExHandler.handle(ex);
-				}
-			}
-			
+			setLinkedFields();
 			text.selectAll();
 			table.setSelection(index);
 			table.setFocus();
@@ -948,7 +937,7 @@ void textEvent (Event event) {
 				notifyListeners(SWT.DefaultSelection, e);
 				event.doit = false;
 				theText = text.getText();
-				
+				setLinkedFields();				
 				
 				
 				table.removeAll();
@@ -1168,107 +1157,4 @@ protected Composite getTopWindow()	{
 	}
 	return currComposite;
 }
-
-/*
-public boolean isPrintableChar(char c)	{
-	Character.UnicodeBlock block = Character.UnicodeBlock.of( c );
-	return (!Character.isISOControl(c)) &&
-			c != KeyEvent.CHAR_UNDEFINED &&
-			block != null &&
-			block != Character.UnicodeBlock.SPECIALS;
-	}
-*/
-/** 
- * Convert a point from a component's coordinate system to 
- * screen coordinates. 
- * 
- * @param p a Point object (converted to the new coordinate system) 
- * @param c a Component object 
- */ 
-/*public static void convertPointToScreen(Point p, Composite c) { 
-	Rectangle b;
-	int x,y;
-	
-	do { 
-		if(c instanceof Composite) { 
-			x = c.getBounds().x;
-			y = c.getBounds().y;
-		} else if(c instanceof java.applet.Applet || c instanceof java.awt.Window) { 
-			try { 
-				Point pp = c.getLocationOnScreen();
-				x = pp.x;
-				y = pp.y;
-			} catch (IllegalComponentStateException icse) { 
-				x = c.getX();
-				y = c.getY();
-			}
-		} else { 
-			x = c.getX();
-			y = c.getY();
-		} 
-		
-		p.x += x;
-		p.y += y;
-		
-		if(c instanceof java.awt.Window || c instanceof java.applet.Applet) 
-			break;
-		c = c.getParent();
-		} while(c != null);
-	}
-*/
-/** 
- * Convert a point from a screen coordinates to a component's  
- * coordinate system 
- * 
- * @param p a Point object (converted to the new coordinate system) 
- * @param c a Component object 
- */ 
-/*public static void convertPointFromScreen(Point p,Component c) { 
-    Rectangle b;
-    int x,y;
-
-    do { 
-        if(c instanceof JComponent) { 
-            x = ((JComponent)c).getX();
-            y = ((JComponent)c).getY();
-        } else if(c instanceof java.applet.Applet || 
-                   c instanceof java.awt.Window) { 
-            try { 
-                Point pp = c.getLocationOnScreen();
-                x = pp.x;
-                y = pp.y;
-            } catch (IllegalComponentStateException icse) { 
-        x = c.getX();
-        y = c.getY();
-            } 
-        } else { 
-    x = c.getX();
-    y = c.getY();
-        } 
-
-        p.x -= x;
-        p.y -= y;
-
-        if(c instanceof java.awt.Window || c instanceof java.applet.Applet) 
-            break;
-        c = c.getParent();
-    } while(c != null);
-}*/
-public static void convertPointToScreen(Point p, Composite c) { 
-	int x = 0;
-	int y = 0;
-	
-	do { 
-		if(c instanceof Composite) { 
-			x = c.getBounds().x;
-			y = c.getBounds().y;
-		} 
-		
-		p.x += x;
-		p.y += y;
-		
-		c = c.getParent();
-		} while(c != null);
-	}
-
 }

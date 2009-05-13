@@ -357,31 +357,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				Point pt = new Point(myCCombo.getBounds().x, myCCombo.getBounds().y);
-				System.out.println("pt local:  " + pt);
-				MyCCombo.convertPointToScreen(pt, myCCombo);
-				System.out.println("pt global: " + pt);
-/*				Composite currComposite = top;
-				while(currComposite.getParent() != null)	{
-					currComposite = currComposite.getParent();
-				}
-				System.out.println("top bounds: " + currComposite.getBounds());
-				
-				Display display = top.getDisplay();
-				System.out.println("display.getBounds: " + display.getBounds());
-*///				System.out.println("bounds: " + top.getBounds());
-//				System.out.println("bounds of parent: " + top.getParent().getBounds());
-//				System.out.println("bounds of parents parent: " + top.getParent().getParent().getBounds());
-//				System.out.println("bounds of parents parents parent: " + top.getParent().getParent().getParent().getBounds());
-//				System.out.println("bounds of parents parents parents parent: " + top.getParent().getParent().getParent().getParent().getBounds());
-//				System.out.println("bounds of parents parents parents parents parent: " + top.getParent().getParent().getParent().getParent().getParent().getBounds());
-//				System.out.println("bounds of parents parents parents parents parents parent: " + top.getParent().getParent().getParent().getParent().getParent().getParent().getBounds());
-				Toolkit toolkit = Toolkit.getDefaultToolkit();  
-				Dimension screenSize = toolkit.getScreenSize();
-				System.out.println("screenSize: " + screenSize);
-				//Desktop.getDesktop()
-				
-				//floatingWindow();
+				floatingWindow();
 				
 				// PROGRESS MONITOR ***********************************************
 				if (1==0)	{

@@ -1,0 +1,61 @@
+/** 
+ * Convert a point from a screen coordinates to a component's  
+ * coordinate system 
+ * 
+ * @param p a Point object (converted to the new coordinate system) 
+ * @param c a Component object 
+ */ 
+public static void convertPointFromScreen(Point p,Component c) { 
+    Rectangle b;
+    int x,y;
+
+    do { 
+        if(c instanceof JComponent) { 
+            x = ((JComponent)c).getX();
+            y = ((JComponent)c).getY();
+        } else if(c instanceof java.applet.Applet || 
+                   c instanceof java.awt.Window) { 
+            try { 
+                Point pp = c.getLocationOnScreen();
+                x = pp.x;
+                y = pp.y;
+            } catch (IllegalComponentStateException icse) { 
+        x = c.getX();
+        y = c.getY();
+            } 
+        } else { 
+    x = c.getX();
+    y = c.getY();
+        } 
+
+        p.x -= x;
+        p.y -= y;
+
+        if(c instanceof java.awt.Window || c instanceof java.applet.Applet) 
+            break;
+        c = c.getParent();
+    } while(c != null);
+}
+public static void convertPointToScreen(Point p, Composite c) { 
+	int x = 0;
+	int y = 0;
+	
+	do { 
+		if(c instanceof Composite) { 
+			x = c.getBounds().x;
+			y = c.getBounds().y;
+		} 
+		
+		p.x += x;
+		p.y += y;
+		
+		c = c.getParent();
+		} while(c != null);
+	}
+public boolean isPrintableChar(char c)	{
+	Character.UnicodeBlock block = Character.UnicodeBlock.of( c );
+	return (!Character.isISOControl(c)) &&
+			c != KeyEvent.CHAR_UNDEFINED &&
+			block != null &&
+			block != Character.UnicodeBlock.SPECIALS;
+	}

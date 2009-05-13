@@ -25,16 +25,16 @@ public class PlzEintrag extends PersistentObject {
 	private static final String createDB =
 		"CREATE TABLE " + TABLENAME + " (" +
 		"id					character varying(25) NOT NULL,	" +
-		"land				character(6),					" + // Iso2
-		"onrp				character(5),					" + // Ordnungsnummer Post
+		"land				character varying(6),			" + // Iso2
+		"onrp				character varying(5),			" + // Ordnungsnummer Post
 		"plztyp				character(2),					" + // PLZ-Typ,
 																// 10 = Domizil- und Fachadressen,
 																// 20 = Domiziladressen
 																// 30 = Fachadressen
 																// 40 = Firmenadressen
 																// 80 = postinterne PLZ
-		"plz				character(10),					" + // Postleitzahl
-		"zusatzziffer		character(2),					" + // Zusatzziffer zur Unterscheidung
+		"plz				character varying(10),					" + // Postleitzahl
+		"zusatzziffer		character varying(2),					" + // Zusatzziffer zur Unterscheidung
 																// von gleichlautenden Postleitzahlen
 		"ort18				character varying(18),			" + // Offizielle Ortsbezeichnung kurz
 		"ort27				character varying(27),			" + // Offizielle Ortsbezeichnung lang
@@ -47,7 +47,7 @@ public class PlzEintrag extends PersistentObject {
 		"sortierfile		character(1),					" + // im Sortierfile vorhanden	
 																// 0 = nein, 1 = ja
 		"briefzustellung	character varying(5),			" + // Briefzustellung durch diese Betriebstelle
-		"gemeindenr			character(5),					" + // Gemeindenr BfS
+		"gemeindenr			character varying(5),			" + // Gemeindenr BfS
 		"gueltigab			character(8),					" + // YYYYMMDD
 		"entrylanguage		character(2),					" +	// Sprache dieses Eintrages
 		"strasse			character varying(50),			" +	// Sprache dieses Eintrages
