@@ -923,7 +923,7 @@ void textEvent (Event event) {
 				notifyListeners(SWT.DefaultSelection, e);
 				event.doit = false;
 				theText = text.getText();
-				setLinkedFields();				
+				setLinkedFields();
 				
 				
 				table.removeAll();
