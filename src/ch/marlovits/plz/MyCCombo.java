@@ -90,7 +90,7 @@ public MyCCombo (Composite parent, int style) {
 	if ((style & SWT.FLAT) != 0) textStyle |= SWT.FLAT;
 	text = new Text (this, textStyle);
 	
-	// die Shell erstellen, in welcher die Liste/Tabelle erstellt wird ******************
+	// die Shell erstellen, in welcher die Liste/Tabelle erstellt wird **********
 	popup = new Shell (getShell (), SWT.NO_TRIM);
 	
 	int listStyle = SWT.SINGLE | SWT.V_SCROLL;
@@ -152,24 +152,18 @@ public MyCCombo (Composite parent, int style) {
 	
 	initAccessible();
 }
-// TODO
-/*
-public List getList()	{
-	return list;
+public Table getList()	{
+	return table;
 }
-*/
 public TableViewer getTableViewer()	{
 	return tableViewer;
 }
 public Table getTable()	{
 	return table;
 }
-//TODO
-/*
 public void setListVisible(boolean visibility)	{
-	list.setVisible(visibility);
+	popup.setVisible(visibility);
 }
-*/
 public void setTableViewerVisible(boolean visibility)	{
 	popup.setVisible(visibility);
 	}
@@ -196,17 +190,13 @@ public void add (String string, int index) {
 	list.add (string, index);
 }
 */
-// TODO: add für Table, mehrere Spalten, etc
 public void addModifyListener (ModifyListener listener) {;
-//System.out.println("addModifyListener");
 	checkWidget();
 	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	TypedListener typedListener = new TypedListener (listener);
 	addListener (SWT.Modify, typedListener);
-	//System.out.println("ModifyListener");
 }
 public void addSelectionListener(SelectionListener listener) {
-	//System.out.println("addSelectionListener");
 	checkWidget();
 	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
 	TypedListener typedListener = new TypedListener (listener);
@@ -299,6 +289,8 @@ public void dropDown (boolean drop) {
 	
 	// correct vertical table size
 	Point popupGlobalTopLeft = new Point(popup.getBounds().x, popup.getBounds().y);
+	System.out.println("desktop.getClientArea().height: " + desktop.getClientArea().height);
+	System.out.println("desktop.getBounds().height: " + desktop.getBounds().height);
 	int verticalSpace   = desktop.getClientArea().height - popupGlobalTopLeft.y;
 	if (tableSize.y > verticalSpace)	{
 		tableSize.y = (int)(verticalSpace / table.getItemHeight()) * table.getItemHeight();
@@ -459,12 +451,6 @@ void internalLayout () {
 	Point listSize = table.computeSize (SWT.DEFAULT, itemHeight, true);
 	table.setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
 }
-
-public class OneString {
-    public OneString(String s1) {
-    }
-}
-
 /**
  * Sets the fields linked to this control. The data found in the current selection will be inserted 
  * into these fields. 
@@ -517,7 +503,6 @@ boolean setLinkedFields()	{
 	}
 	return true;
 }
-
 void listEvent (Event event) {
 	//System.out.println("listEvent called");
 	switch (event.type) {
@@ -725,6 +710,7 @@ public void remove (String string) {
 public void removeAll () {
 	checkWidget();
 	text.setText (""); //$NON-NLS-1$
+	table.deselectAll();
 	table.removeAll ();
 }
 public void removeModifyListener (ModifyListener listener) {
@@ -1114,7 +1100,7 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.MouseUp: {
-			System.out.println("textEvent: FocusUp");
+			System.out.println("textEvent: MouseUp");
 			if (event.button != 1) return;
 			if (text.getEditable ()) return;
 			text.selectAll ();
