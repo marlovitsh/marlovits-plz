@@ -2,8 +2,6 @@ package ch.marlovits.plz;
 
 
 import java.awt.AWTEvent;
-import java.awt.Dimension;
-import java.awt.Frame;
 import java.awt.Toolkit;
 import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
@@ -56,7 +54,6 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -249,11 +246,11 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		//myCCombo.setItems(cComboStr);
 		myCCombo.setVisible(true);
 		myCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		String[] showField = {"ort27", "plz", "landiso2"};
+		String[] showField = {"ort27", "kanton", "plz", "landiso2"};
 		myCCombo.setShowFields(showField);
-		String[] sortField = {"ort27", "plz", "landiso2"};
+		String[] sortField = {"ort27", "kanton", "plz", "landiso2"};
 		myCCombo.setSortFields(sortField);
-		Object[] returnFields = {ortField, plzField, landIso2Field};
+		Object[] returnFields = {ortField, null, plzField, landIso2Field};
 		myCCombo.setReturnFields(returnFields);
 		
 		/* ------ ProgressMonitorDialog ------------- */
@@ -357,7 +354,15 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
+				String[] queryFields = {"first", "second", "third"};
+				System.out.println(queryFields.toString());
+				System.out.println(System.getenv());
+				System.out.println(System.getProperties());
+				
+				// FLOATING WINDOW ***********************************************
+				if (1==0)	{
 				floatingWindow();
+				}
 				
 				// PROGRESS MONITOR ***********************************************
 				if (1==0)	{
@@ -1693,6 +1698,71 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		  }
 
 		}
+
+	/**
+	 * Die Einträge ermitteln, die in der Liste angezeigt werden sollen. Diese Routine wird aufgerufen,
+	 * wenn der Text im Textfeld geändert wurde
+	 * @param currText  ausgewählter Text
+	 * @param landIso2  genau das ist es
+	 * @param plz       genau das ist es
+	 * @param ort       genau das ist es
+	 * @param strasse   genau das ist es
+	 * @return die anzuzeigenden Einträge als zweidimensionaler String array
+	 */
+	// for ort27
+	private String[][] getDataForTable(MyCCombo lThis, String currText, String landIso2, String plz, String ort, String strasse)	{
+		String[][] plzStrings = null;
+		String[] showFields  = lThis.getShowFields();
+		String[] queryFields = lThis.getQueryFields();
+		String[] sortFields  = lThis.getSortFields();
+		
+		String showFieldsString  = stringArrayToString(showFields,  ",");
+		String queryFieldsString = showFieldsString;
+		if (queryFields != null)	{
+			queryFieldsString = stringArrayToString(queryFields, ",");
+		}
+		String sortFieldsString  = stringArrayToString(sortFields,  ",");
+		
+		int numOfFields = showFields.length;
+		
+		// alle passenden Einträge aus der Datenbank auslesen
+		// ausnahmsweise direkte Abfrage auf der Datenbank aufgrund der Geschwindigkeit, die hier relevant
+		// ist via Persistent/Query unsäglich langsam (Buchstabe A hat mehrere hundert Einträge...)
+		// Datenbank anzapfen - oozapft is...
+		Stm stm = PersistentObject.getConnection().getStatement();
+		
+		// Anzahl Einträge ermitteln, die passen
+		int numOfEntries = 0;
+		// wenn kein Land ausgewählt ist, dann via sql alle Länder abfragen
+		String landClause = " 1=1 ";
+		if (!StringTool.isNothing(landIso2))	{
+			landClause = " lower(land) = lower(" + JdbcLink.wrap(landIso2) + ") "; 
+		}
+		ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(ort + "%") + ") and plztyp != 80");
+		try {
+			rs.next();
+			numOfEntries = Integer.decode(rs.getString("cnt"));
+			rs.close();
+		} catch (SQLException exc) {
+		}
+		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
+		//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
+		rs = stm.query("select " + queryFieldsString + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27, plz");
+		try {
+			plzStrings = new String[numOfEntries][numOfFields];
+			int iii = 0;
+			while (rs.next())	{
+				String[] rowData = new String[numOfFields];
+				for (int showFieldsIx = 0; showFieldsIx < numOfFields; showFieldsIx++)	{
+					rowData[showFieldsIx] = rs.getString(showFieldsIx);
+				}
+				plzStrings[iii] = rowData;
+				iii++;
+			}
+		} catch (SQLException e1) {
+		}
+		return plzStrings;
+	}
 	
 	class CComboKeyListener implements KeyListener	{
 		public void keyPressed(KeyEvent e) {
@@ -1702,7 +1772,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 			try	{
 				// was soll angezeigt werden sql-string
 				// TODO VORSICHT: DATENBANKABHÄNGIG???
-				String shownFields = "ort27, plz, land";
+				String shownFields = "ort27, kanton, plz, land";
 				
 				// der KeyListener muss deaktiviert werden, sonst interagiert das ganz heftig
 				// erst nach dem neuen Einlesen der Liste wieder zurücksetzen (in finally)
@@ -1713,7 +1783,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				
 				// wenn kein Text vorhanden, dann Liste leeren und schliessen
 				if (currText.length() == 0)	{
-					////////////////////////////////myCCombo.removeAll();
+					myCCombo.removeAll();
 					myCCombo.dropDown(false);
 					throw new FakeFinally();
 				}
@@ -1748,10 +1818,11 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27, plz");
 				try {
-					String[][] plzStrings = new String[numOfEntries][3];
+					rs.first();
+					String[][] plzStrings = new String[numOfEntries][4];
 					int iii = 0;
 					while (rs.next())	{
-						String[] rowData = {rs.getString("Ort27"), rs.getString("Plz"), rs.getString("Land")};
+						String[] rowData = {rs.getString("Ort27"), rs.getString("Kanton"), rs.getString("Plz"), rs.getString("Land")};
 						plzStrings[iii] = rowData;
 						iii++;
 					}
@@ -1788,5 +1859,14 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		frame.setVisible(true);
 		}
 
+	protected static String stringArrayToString(String[] strArray, String delimiter)	{
+		String str = "";
+		String delim = "";
+	    for (int i = 0; i < strArray.length; i++) {
+	      str = str + delim + strArray[i];
+	      delim = delimiter;
+	    }
+	    return str;
+	}
 
 }
