@@ -54,32 +54,52 @@ import org.eclipse.swt.widgets.TypedListener;
 public class MyCCombo extends Composite {
 	static final int ITEMS_SHOWING = 5;
 	
-	Composite	parent;
-	Text        text;
-	Shell       popup;
-	boolean     hasFocus;
-	String      theText;
-	TableViewer	tableViewer;
-	Table		table;
-	String[]	showFields   = null;  // shown fields in table (database fields)
-	String[]	sortFields   = null;  // sort  fields in table
-	Object[]	returnFields = null;  // fields into which data should be written
-	                                  // same number of items as in showFields, same order
+	private Composite	parent;
+	private Text        text;
+	private Shell       popup;
+	private boolean     hasFocus;
+	private String      theText;
+	private TableViewer	tableViewer;
+	private Table		table;
+	private String[]	showFields   = null;  // shown fields in table (database fields)
+	                                          // the fields are used for querying from the db
+	                                          // if queryFields is not null, then queryFields is
+	                                          // used for querying
+	private String[]	queryFields  = null;  // used for querying from the db (database fields)
+	                                          // if more complex queries are needed, eg:
+	                                          //    'a' || databasefield as showFieldName1
+	                                          // 
+	private String[]	sortFields   = null;  // sort  fields in table, must be fields from showFields
+	private Object[]	returnFields = null;  // fields into which data should be written
+	                                          // same number of items as in showFields, same order
+	                                          // must be fields from showFields
 	
 public void setReturnFields(Object[] returnFields)	{
 	this.returnFields = returnFields;
 	}
-
+public Object[] getReturnFields()	{
+	return returnFields;
+	}
+public void setQueryFields(String[] queryFields)	{
+	this.queryFields = queryFields;
+	}
+public String[] getQueryFields()	{
+	return queryFields;
+	}
 public void setShowFields(String[] showFields)	{
 	this.showFields = showFields;
 	}
-
+public String[] getShowFields()	{
+	return showFields;
+	}
 public void setSortFields(String[] sortFields)	{
 	this.sortFields = sortFields;
 	}
-
-public MyCCombo (Composite parent, int style) {
-	super (parent, checkStyle (style));
+public String[] getSortFields()	{
+	return sortFields;
+	}
+public MyCCombo(Composite parent, int style) {
+	super(parent, checkStyle(style));
 	
 	style = getStyle();
 	this.parent = parent;
@@ -88,10 +108,10 @@ public MyCCombo (Composite parent, int style) {
 	int textStyle = SWT.SINGLE;
 	if ((style & SWT.READ_ONLY) != 0) textStyle |= SWT.READ_ONLY;
 	if ((style & SWT.FLAT) != 0) textStyle |= SWT.FLAT;
-	text = new Text (this, textStyle);
+	text = new Text(this, textStyle);
 	
 	// die Shell erstellen, in welcher die Liste/Tabelle erstellt wird **********
-	popup = new Shell (getShell (), SWT.NO_TRIM);
+	popup = new Shell(getShell(), SWT.NO_TRIM);
 	
 	int listStyle = SWT.SINGLE | SWT.V_SCROLL;
 	if ((style & SWT.FLAT) != 0) listStyle |= SWT.FLAT;
@@ -112,26 +132,26 @@ public MyCCombo (Composite parent, int style) {
 	table.setLinesVisible(false);
 	
 	// die Listener installieren ************************************************
-	Listener listener = new Listener () {
-		public void handleEvent (Event event) {
+	Listener listener = new Listener() {
+		public void handleEvent(Event event) {
 			if (popup == event.widget) {
 				System.out.println("event.widget == popup, calling popupEvent(event)");
-				popupEvent (event);
+				popupEvent(event);
 				return;
 			}
 			if (text == event.widget) {
 				//System.out.println("event.widget == text");
-				textEvent (event);
+				textEvent(event);
 				return;
 			}
 			if (table == event.widget) {
 				//System.out.println("event.widget == list, calling listEvent(event)");
-				listEvent (event);
+				listEvent(event);
 				return;
 			}
 			if (MyCCombo.this == event.widget) {
 				//System.out.println("event.widget == MyCCombo, calling comboEvent(event)");
-				comboEvent (event);
+				comboEvent(event);
 				return;
 			}
 
@@ -139,16 +159,16 @@ public MyCCombo (Composite parent, int style) {
 	};
 	
 	int [] comboEvents = {SWT.Dispose, SWT.Move, SWT.Resize};
-	for (int i=0; i<comboEvents.length; i++) this.addListener (comboEvents [i], listener);
+	for (int i=0; i<comboEvents.length; i++) this.addListener(comboEvents [i], listener);
 	
 	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate};
-	for (int i=0; i<popupEvents.length; i++) popup.addListener (popupEvents [i], listener);
+	for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
 	
 	int [] textEvents = {SWT.KeyDown, SWT.KeyUp, SWT.Modify, SWT.MouseDown, SWT.MouseUp, SWT.Traverse, SWT.FocusIn, SWT.FocusOut, SWT.DEL};
-	for (int i=0; i<textEvents.length; i++) text.addListener (textEvents [i], listener);
+	for (int i=0; i<textEvents.length; i++) text.addListener(textEvents [i], listener);
 	
 	int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut};
-	for (int i=0; i<listEvents.length; i++) table.addListener (listEvents [i], listener);
+	for (int i=0; i<listEvents.length; i++) table.addListener(listEvents [i], listener);
 	
 	initAccessible();
 }
@@ -170,48 +190,48 @@ public void setTableViewerVisible(boolean visibility)	{
 public void setTableVisible(boolean visibility)	{
 	table.setVisible(visibility);
 	}
-static int checkStyle (int style) {
+static int checkStyle(int style) {
 	int mask = SWT.BORDER | SWT.READ_ONLY | SWT.FLAT | SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT;
 	return style & mask;
 }
 //TODO
 /*
-public void add (String string) {
+public void add(String string) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	list.add (string);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	list.add(string);
 }
 */
 //TODO
 /*
-public void add (String string, int index) {
+public void add(String string, int index) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	list.add (string, index);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	list.add(string, index);
 }
 */
-public void addModifyListener (ModifyListener listener) {;
+public void addModifyListener(ModifyListener listener) {;
 	checkWidget();
-	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	TypedListener typedListener = new TypedListener (listener);
-	addListener (SWT.Modify, typedListener);
+	if (listener == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	TypedListener typedListener = new TypedListener(listener);
+	addListener(SWT.Modify, typedListener);
 }
 public void addSelectionListener(SelectionListener listener) {
 	checkWidget();
-	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	TypedListener typedListener = new TypedListener (listener);
-	addListener (SWT.Selection,typedListener);
-	addListener (SWT.DefaultSelection,typedListener);
+	if (listener == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	TypedListener typedListener = new TypedListener(listener);
+	addListener(SWT.Selection,typedListener);
+	addListener(SWT.DefaultSelection,typedListener);
 }
-public void clearSelection () {
+public void clearSelection() {
 	checkWidget();
-	text.clearSelection ();
+	text.clearSelection();
 	table.deselectAll();
 }
-void comboEvent (Event event) {
-	switch (event.type) {
+void comboEvent(Event event) {
+	switch(event.type) {
 		case SWT.Dispose:
-			if (popup != null && !popup.isDisposed ()) popup.dispose ();
+			if (popup != null && !popup.isDisposed()) popup.dispose();
 			popup = null;  
 			text = null;  
 			tableViewer = null;
@@ -225,54 +245,54 @@ void comboEvent (Event event) {
 			break;
 	}
 }
-public Point computeSize (int wHint, int hHint, boolean changed) {
+public Point computeSize(int wHint, int hHint, boolean changed) {
 	Point listSize = new Point(0, 0);
 	checkWidget();
 	int width = 0, height = 0;
-	Point textSize  = text.computeSize (wHint, SWT.DEFAULT, changed);
+	Point textSize  = text.computeSize(wHint, SWT.DEFAULT, changed);
 	resizeColums();
 	//listSize  = table.computeSize(wHint, SWT.DEFAULT, changed);
 	listSize.x = table.getBorderWidth();
-	listSize.y = table.getItemHeight () * ITEMS_SHOWING;
+	listSize.y = table.getItemHeight() * ITEMS_SHOWING;
 	int borderWidth = getBorderWidth();
 	
-	height = Math.max (hHint, textSize.y  + 2*borderWidth);
-	//width = Math.max (wHint, Math.max(textSize.x + 2*borderWidth, listSize.x + 2)  );
+	height = Math.max(hHint, textSize.y  + 2*borderWidth);
+	//width = Math.max(wHint, Math.max(textSize.x + 2*borderWidth, listSize.x + 2)  );
 	width = 2*borderWidth + 2;
-	return new Point (width, height);
+	return new Point(width, height);
 }
-public void deselect (int index) {
+public void deselect(int index) {
 	checkWidget();
 	table.deselect(index);
 }
-public void deselectAll () {
+public void deselectAll() {
 	checkWidget();
 	table.deselectAll();
 }
-public void dropDown (boolean drop) {
+public void dropDown(boolean drop) {
 	// need to recalc vertical size
-	//if (drop == isDropped ()) return;
+	//if (drop == isDropped()) return;
 	boolean justVertical = false;
-	if (drop == isDropped ())	{
+	if (drop == isDropped())	{
 		justVertical = true;
 	}
 	// if no drop then hide popup
 	if (!drop) {
-		popup.setVisible (false);
+		popup.setVisible(false);
 		text.setFocus();
 		return;
 	}
 	// if no items in list then hide popup
 	if (table.getItemCount() < 1)	{
-		popup.setVisible (false);
+		popup.setVisible(false);
 		text.setFocus();
 		return;
 	}
-	int index = table.getSelectionIndex ();
-	if (index != -1) table.setTopIndex (index);
+	int index = table.getSelectionIndex();
+	if (index != -1) table.setTopIndex(index);
 	
 	// need the combosize, App main window, parent composite bounds, desktop
-	Point comboSize = getSize ();
+	Point comboSize = getSize();
 	Display desktop = getDisplay();
 	
 	// recalc optimized column sizes
@@ -282,7 +302,7 @@ public void dropDown (boolean drop) {
 	Point tableSize = table.getSize();
 	
 	// rect contains the coordinates for placing topleft of popup relative to parent
-	Rectangle rect = desktop.map (getParent(), null, getBounds());
+	Rectangle rect = desktop.map(getParent(), null, getBounds());
 	
 	// calc  uncorrected vertical table size 
 	tableSize.y = table.getItemHeight() * Math.min(table.getItemCount(), 32000);
@@ -304,36 +324,36 @@ public void dropDown (boolean drop) {
 	
 	// set size of table and popup
 	table.setBounds(1, 1, tableSize.x, tableSize.y);
-	popup.setBounds (rect.x, rect.y + comboSize.y, tableSize.x + 2, tableSize.y + 2);
+	popup.setBounds(rect.x, rect.y + comboSize.y, tableSize.x + 2, tableSize.y + 2);
 	
 	// now make the list visible
-	popup.setVisible (true);
+	popup.setVisible(true);
 }
-public Control [] getChildren () {
+public Control [] getChildren() {
 	checkWidget();
 	return new Control [0];
 }
-boolean getEditable () {
-	return text.getEditable ();
+boolean getEditable() {
+	return text.getEditable();
 }
 //TODO
 /*
-public String getItem (int index) {
+public String getItem(int index) {
 	checkWidget();
-	return list.getItem (index);
+	return list.getItem(index);
 }
 */
-public TableItem getItemNew (int index) {
+public TableItem getItemNew(int index) {
 	checkWidget();
 	return table.getItem(index);
 }
-public int getItemCount () {
+public int getItemCount() {
 	checkWidget();
-	return table.getItemCount ();
+	return table.getItemCount();
 }
-public int getItemHeight () {
+public int getItemHeight() {
 	checkWidget();
-	return table.getItemHeight ();
+	return table.getItemHeight();
 }
 //TODO
 /*
@@ -346,40 +366,40 @@ public TableItem[] getItemsNew() {
 	checkWidget();
 	return table.getItems();
 }
-public Point getSelection () {
+public Point getSelection() {
 	checkWidget();
-	return text.getSelection ();
+	return text.getSelection();
 }
-public int getSelectionIndex () {
+public int getSelectionIndex() {
 	checkWidget();
 	return table.getSelectionIndex();
 }
-public String getText () {
+public String getText() {
 	checkWidget();
-	return text.getText ();
+	return text.getText();
 }
-public int getTextHeight () {
+public int getTextHeight() {
 	checkWidget();
 	return text.getLineHeight();
 }
-public int getTextLimit () {
+public int getTextLimit() {
 	checkWidget();
-	return text.getTextLimit ();
+	return text.getTextLimit();
 }
 //TODO
 /*
-public int indexOf (String string) {
+public int indexOf(String string) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	return list.indexOf (string);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	return list.indexOf(string);
 }
 */
 //TODO
 /*
-public int indexOf (String string, int start) {
+public int indexOf(String string, int start) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	return list.indexOf (string, start);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	return list.indexOf(string, start);
 }
 */
 void initAccessible() {
@@ -423,10 +443,10 @@ void initAccessible() {
 		}
 	});
 }
-boolean isDropped () {
-	return popup.getVisible ();
+boolean isDropped() {
+	return popup.getVisible();
 }
-public boolean isFocusControl () {
+public boolean isFocusControl() {
 	checkWidget();
 	if (text.isFocusControl() || table.isFocusControl() || popup.isFocusControl()) {
 		return true;
@@ -438,18 +458,18 @@ public boolean isFocusControl () {
 /**
  * Neu Berechnen/Zeichnen des ganzen Konstrukts
  */
-void internalLayout () {
-	if (isDropped ()) dropDown (false);
+void internalLayout() {
+	if (isDropped()) dropDown(false);
 	
 	Rectangle rect = getClientArea();
 	int width = rect.width;
 	int height = rect.height;
-	text.setBounds (0, 0, width, height);
+	text.setBounds(0, 0, width, height);
 	
 	Point size = getSize();
-	int itemHeight = table.getItemHeight () * ITEMS_SHOWING;
-	Point listSize = table.computeSize (SWT.DEFAULT, itemHeight, true);
-	table.setBounds (1, 1, Math.max (size.x - 2, listSize.x), listSize.y);
+	int itemHeight = table.getItemHeight() * ITEMS_SHOWING;
+	Point listSize = table.computeSize(SWT.DEFAULT, itemHeight, true);
+	table.setBounds(1, 1, Math.max(size.x - 2, listSize.x), listSize.y);
 }
 /**
  * Sets the fields linked to this control. The data found in the current selection will be inserted 
@@ -469,6 +489,7 @@ boolean setLinkedFields()	{
 		try {
 			// get the object from the list
 			Object obj = returnFields[fieldIx];
+			if (obj == null) continue;
 			// find the class of this object
 			Class<?> c = Class.forName(obj.getClass().getName());
 			// create return params class
@@ -481,35 +502,35 @@ boolean setLinkedFields()	{
 			String[] input={new String(tableItem.getText(fieldIx))};
 			// call the method
 			setTextCaller.invoke(obj, input);
-		} catch (ClassNotFoundException x) {
+		} catch(ClassNotFoundException x) {
 		    x.printStackTrace();
 		    return false;
-		} catch (IllegalAccessException x) {
+		} catch(IllegalAccessException x) {
 		    x.printStackTrace();
 		    return false;
-		} catch (SecurityException e) {
+		} catch(SecurityException e) {
 			e.printStackTrace();
 		    return false;
-		} catch (NoSuchMethodException e) {
+		} catch(NoSuchMethodException e) {
 			e.printStackTrace();
 		    return false;
-		} catch (IllegalArgumentException e) {
+		} catch(IllegalArgumentException e) {
 			e.printStackTrace();
 		    return false;
-		} catch (InvocationTargetException e) {
+		} catch(InvocationTargetException e) {
 			e.printStackTrace();
 		    return false;
 		}
 	}
 	return true;
 }
-void listEvent (Event event) {
+void listEvent(Event event) {
 	//System.out.println("listEvent called");
-	switch (event.type) {
+	switch(event.type) {
 		case SWT.FocusIn: {
 			if (hasFocus) return;
 			hasFocus = true;
-			if (getEditable ()) text.selectAll ();
+			if (getEditable()) text.selectAll();
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.FocusIn, e);
@@ -531,7 +552,7 @@ void listEvent (Event event) {
 		}
 		case SWT.MouseUp: {
 			if (event.button != 1) return;
-			dropDown (false);
+			dropDown(false);
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.DefaultSelection, e);
@@ -539,7 +560,7 @@ void listEvent (Event event) {
 		}
 		case SWT.Selection: {
 			//System.out.println("SWT.Selection");
-			int index = table.getSelectionIndex ();
+			int index = table.getSelectionIndex();
 			if (index == -1) return;
 			text.setText(table.getItem(index).getText(0));
 			setLinkedFields();
@@ -558,7 +579,7 @@ void listEvent (Event event) {
 		}
 		case SWT.Traverse: {
 			System.out.println("listEvent: SWT.Traverse: before switch");
-			switch (event.detail) {
+			switch(event.detail) {
 				case SWT.TRAVERSE_TAB_NEXT:
 				case SWT.TRAVERSE_RETURN:
 				case SWT.TRAVERSE_ESCAPE:
@@ -586,7 +607,7 @@ void listEvent (Event event) {
 		}
 		case SWT.KeyUp: {		
 			System.out.println("listEvent: SWT.KeyUp");
-			int index = table.getSelectionIndex ();
+			int index = table.getSelectionIndex();
 			if (index == -1) return;
 			text.setText(table.getItem(index).getText(0));
 			Event e = new Event();
@@ -607,11 +628,11 @@ void listEvent (Event event) {
 			System.out.println("listEvent: SWT.KeyDown");
 			if (event.character == SWT.ESC) { 
 				// escape key cancels popup list
-				dropDown (false);
+				dropDown(false);
 			}
 			if (event.character == SWT.CR || event.character == '\t') {
 				// Enter and Tab cause default selection
-				dropDown (false);
+				dropDown(false);
 				Event e = new Event();
 				e.time      = event.time;
 				e.stateMask = event.stateMask;
@@ -631,7 +652,7 @@ void listEvent (Event event) {
 				e.stateMask = event.stateMask;
 				notifyListeners(SWT.DefaultSelection, e);
 			}
-			int oldIndex = table.getSelectionIndex ();
+			int oldIndex = table.getSelectionIndex();
 			if (event.keyCode == SWT.ARROW_UP) {
 				switch(oldIndex)	{
 				case(0):
@@ -656,7 +677,7 @@ void listEvent (Event event) {
 	}
 }
 void popupEvent(Event event) {
-	switch (event.type) {
+	switch(event.type) {
 		case SWT.Paint:
 			// draw black rectangle around list
 			System.out.println("popup: draw");
@@ -669,17 +690,17 @@ void popupEvent(Event event) {
 		case SWT.Close:
 			//System.out.println("popup: close");
 			event.doit = false;
-			//dropDown (false);
+			//dropDown(false);
 			break;
 		case SWT.Deactivate:
 			//System.out.println("popup: deactivate");
-			//dropDown (false);
+			//dropDown(false);
 			break;
 		default:
 			//System.out.println("popup: alles andere");
 	}
 }
-public void redraw (int x, int y, int width, int height, boolean all) {
+public void redraw(int x, int y, int width, int height, boolean all) {
 	checkWidget();
 	if (!all) return;
 	Point location = text.getLocation();
@@ -687,86 +708,86 @@ public void redraw (int x, int y, int width, int height, boolean all) {
 	location = table.getLocation();
 	table.redraw(x - location.x, y - location.y, width, height, all);
 }
-public void remove (int index) {
+public void remove(int index) {
 	checkWidget();
-	table.remove (index);
+	table.remove(index);
 }
-public void remove (int start, int end) {
+public void remove(int start, int end) {
 	checkWidget();
-	table.remove (start, end);
+	table.remove(start, end);
 }
 //TODO
 /*
-public void remove (String string) {
+public void remove(String string) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
 	if (isOldStyle){
-		list.remove (string);
+		list.remove(string);
 	} else {
-		//table.remove (string);
+		//table.remove(string);
 	}
 }
 */
-public void removeAll () {
+public void removeAll() {
 	checkWidget();
-	text.setText (""); //$NON-NLS-1$
+	text.setText(""); //$NON-NLS-1$
 	table.deselectAll();
-	table.removeAll ();
+	table.removeAll();
 }
-public void removeModifyListener (ModifyListener listener) {
+public void removeModifyListener(ModifyListener listener) {
 	checkWidget();
-	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+	if (listener == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
 	removeListener(SWT.Modify, listener);	
 }
-public void removeSelectionListener (SelectionListener listener) {
+public void removeSelectionListener(SelectionListener listener) {
 	checkWidget();
-	if (listener == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+	if (listener == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
 	removeListener(SWT.Selection, listener);
 	removeListener(SWT.DefaultSelection,listener);	
 }
-public void select (int index) {
+public void select(int index) {
 	checkWidget();
 	if (index == -1) {
-		table.deselectAll ();
-		text.setText (""); //$NON-NLS-1$
+		table.deselectAll();
+		text.setText(""); //$NON-NLS-1$
 		return;
 	}
 	if (0 <= index && index < table.getItemCount()) {
 		if (index != getSelectionIndex()) {
 			// TODO
-			/////////////////////////text.setText (table.getItem (index));
-			text.selectAll ();
-			table.select (index);
-			table.showSelection ();
+			/////////////////////////text.setText(table.getItem(index));
+			text.selectAll();
+			table.select(index);
+			table.showSelection();
 		}
 	}
 }
-public void setBackground (Color color) {
+public void setBackground(Color color) {
 	super.setBackground(color);
 	if (text != null) text.setBackground(color);
 	if (table != null) table.setBackground(color);
 }
-public boolean setFocus () {
+public boolean setFocus() {
 	checkWidget();
-	return text.setFocus ();
+	return text.setFocus();
 }
-public void setFont (Font font) {
-	super.setFont (font);
-	text.setFont (font);
-	table.setFont (font);
-	internalLayout ();
+public void setFont(Font font) {
+	super.setFont(font);
+	text.setFont(font);
+	table.setFont(font);
+	internalLayout();
 }
-public void setForeground (Color color) {
+public void setForeground(Color color) {
 	super.setForeground(color);
 	if (text != null) text.setForeground(color);
 	if (table != null) table.setForeground(color);
 }
 //TODO
 /*
-public void setItem (int index, String string) {
+public void setItem(int index, String string) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	list.setItem (index, string);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	list.setItem(index, string);
 }
 */
 protected void resizeColums()	{
@@ -784,10 +805,10 @@ protected void resizeColums()	{
 }
 public void setItems(String[][] items) {
 	checkWidget();
-	if (items == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+	if (items == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
 	int style = getStyle();
 	
-	/////////////////////if ((style & SWT.READ_ONLY) != 0) text.setText (""); //$NON-NLS-1$
+	/////////////////////if ((style & SWT.READ_ONLY) != 0) text.setText(""); //$NON-NLS-1$
 	
 	// remove old content
 	table.removeAll();
@@ -826,63 +847,63 @@ public void setItems(String[][] items) {
 	}
 	//table.pack();
 }
-public void setSelection (Point selection) {
+public void setSelection(Point selection) {
 	checkWidget();
-	if (selection == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	text.setSelection (selection.x, selection.y);
+	if (selection == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	text.setSelection(selection.x, selection.y);
 }
 //TODO
 /*
-public void setText (String string) {
+public void setText(String string) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	int index = list.indexOf (string);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	int index = list.indexOf(string);
 	if (index == -1) {
-		list.deselectAll ();
-		text.setText (string);
+		list.deselectAll();
+		text.setText(string);
 		return;
 	}
-	text.setText (string);
-	text.selectAll ();
-	list.setSelection (index);
-	list.showSelection ();
+	text.setText(string);
+	text.selectAll();
+	list.setSelection(index);
+	list.showSelection();
 }
 */
-public void setTextNew (String string) {
+public void setTextNew(String string) {
 	checkWidget();
-	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	// TODO int index = list.indexOf (string);
+	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	// TODO int index = list.indexOf(string);
 	int index = 0;  // TODO muss weg
 	if (index == -1) {
-		table.deselectAll ();
-		text.setText (string);
+		table.deselectAll();
+		text.setText(string);
 		return;
 	}
-	text.setText (string);
-	text.selectAll ();
-	// TODO table.setSelection (index);
-	table.showSelection ();
+	text.setText(string);
+	text.selectAll();
+	// TODO table.setSelection(index);
+	table.showSelection();
 }
-public void setTextLimit (int limit) {
+public void setTextLimit(int limit) {
 	checkWidget();
-	text.setTextLimit (limit);
+	text.setTextLimit(limit);
 }
-public void setToolTipText (String string) {
+public void setToolTipText(String string) {
 	checkWidget();
 	super.setToolTipText(string);
-	text.setToolTipText (string);		
+	text.setToolTipText(string);		
 }
-public void setVisible (boolean visible) {
+public void setVisible(boolean visible) {
 	super.setVisible(visible);
 	if (!visible) popup.setVisible(false);
 }
-void textEvent (Event event) {
-	switch (event.type) {
+void textEvent(Event event) {
+	switch(event.type) {
 		case SWT.FocusIn: {
 			System.out.println("textEvent: FocusIn");
 			if (hasFocus) return;
 			hasFocus = true;
-			if (getEditable ()) text.selectAll ();
+			if (getEditable()) text.selectAll();
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.FocusIn, e);
@@ -903,9 +924,10 @@ void textEvent (Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
+			boolean handled = false;
 			System.out.println("textEvent: KeyDown");
 			if (event.character == SWT.ESC) { // escape key cancels popup list
-				dropDown (false);
+				dropDown(false);
 				text.setText(theText);
 				text.setSelection(text.getText().length());
 				event.doit = false;
@@ -913,10 +935,11 @@ void textEvent (Event event) {
 				table.removeAll();
 				table.deselectAll();
 				text.setFocus();
+				handled = true;
 				break;
 			}
 			if (event.character == SWT.CR) {
-				dropDown (false);
+				dropDown(false);
 				Event e = new Event();
 				e.time = event.time;
 				e.stateMask = event.stateMask;
@@ -929,25 +952,28 @@ void textEvent (Event event) {
 				table.removeAll();
 				table.deselectAll();
 				text.setFocus();
+				handled = true;
 				break;
 			}
 			//At this point the widget may have been disposed.
 			// If so, do not continue.
 			if (isDisposed()) break;
 			
-			//if (table.getTopIndex() != -1) dropDown (true);
+			//if (table.getTopIndex() != -1) dropDown(true);
 			
 			if (event.keyCode == SWT.HOME) {
 				table.setSelection(0);
 				text.setText(table.getSelection()[0].getText());
 				text.setSelection(text.getText().length());
 				event.doit = false;
+				handled = true;				
 			}
 			if (event.keyCode == SWT.END) {
 				table.setSelection(table.getItemCount() - 1);
 				text.setText(table.getSelection()[0].getText());
 				text.setSelection(text.getText().length());
 				event.doit = false;
+				handled = true;
 			}
 			if (event.keyCode == SWT.PAGE_DOWN) {
 				Rectangle rect = table.getBounds();
@@ -957,6 +983,7 @@ void textEvent (Event event) {
 				text.setText(table.getSelection()[0].getText());
 				text.setSelection(text.getText().length());
 				event.doit = false;
+				handled = true;
 			}
 			if (event.keyCode == SWT.PAGE_UP) {
 				Rectangle rect = table.getBounds();
@@ -966,11 +993,12 @@ void textEvent (Event event) {
 				text.setText(table.getSelection()[0].getText());
 				text.setSelection(text.getText().length());
 				event.doit = false;
+				handled = true;
 			}
 			if (event.keyCode == SWT.ARROW_UP || event.keyCode == SWT.ARROW_DOWN) {
-				int oldIndex = getSelectionIndex ();
+				int oldIndex = getSelectionIndex();
 				if (event.keyCode == SWT.ARROW_UP) {
-					switch (oldIndex) {
+					switch(oldIndex) {
 					case -1: {
 						// no item is currently selected -> save Text in theText, select last item, set text field, select end of text
 						theText = text.getText();
@@ -997,7 +1025,7 @@ void textEvent (Event event) {
 					event.doit = false;
 				}
 				if (event.keyCode == SWT.ARROW_DOWN) {
-					switch (oldIndex) {
+					switch(oldIndex) {
 					case -1: {
 						// no item is currently selected -> save Text in theText, select first item, set text field, select end of text
 						theText = text.getText();
@@ -1007,7 +1035,7 @@ void textEvent (Event event) {
 						break;
 					}
 					default: {
-						if (oldIndex == table.getItemCount () - 1)	{
+						if (oldIndex == table.getItemCount() - 1)	{
 							// last item is currently selected -> deselect, set saved text, select end of text
 							table.deselectAll();
 							text.setText(theText);
@@ -1027,7 +1055,7 @@ void textEvent (Event event) {
 					//table.deselectAll();
 				}
 				
-				if (oldIndex != getSelectionIndex ()) {
+				if (oldIndex != getSelectionIndex()) {
 					Event e = new Event();
 					e.time = event.time;
 					e.stateMask = event.stateMask;
@@ -1037,6 +1065,11 @@ void textEvent (Event event) {
 				//At this point the widget may have been disposed.
 				// If so, do not continue.
 				if (isDisposed()) break;
+				handled = true;
+			}
+			if (handled == false)	{
+				// all other keys
+				table.deselectAll();
 			}
 			
 			theText = text.getText();
@@ -1076,7 +1109,7 @@ void textEvent (Event event) {
 		case SWT.Modify: {
 			if (1==1) break;
 			System.out.println("textEvent: Modify");
-			table.deselectAll ();
+			table.deselectAll();
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.Modify, e);
@@ -1086,11 +1119,11 @@ void textEvent (Event event) {
 		case SWT.MouseDown: {
 			System.out.println("textEvent: MouseDown");
 			if (event.button != 1) return;
-			if (text.getEditable ()) return;
-			boolean dropped = isDropped ();
-			text.selectAll ();
-			//if (!dropped) setFocus ();
-			//dropDown (!dropped);
+			if (text.getEditable()) return;
+			boolean dropped = isDropped();
+			text.selectAll();
+			//if (!dropped) setFocus();
+			//dropDown(!dropped);
 			dropDown(true);
 			Event e = new Event();
 			e.time = event.time;
@@ -1102,13 +1135,13 @@ void textEvent (Event event) {
 		case SWT.MouseUp: {
 			System.out.println("textEvent: MouseUp");
 			if (event.button != 1) return;
-			if (text.getEditable ()) return;
-			text.selectAll ();
+			if (text.getEditable()) return;
+			text.selectAll();
 			break;
 		}
 		case SWT.Traverse: {		
 			System.out.println("textEvent: Traverse");
-			switch (event.detail) {
+			switch(event.detail) {
 			case SWT.TRAVERSE_RETURN:
 			case SWT.TRAVERSE_ARROW_PREVIOUS:
 			case SWT.TRAVERSE_ARROW_NEXT:
