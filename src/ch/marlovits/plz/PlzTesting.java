@@ -1818,7 +1818,6 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
 				rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27, plz");
 				try {
-					rs.first();
 					String[][] plzStrings = new String[numOfEntries][4];
 					int iii = 0;
 					while (rs.next())	{
