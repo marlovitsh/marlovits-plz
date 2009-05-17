@@ -87,6 +87,7 @@ import ch.elexis.commands.Handler;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
+import ch.marlovits.plz.MyCCombo.MyCComboDataProvider;
 import ch.rgw.tools.ExHandler;
 import ch.rgw.tools.JdbcLink;
 import ch.rgw.tools.StringTool;
@@ -175,23 +176,23 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		
 		Toolkit.getDefaultToolkit().addAWTEventListener(new AWTEventListener(){
 			public void eventDispatched(AWTEvent evt){ 
-			        System.out.println("AWT: " + evt); 
+			        //System.out.println("AWT: " + evt); 
 			   } 
 			}, AWTEvent.KEY_EVENT_MASK);
 		
 		parent.addKeyListener(new KeyListener(){
 			public void keyPressed(KeyEvent e) {
-				System.out.println("keyPressed(KeyEvent");
+				//System.out.println("keyPressed(KeyEvent");
 			}
 
 			public void keyReleased(KeyEvent e) {
-				System.out.println("keyReleased(KeyEvent");
+				//System.out.println("keyReleased(KeyEvent");
 			}
 		});
 		parent.addTraverseListener(new TraverseListener(){
 
 			public void keyTraversed(TraverseEvent e) {
-				System.out.println("TraverseEvent");
+				//System.out.println("TraverseEvent");
 			}
 			
 		});
@@ -288,46 +289,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	    }
 	      );
 	    
-//	    JFrame frame = new JFrame("Popup Menu Example");
-//	    frame.setContentPane(new PopupMenuExample());
-//	    frame.setSize(300, 300);
-//	    frame.setVisible(true);
-
 	    new PopupMenuExample();
-/*	    
-		// *************************************************************************
-	    TableViewer myTableViewer = new TableViewer(top, SWT.BORDER | SWT.SINGLE | SWT.FULL_SELECTION);
-	    GridData gd = new GridData();
-	    gd.horizontalAlignment = SWT.FILL;
-	    gd.verticalAlignment = SWT.FILL;
-	    gd.grabExcessHorizontalSpace = true;
-	    gd.grabExcessVerticalSpace = true;
-
-	    myTableViewer.getControl().setLayoutData(gd);
-	    Table myTable2 = myTableViewer.getTable();
-	    myTable2 .setHeaderVisible(false);
-	    myTable2 .setLinesVisible(false);
-		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
-		//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
-		Stm stm = PersistentObject.getConnection().getStatement();
-		String shownFields = "ort27, plz, land";
-		String landClause = " lower(land) = lower(" + JdbcLink.wrap("CH") + ") "; 
-		ResultSet rs = stm.query("select " + shownFields + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap("D" + "%") + ")  and plztyp != 80 order by ort27");
-		for (int iiii = 0; iiii < 3; iiii++)	{
-		      TableColumn col1 = new TableColumn(myTable2, SWT.NULL);
-		      col1.setText("Column " + iiii);
-		      col1.pack();			
-		}
-		try {
-			while (rs.next())	{
-			      TableItem tableItem1 = new TableItem(myTable2, SWT.NULL);
-			      tableItem1.setText(new String[] {rs.getString("ort27"), rs.getString("plz"), rs.getString("land")});
-			}
-		} catch (SQLException e1) {
-		}
-	     myTable2.setTopIndex(40);
-	     */
-		  // *************************************************************************
 	    
 	    // Erstellen der Actions für die Menus, etc
 		makeActions();
@@ -344,6 +306,13 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 //		ortField.addKeyListener(ortKeyListener);
 //		cbOrtCombo.addKeyListener(ortCBKeyListener);
 		myCCombo.addKeyListener(myCComboKeyListener);
+		
+		// +++++++++++++++++++++++++
+		myCCombo.setDataProviderCaller(new MyCComboDataProvider() {
+			public void setDataProvider(String[] queryFields) {
+				System.out.println(queryFields);
+			}
+		});
 	}
 	
 	private void makeActions(){
@@ -1747,7 +1716,7 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 		}
 		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 		//rs = stm.query("select ort27 from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27");
-		rs = stm.query("select " + queryFieldsString + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by ort27, plz");
+		rs = stm.query("select " + queryFieldsString + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(currText + "%") + ")  and plztyp != 80 order by " + sortFieldsString);
 		try {
 			plzStrings = new String[numOfEntries][numOfFields];
 			int iii = 0;

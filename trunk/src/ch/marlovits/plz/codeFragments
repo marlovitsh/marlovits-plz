@@ -59,3 +59,11 @@ public boolean isPrintableChar(char c)	{
 			block != null &&
 			block != Character.UnicodeBlock.SPECIALS;
 	}
+protected Composite getTopWindow()	{
+	Composite currComposite = parent;
+	while(currComposite.getParent() != null)	{
+		currComposite = currComposite.getParent();
+	}
+	return currComposite;
+}
+	
