@@ -61,6 +61,7 @@ public class MyCCombo extends Composite {
 	private Shell       popup;
 	private boolean     hasFocus;
 	private String      theText;
+	private String      oldText;
 	private TableViewer	tableViewer;
 	private Table		table;
 	private String[]	showFields   = null;  // shown fields in table (database fields)
@@ -75,12 +76,19 @@ public class MyCCombo extends Composite {
 	private Object[]	returnFields = null;  // fields into which data should be written
 	                                          // same number of items as in showFields, same order
 	                                          // must be fields from showFields
+	String[] lQueryFields;
 	
+
 public interface MyCComboDataProvider	{
 	void setDataProvider(String[] queryFields);
 	}
+public class MyCComboDataProviderClass implements MyCComboDataProvider	{
+	public void setDataProvider(String[] queryFields) {
+		System.out.println(lQueryFields);
+	}	
+}
 public void setDataProviderCaller(MyCComboDataProvider provider) {
-	provider.setDataProvider(queryFields);
+	//provider.setDataProvider(queryFields);
 	}
 public void setReturnFields(Object[] returnFields)	{
 	this.returnFields = returnFields;
@@ -161,7 +169,7 @@ public MyCCombo(Composite parent, int style) {
 				return;
 			}
 			if (MyCCombo.this == event.widget) {
-				System.out.println("event.widget == MyCCombo, calling comboEvent(event)");
+				System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
 				comboEvent(event);
 				return;
 			}
@@ -281,6 +289,12 @@ public void deselectAll() {
 	table.deselectAll();
 }
 public void dropDown(boolean drop) {
+	// no unnecessary redraw: exit if text is still the same 
+	if (oldText == null) oldText = "";
+	if (oldText.equals(text.getText()))	{
+		return;
+	}
+	
 	// need to recalc vertical size
 	//if (drop == isDropped()) return;
 	if ((drop) && (selected == true))	{
@@ -294,12 +308,16 @@ public void dropDown(boolean drop) {
 	if (!drop) {
 		popup.setVisible(false);
 		text.setFocus();
+		// no unnecessary redraws
+		oldText = text.getText();
 		return;
 	}
 	// if no items in list then hide popup
 	if (table.getItemCount() < 1)	{
 		popup.setVisible(false);
 		text.setFocus();
+		// no unnecessary redraws
+		oldText = text.getText();
 		return;
 	}
 	int index = table.getSelectionIndex();
@@ -343,6 +361,9 @@ public void dropDown(boolean drop) {
 	
 	// now make the list visible
 	popup.setVisible(true);
+	
+	// no unnecessary redraws
+	oldText = text.getText();
 }
 public Control [] getChildren() {
 	checkWidget();
@@ -832,15 +853,20 @@ protected void resizeColums()	{
 	table.pack();
 }
 public void setItems(String[][] items) {
+//	setDataProviderCaller();
 	checkWidget();
 	if (items == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
 	int style = getStyle();
+	
+	// no unnecessary redraw: exit if text is still the same 
+//	if ((oldText != null) && (oldText.equals(text.getText())))	{
+//		return;
+//	}
 	
 	/////////////////////if ((style & SWT.READ_ONLY) != 0) text.setText(""); //$NON-NLS-1$
 	
 	// remove old content
 	table.removeAll();
-	Control[] ctrlList = table.getChildren();
 	
 	// create columns
 	int numOfRows    = items.length;
@@ -863,21 +889,24 @@ public void setItems(String[][] items) {
 			currColumn = new TableColumn(table, SWT.NULL);
 		}
 	}
-	table.setRedraw(false);
+	// no flickering when redrawing for XP
+	popup.setRedraw(false);
 	// insert data into table
 	for (int rowIx = 0; rowIx < numOfRows; rowIx++)	{
 		TableItem tableItem = new TableItem(table, SWT.NULL);
 		tableItem.setText(items[rowIx]);
 	}
-	table.setRedraw(true);
 	// optimize size of the columns
 	for (int colIx = 0; colIx < numOfColumns; colIx++)	{
-		if (text.getText().length() == 1)	{
-			table.getColumns()[colIx].pack();
-		}
+		table.getColumn(colIx).setWidth(1000);   // bug workaround for Windows XP which makes colums smaller but not bigger in .pack
+		table.getColumn(colIx).pack();
 	}
-	//table.pack();
-} 
+	// no flickering when redrawing for XP
+	popup.setRedraw(true);
+	
+	// no unnecessary redraw
+	//oldText = text.getText();
+}
 public void setSelection(Point selection) {
 	checkWidget();
 	if (selection == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
