@@ -877,7 +877,7 @@ public void setItems(String[][] items) {
 		}
 	}
 	//table.pack();
-}
+} 
 public void setSelection(Point selection) {
 	checkWidget();
 	if (selection == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
