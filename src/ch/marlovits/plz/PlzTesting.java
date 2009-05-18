@@ -68,7 +68,6 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
-import org.eclipse.ui.part.DrillDownComposite;
 import org.eclipse.ui.part.ViewPart;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -148,7 +147,6 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	private KeyListener	ortCBKeyListener;
 	private KeyListener	myCComboKeyListener;
 	private MyCCombo myCCombo;
-	private DrillDownComposite cDrillDown;
 	private List list;
 	
 	public PlzTesting() {
