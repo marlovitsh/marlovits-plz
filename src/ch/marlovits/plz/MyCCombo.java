@@ -78,17 +78,16 @@ public class MyCCombo extends Composite {
 	                                          // must be fields from showFields
 	String[] lQueryFields;
 	
-
 public interface MyCComboDataProvider	{
 	void setDataProvider(String[] queryFields);
 	}
 public class MyCComboDataProviderClass implements MyCComboDataProvider	{
 	public void setDataProvider(String[] queryFields) {
 		System.out.println(lQueryFields);
-	}	
+	}
 }
 public void setDataProviderCaller(MyCComboDataProvider provider) {
-	//provider.setDataProvider(queryFields);
+	provider.setDataProvider(queryFields);
 	}
 public void setReturnFields(Object[] returnFields)	{
 	this.returnFields = returnFields;
@@ -346,7 +345,11 @@ public void dropDown(boolean drop) {
 	pt.x = pt.x +                         + 2 * text.getBorderWidth();
 	int verticalSpace = desktop.getClientArea().height - pt.y - 4;
 	if (tableSize.y > verticalSpace)	{
-		tableSize.y = (int)(verticalSpace / table.getItemHeight()) * table.getItemHeight();
+		if (System.getProperties().getProperty("os.name").equals("Windows XP")){ 
+			tableSize.y = (int)((verticalSpace / table.getItemHeight()) - 2) * table.getItemHeight(); 
+		} else { 
+			tableSize.y = (int)(verticalSpace / table.getItemHeight()) * table.getItemHeight(); 
+		}
 	}
 	
 	// correct horizontal table position: hSize remains, we just move the popup to the left
