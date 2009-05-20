@@ -86,6 +86,8 @@ import ch.elexis.commands.Handler;
 import ch.elexis.data.PersistentObject;
 import ch.elexis.util.SWTHelper;
 import ch.elexis.util.ViewMenus;
+import ch.marlovits.plz.MyCCombo.EventNotifier;
+import ch.marlovits.plz.MyCCombo.MarloComboDataProvider;
 import ch.marlovits.plz.MyCCombo.MyCComboDataProvider;
 import ch.rgw.tools.ExHandler;
 import ch.rgw.tools.JdbcLink;
@@ -311,8 +313,8 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				System.out.println(queryFields);
 			}
 		});
+
 	}
-	
 	private void makeActions(){
 		// Tester Menu Item
 		testingAction = new Action("Testing") {
@@ -321,10 +323,16 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
+				CallMe callMe = new CallMe();
+				myCCombo.tester111();
+				
+				// ENVIRONS, PROPERTIES
+				if (1==0) {
 				String[] queryFields = {"first", "second", "third"};
 				System.out.println(queryFields.toString());
 				System.out.println(System.getenv());
 				System.out.println(System.getProperties());
+				}
 				
 				// FLOATING WINDOW ***********************************************
 				if (1==0)	{
@@ -1833,6 +1841,16 @@ public class PlzTesting extends ViewPart implements SelectionListener, Activatio
 	      delim = delimiter;
 	    }
 	    return str;
+	}
+
+	public class CallMe implements MarloComboDataProvider {
+		private EventNotifier en; 
+		public CallMe () {
+			en = myCCombo.new EventNotifier(this);
+		}
+		public void marloComboDataProvider () {
+			System.out.println("Dies ist nun die Routine, die ich injiziert habe");
+		}
 	}
 
 }
