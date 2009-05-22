@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 Harald Marlovits.
+ * Copyright (c) 2009 Harald Marlovits.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +7,7 @@
  *
  * Contributors:
  *     Harald Marlovits	 - initial implementation
+ *                         initially based on CCombo, IBM, see below
  *******************************************************************************/
 /*******************************************************************************
  * Copyright (c) 2000, 2003 IBM Corporation and others.
@@ -51,12 +52,10 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
 
-public class MyCCombo extends Composite {
+public class MCCombo extends Composite {
 	static final int ITEMS_SHOWING = 5;
 	
-	private Method		dataQueryMethod;
 	private boolean		selected;			// pressed enter/esc/tab for selection
-	private Composite	parent;
 	private Text        text;
 	private Shell       popup;
 	private boolean     hasFocus;
@@ -76,53 +75,28 @@ public class MyCCombo extends Composite {
 	private Object[]	returnFields = null;  // fields into which data should be written
 	                                          // same number of items as in showFields, same order
 	                                          // must be fields from showFields
-	String[] lQueryFields;
-	private MarloComboDataProvider ie;
+	private MCComboDataProvider dataProviderClass;
 	
-	public void tester111()	{
-		ie.marloComboDataProvider();
-	}
-	
-	public interface MarloComboDataProvider	{
-	    public void marloComboDataProvider ();
-	}
-	public class EventNotifier {
-		public EventNotifier (MarloComboDataProvider event) {
-			ie = event; 
-		}
-		public void doWork () {
-			// Signal the even by invoking the interface's method.
-			ie.marloComboDataProvider ();
-		} 
-	}
-	/*
-	public void EventNotifier (InterestingEvent event)	{
-		// Save the event object for later use.
-		ie = event; 
-		// Nothing to report yet.
-	}
-	public void doWork () {
-		// Check the predicate, which is set elsewhere.
-		if (1==1)	{
-			// Signal the even by invoking the interface's method.
-			ie.interestingEvent ();
+	// test caller
+	public void callDataProvider()	{
+		String[][] tmp = dataProviderClass.mCComboDataProvider(this);
+		if (tmp == null){
+			dropDown(false);
+		} else	{
+			setItems(tmp);
+			if (table.getItemCount() > 0)	{
+				dropDown(true);
+			} else {
+				dropDown(false);
+			}
 		}
 	}
-	 */
-	
-	
-	
-	
-	public interface MyCComboDataProvider	{
-		void setDataProvider(String[] queryFields);
+	public void installDataProvider(MCComboDataProvider pDataProviderClass)	{
+		dataProviderClass = pDataProviderClass;
 	}
-	public class MyCComboDataProviderClass implements MyCComboDataProvider	{
-		public void setDataProvider(String[] queryFields) {
-			System.out.println(lQueryFields);
-		}
-	}
-	public void setDataProviderCaller(MyCComboDataProvider provider) {
-		provider.setDataProvider(queryFields);
+	// this is the interface which must be implemeted as a real class
+	public interface MCComboDataProvider	{
+	    public String[][] mCComboDataProvider (MCCombo lThis);
 	}
 	public void setReturnFields(Object[] returnFields)	{
 		this.returnFields = returnFields;
@@ -148,11 +122,10 @@ public class MyCCombo extends Composite {
 	public String[] getSortFields()	{
 		return sortFields;
 	}
-	public MyCCombo(Composite parent, int style) {
+	public MCCombo(Composite parent, int style) {
 		super(parent, checkStyle(style));
 		
 		style = getStyle();
-		this.parent = parent;
 		
 		// das Textfeld erstellen ***************************************************
 		int textStyle = SWT.SINGLE;
@@ -188,22 +161,22 @@ public class MyCCombo extends Composite {
 		Listener listener = new Listener() {
 			public void handleEvent(Event event) {
 				if (popup == event.widget) {
-					System.out.println("event.widget == popup, calling popupEvent(event)");
+					//System.out.println("event.widget == popup, calling popupEvent(event)");
 					popupEvent(event);
 					return;
 				}
 				if (text == event.widget) {
-					System.out.println("event.widget == text");
+					//System.out.println("event.widget == text");
 					textEvent(event);
 					return;
 				}
 				if (table == event.widget) {
-					System.out.println("event.widget == list, calling listEvent(event)");
+					//System.out.println("event.widget == list, calling listEvent(event)");
 					listEvent(event);
 					return;
 				}
-				if (MyCCombo.this == event.widget) {
-					System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
+				if (MCCombo.this == event.widget) {
+					//System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
 					comboEvent(event);
 					return;
 				}
@@ -324,10 +297,10 @@ public class MyCCombo extends Composite {
 	}
 	public void dropDown(boolean drop) {
 		// no unnecessary redraw: exit if text is still the same 
-		if (oldText == null) oldText = "";
-		if (oldText.equals(text.getText()))	{
-			return;
-		}
+//		if (oldText == null) oldText = "";
+//		if (oldText.equals(text.getText()))	{
+//			return;
+//		}
 		
 		// need to recalc vertical size
 		//if (drop == isDropped()) return;
@@ -617,7 +590,7 @@ public class MyCCombo extends Composite {
 				//System.out.println("SWT.FocusOut");
 				event.display.asyncExec(new Runnable() {
 					public void run() {
-						if (MyCCombo.this.isDisposed()) return;
+						if (MCCombo.this.isDisposed()) return;
 						Control focusControl = getDisplay().getFocusControl();
 						if (focusControl == text) return;
 						hasFocus = false;
@@ -950,22 +923,24 @@ public class MyCCombo extends Composite {
 		text.setSelection(selection.x, selection.y);
 	}
 	//TODO
-	/*
 	public void setText(String string) {
 		checkWidget();
-		if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-		int index = list.indexOf(string);
-		if (index == -1) {
-			list.deselectAll();
-			text.setText(string);
-			return;
-		}
+		
 		text.setText(string);
-		text.selectAll();
-		list.setSelection(index);
-		list.showSelection();
+		
+//		
+//		if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+//		int index = list.indexOf(string);
+//		if (index == -1) {
+//			list.deselectAll();
+//			text.setText(string);
+//			return;
+//		}
+//		text.setText(string);
+//		text.selectAll();
+//		list.setSelection(index);
+//		list.showSelection();
 	}
-	*/
 	public void setTextNew(String string) {
 		checkWidget();
 		if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
@@ -1010,7 +985,7 @@ public class MyCCombo extends Composite {
 				//System.out.println("textEvent: FocusOut");
 				event.display.asyncExec(new Runnable() {
 					public void run() {
-						if (MyCCombo.this.isDisposed()) return;
+						if (MCCombo.this.isDisposed()) return;
 						Control focusControl = getDisplay().getFocusControl();
 						if (focusControl == table) return;
 						hasFocus = false;
@@ -1182,7 +1157,8 @@ public class MyCCombo extends Composite {
 				e.keyCode = event.keyCode;
 				e.stateMask = event.stateMask;
 				//notifyListeners(SWT.KeyDown, e);
-				//System.out.println("textEvent.KeyDown: " + e.character);
+				//System.out.println("textEvent.KeyDown: " + e.character);				
+				
 				break;
 			}
 			case SWT.KeyUp: {
@@ -1195,6 +1171,10 @@ public class MyCCombo extends Composite {
 				e.stateMask = event.stateMask;
 				char ch = event.character;
 				notifyListeners(SWT.KeyUp, e);
+				
+				System.out.println("textEvent.KeyUp: callDataProvider()");
+				callDataProvider();
+				
 				break;
 			}
 			case SWT.Modify: {
@@ -1205,6 +1185,10 @@ public class MyCCombo extends Composite {
 				e.time = event.time;
 				notifyListeners(SWT.Modify, e);
 				//System.out.println("textEvent.Modify");
+				
+				System.out.println("textEvent.Modify: callDataProvider()");
+				callDataProvider();
+				
 				break;
 			}
 			case SWT.MouseDown: {
