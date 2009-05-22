@@ -27,23 +27,23 @@ public class PlzEintrag extends PersistentObject {
 		"id					character varying(25) NOT NULL,	" +
 		"land				character varying(6),			" + // Iso2
 		"onrp				character varying(5),			" + // Ordnungsnummer Post
-		"plztyp				character(2),					" + // PLZ-Typ,
+		"plztyp				character varying(2),			" + // PLZ-Typ,
 																// 10 = Domizil- und Fachadressen,
 																// 20 = Domiziladressen
 																// 30 = Fachadressen
 																// 40 = Firmenadressen
 																// 80 = postinterne PLZ
-		"plz				character varying(10),					" + // Postleitzahl
-		"zusatzziffer		character varying(2),					" + // Zusatzziffer zur Unterscheidung
+		"plz				character varying(10),			" + // Postleitzahl
+		"zusatzziffer		character varying(2),			" + // Zusatzziffer zur Unterscheidung
 																// von gleichlautenden Postleitzahlen
 		"ort18				character varying(18),			" + // Offizielle Ortsbezeichnung kurz
 		"ort27				character varying(27),			" + // Offizielle Ortsbezeichnung lang
-		"kanton				character(2),					" + // Kanton
+		"kanton				character varying(20),			" + // Kanton, country, Bundesland uä
 																// DE für Büsingen
 																// IT für Campione
 																// FL für Fürstentum Lichtenstein
-		"sprachcode			character(1),					" + // Hauptsprache/Sprachmehrheit
-		"sprachcode2		character(1),					" + // Nebensprache/weitere Sprache
+		"sprachcode			character varying(2),			" + // Hauptsprache/Sprachmehrheit, noch PTT, sollte aber iso sein
+		"sprachcode2		character varying(2),			" + // Nebensprache/weitere Sprache, noch PTT, sollte aber iso sein
 		"sortierfile		character(1),					" + // im Sortierfile vorhanden	
 																// 0 = nein, 1 = ja
 		"briefzustellung	character varying(5),			" + // Briefzustellung durch diese Betriebstelle
