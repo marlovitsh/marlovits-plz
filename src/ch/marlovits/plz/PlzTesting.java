@@ -1,18 +1,25 @@
 package ch.marlovits.plz;
 
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.Window;
+import java.awt.font.FontRenderContext;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.ImageObserver;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.AttributedCharacterIterator;
+
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -35,6 +42,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -198,148 +206,18 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		public void controlMoved(ControlEvent e) {
 		}
 		public void controlResized(ControlEvent e) {
-			System.out.println("cbLandCombo.getItemCount(): " + cbLandCombo.getItemCount());
-			int oneCharWidth = stringWidth(cbLandCombo, "-");
+			double oneCharWidth = stringWidth(cbLandCombo, "-");
 			System.out.println("oneCharWidth: " + oneCharWidth);
 			for (int i = 0; i < cbLandCombo.getItemCount(); i++){
 				//System.out.println("item: " + cbLandCombo.getItem(i));
 				if (cbLandCombo.getItem(i).substring(1, 3).equals("––––".substring(1, 3)))	{
-					System.out.println("found divider item: " + i);
 					System.out.println("cbLandCombo.getBounds().width: " + cbLandCombo.getBounds().width);
-					int numOfChars = (cbLandCombo.getBounds().width - 30) / oneCharWidth;
+					int numOfChars = (int) ((cbLandCombo.getBounds().width - 30) / oneCharWidth);
 					String fillString = StringTool.filler("-", numOfChars);
-					fillString = "";
-					System.out.println("numOfChars: " + numOfChars);
-					for (int j = 0; j < numOfChars; j++){
-						fillString = fillString + "-";
-					}
 					System.out.println("fullLengthWidth: " + stringWidth(cbLandCombo, fillString));
 					cbLandCombo.setItem(i, fillString);
-					System.out.println("cbLandCombo.getVerticalBar(): " + cbLandCombo.getVerticalBar());
 				}
 			}
-		}
-	}
-	class MyGraphics extends Graphics	{
-		@Override
-		public void clearRect(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void clipRect(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void copyArea(int arg0, int arg1, int arg2, int arg3, int arg4, int arg5) {
-		}
-		@Override
-		public Graphics create() {
-			return null;
-		}
-		@Override
-		public void dispose() {
-		}
-		@Override
-		public void drawArc(int arg0, int arg1, int arg2, int arg3, int arg4, int arg5) {
-		}
-		@Override
-		public boolean drawImage(Image arg0, int arg1, int arg2, ImageObserver arg3) {
-			return false;
-		}
-		@Override
-		public boolean drawImage(Image arg0, int arg1, int arg2, Color arg3, ImageObserver arg4) {
-			return false;
-		}
-		@Override
-		public boolean drawImage(Image arg0, int arg1, int arg2, int arg3, int arg4, ImageObserver arg5) {
-			return false;
-		}
-		@Override
-		public boolean drawImage(Image arg0, int arg1, int arg2, int arg3, int arg4, Color arg5, ImageObserver arg6) {
-			return false;
-		}
-		@Override
-		public boolean drawImage(Image arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8, ImageObserver arg9) {
-			return false;
-		}
-		@Override
-		public boolean drawImage(Image arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8, Color arg9, ImageObserver arg10) {
-			return false;
-		}
-		@Override
-		public void drawLine(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void drawOval(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void drawPolygon(int[] arg0, int[] arg1, int arg2) {
-		}
-		@Override
-		public void drawPolyline(int[] arg0, int[] arg1, int arg2) {
-		}
-		@Override
-		public void drawRoundRect(int arg0, int arg1, int arg2, int arg3, int arg4, int arg5) {
-		}
-		@Override
-		public void drawString(String arg0, int arg1, int arg2) {
-		}
-		@Override
-		public void drawString(AttributedCharacterIterator arg0, int arg1, int arg2) {
-		}
-		@Override
-		public void fillArc(int arg0, int arg1, int arg2, int arg3, int arg4, int arg5) {
-		}
-		@Override
-		public void fillOval(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void fillPolygon(int[] arg0, int[] arg1, int arg2) {
-		}
-		@Override
-		public void fillRect(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void fillRoundRect(int arg0, int arg1, int arg2, int arg3, int arg4, int arg5) {
-		}
-		@Override
-		public Shape getClip() {
-			return null;
-		}
-		@Override
-		public Rectangle getClipBounds() {
-			return null;
-		}
-		@Override
-		public Color getColor() {
-			return null;
-		}
-		@Override
-		public Font getFont() {
-			return null;
-		}
-		@Override
-		public FontMetrics getFontMetrics(Font arg0) {
-			return null;
-		}
-		@Override
-		public void setClip(Shape arg0) {
-		}
-		@Override
-		public void setClip(int arg0, int arg1, int arg2, int arg3) {
-		}
-		@Override
-		public void setColor(Color arg0) {
-		}
-		@Override
-		public void setFont(Font arg0) {
-		}
-		@Override
-		public void setPaintMode() {
-		}
-		@Override
-		public void setXORMode(Color arg0) {
-		}
-		@Override
-		public void translate(int arg0, int arg1) {
 		}
 	}
 	/**
@@ -350,8 +228,72 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	 * @return
 	 */
 	@SuppressWarnings("serial")
-	public static int stringWidth(Composite composite, final String str)	{
-		MyGraphics g = new MyGraphics();
+	public static double stringWidth(Composite composite, final String str)	{
+		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
+		FontData[] fontData = currentFont.getFontData();
+		String fontName  = fontData[0].getName();
+		int    fontStyle = fontData[0].getStyle();
+		int    fontSize  = fontData[0].getHeight();
+		Font font = new Font(fontName, fontStyle, fontSize);
+//		FontRenderContext frc;
+//		font.getStringBounds(str, frc);
+		JPanel jPanel = new JPanel();
+		jPanel.setFont(font);
+		int tmp = jPanel.getFontMetrics(font).stringWidth(str);
+		
+		int horDpi = composite.getDisplay().getDPI().x;
+		int maxWidth = SwingUtilities.computeStringWidth ( jPanel.getFontMetrics(font), str ); 
+		tmp = tmp * horDpi / 72;
+		System.out.println("composite.getDisplay().getDPI(): " + composite.getDisplay().getDPI());
+		return tmp;
+/*		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
+		FontData[] fontData = currentFont.getFontData();
+		String fontName  = fontData[0].getName();
+		int    fontStyle = fontData[0].getStyle();
+		int    fontSize  = fontData[0].getHeight();
+		Font font = new Font(fontName, fontStyle, fontSize);
+*/
+//		Font font = new Font("Verdana", 0, 8);
+//		JPanel jPanel = new JPanel();
+//		jPanel.setFont(font);
+//		Container cnt = new Container();
+//		Frame frame = new Frame();
+//		System.out.println("composite.getDisplay().getDPI(): " + composite.getDisplay().getDPI());
+//		Graphics g = jPanel.getGraphics();
+//		Graphics2D gfx = (Graphics2D)g;
+//		gfx.setFont(font);
+//		
+//		FontMetrics fm = gfx.getFontMetrics();
+//		Rectangle2D rect = fm.getStringBounds(str, gfx);
+/*		rect.setRect(rect.getX() + 100, rect.getY() + 50, rect.getWidth(), rect.getHeight());
+		gfx.draw(rect);
+		
+		gfx.setPaint(Color.BLACK);
+		
+		Point2D loc = new Point2D.Float(100, 50);
+		FontRenderContext frc = gfx.getFontRenderContext();
+		TextLayout layout = new TextLayout(text, font, frc);
+		layout.draw(gfx, (float)loc.getX(), (float)loc.getY());
+		
+		Rectangle2D bounds = layout.getBounds();
+		bounds.setRect(bounds.getX()+loc.getX(), bounds.getY()+loc.getY(),
+			bounds.getWidth(), bounds.getHeight());
+		gfx.draw(bounds);
+		return rect.getBounds().width;
+*/
+/*		String fontName  = "Verdana";
+		int    fontStyle = 0;
+		int    fontSize  = 8;
+		Font font = new Font(fontName, fontStyle, fontSize);
+		//= composite.getFont();
+        FontMetrics metrics = new FontMetrics(font) {};
+        int width = metrics.stringWidth(str);
+        //getFontMetrics( font );
+		//int width = metrics.stringWidth( theString );
+		//return width;
+		return width;
+*/
+/*		MyGraphics g = new MyGraphics();
 		Graphics2D gfx = (Graphics2D)g;
 		
 		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
@@ -364,18 +306,19 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		FontMetrics fm = gfx.getFontMetrics();
 		Rectangle2D rect = fm.getStringBounds(str, gfx);
         return (int) rect.getWidth();
-//		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
-//		FontData[] fontData = currentFont.getFontData();
-//		String fontName  = fontData[0].getName();
-//		int    fontStyle = fontData[0].getStyle();
-//		int    fontSize  = fontData[0].getHeight();
-//		System.out.println("fontName: " + fontName);
-//		System.out.println("fontSize: " + fontSize);
-//		Font font = new Font(fontName, fontStyle, fontSize);
-//        FontMetrics metrics = new FontMetrics(font) {};
-//        Rectangle2D bounds = metrics.getStringBounds(str, null);
-//        return (int) bounds.getWidth();
-	}
+*/
+/*		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
+		FontData[] fontData = currentFont.getFontData();
+		String fontName  = fontData[0].getName();
+		int    fontStyle = fontData[0].getStyle();
+		int    fontSize  = fontData[0].getHeight();
+		System.out.println("fontName: " + fontName);
+		System.out.println("fontSize: " + fontSize);
+		Font font = new Font(fontName, fontStyle, fontSize);
+        FontMetrics metrics = new FontMetrics(font) {};
+        Rectangle2D bounds = metrics.getStringBounds(str, null);
+        return (int) bounds.getWidth();
+*/	}
 	class LandPopupSelectionListener implements SelectionListener	{
 		public void widgetDefaultSelected(SelectionEvent e) {
 		}
@@ -674,6 +617,8 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
+				System.out.println("stringWidth: " + stringWidth(ortMCCombo, "aaaaaaaaaaaaaaaaa"));
+				
 				// ENVIRONS, PROPERTIES
 				if (1==0) {
 				System.out.println(System.getenv());
