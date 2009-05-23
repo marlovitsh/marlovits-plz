@@ -584,6 +584,7 @@ public class MCCombo extends Composite {
 				Event e = new Event();
 				e.time = event.time;
 				notifyListeners(SWT.FocusIn, e);
+				System.out.println("listEvent FocusIn");
 				break;
 			}
 			case SWT.FocusOut: {
@@ -598,6 +599,7 @@ public class MCCombo extends Composite {
 						notifyListeners(SWT.FocusOut, e);
 					}
 				});
+				System.out.println("listEvent FocusOut");
 				break;
 			}
 			case SWT.MouseUp: {
@@ -981,6 +983,8 @@ public class MCCombo extends Composite {
 				Event e = new Event();
 				e.time = event.time;
 				notifyListeners(SWT.FocusIn, e);
+				//dropDown(true);
+				System.out.println("textEvent FocusIn");
 				break;
 			}
 			case SWT.FocusOut: {
@@ -995,6 +999,8 @@ public class MCCombo extends Composite {
 						notifyListeners(SWT.FocusOut, e);
 					}
 				});
+				System.out.println("textEvent FocusOut");
+				//dropDown(false);
 				break;
 			}
 			case SWT.KeyDown: {
@@ -1173,10 +1179,7 @@ public class MCCombo extends Composite {
 				e.stateMask = event.stateMask;
 				char ch = event.character;
 				notifyListeners(SWT.KeyUp, e);
-				
-				System.out.println("textEvent.KeyUp: callDataProvider()");
 				callDataProvider();
-				
 				break;
 			}
 			case SWT.Modify: {
@@ -1187,8 +1190,6 @@ public class MCCombo extends Composite {
 				e.time = event.time;
 				notifyListeners(SWT.Modify, e);
 				//System.out.println("textEvent.Modify");
-				
-				System.out.println("textEvent.Modify: callDataProvider()");
 				callDataProvider();
 				
 				break;

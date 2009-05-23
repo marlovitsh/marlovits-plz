@@ -1,39 +1,20 @@
 package ch.marlovits.plz;
 
-import java.awt.Color;
-import java.awt.Container;
 import java.awt.Font;
 import java.awt.FontMetrics;
-import java.awt.Frame;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import java.awt.Window;
-import java.awt.font.FontRenderContext;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.ImageObserver;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.AttributedCharacterIterator;
-
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
@@ -41,8 +22,6 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
-import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -60,6 +39,8 @@ import ch.rgw.tools.JdbcLink.Stm;
 
 public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	public  static final String ID = "ch.marlovits.plz.PLZView";
+	// noch keine gute Methode gefunden, um die Breite des Menu-Innenteils festzustellen...
+	public  static final int    scrollBarWidth = 25;
 	
 	// die Felder auf der ViewPart
 	private Composite		top;
@@ -152,16 +133,6 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		Object[] ortReturnFields = {ortMCCombo, null, plzMCCombo, landIso2Field};
 		ortMCCombo.setReturnFields(ortReturnFields);
 		
-		// *** Testing again
-		CCombo anotherOne = new CCombo(top, SWT.BORDER);
-		anotherOne.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		String[] strList = {"Item1", "Item2", "Item3"};
-		anotherOne.setItems(strList);
-		
-		Combo combo = new Combo(top, SWT.BORDER);
-		combo.setItems(strList);
-		combo.setItem(2, "");
-		
 		// Erstellen der Actions für die Menus, etc
 		makeActions();
 		
@@ -172,176 +143,89 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		// *** alle Listener, etc. intallieren
 		cbLandCombo.addModifyListener(landModifyListener);
 		plzMCCombo.installDataProvider(new PlzMCComboDataProvider());
-		ortMCCombo.installDataProvider(new OrtMCComboDataProvider());
-		
-		// *** Testing real popupmenu
-		popupping = new Text(top, SWT.BORDER);
-		menuTester = new Menu(top);
-		String[] itemsArray = {"Kuhland", "GehBittschönLand", "Teutonia"};
-		for (int ij = 0; ij < itemsArray.length; ij++)	{
-			MenuItem menuItem = new MenuItem(menuTester, 0);
-			menuItem.setText(itemsArray[ij]);
-			menuItem.addSelectionListener(new LandPopupSelectionListener());
-		}
-		MenuItem menuItem = new MenuItem(menuTester, 0);
-		menuItem.setText("-");
-		for (int ij = 0; ij < itemsArray.length; ij++)	{
-			menuItem = new MenuItem(menuTester, 0);
-			menuItem.setText(itemsArray[ij]);
-			menuItem.addSelectionListener(new LandPopupSelectionListener());
-		}
-		
-		menuTester.setVisible(true);
-		Point pt = new Point(popupping.getBounds().x, popupping.getBounds().y);
-		pt = popupping.toDisplay(pt);
-		menuTester.setLocation(pt.x, pt.y);
-		popupping.setMenu(menuTester);
-		menuTester.setVisible(true);
-		popupping.addModifyListener(new PopupModifyListener());
-		popupping.addMouseListener(new PopupMouseListener());
+		ortMCCombo.installDataProvider(new OrtMCComboDataProvider());		
 		cbLandCombo.addControlListener(new landComboControlListener());
 	}
 	
+	/**
+	 * Berechnet die Länge der Divider neu und setzt die neuen Dividers
+	 * @author Harry
+	 *
+	 */
 	class landComboControlListener implements ControlListener	{
 		public void controlMoved(ControlEvent e) {
 		}
 		public void controlResized(ControlEvent e) {
-			double oneCharWidth = stringWidth(cbLandCombo, "-");
-			System.out.println("oneCharWidth: " + oneCharWidth);
+			String fillString = null;
 			for (int i = 0; i < cbLandCombo.getItemCount(); i++){
-				//System.out.println("item: " + cbLandCombo.getItem(i));
-				if (cbLandCombo.getItem(i).substring(1, 3).equals("––––".substring(1, 3)))	{
-					System.out.println("cbLandCombo.getBounds().width: " + cbLandCombo.getBounds().width);
-					int numOfChars = (int) ((cbLandCombo.getBounds().width - 30) / oneCharWidth);
-					String fillString = StringTool.filler("-", numOfChars);
-					System.out.println("fullLengthWidth: " + stringWidth(cbLandCombo, fillString));
+				System.out.println("item: " + cbLandCombo.getItem(i));
+				if (cbLandCombo.getItem(i).equals("-"))	{
+					if (fillString == null)	{
+						fillString = getMaxLengthString(cbLandCombo, cbLandCombo.getBounds().width - scrollBarWidth, "-");
+					}
 					cbLandCombo.setItem(i, fillString);
 				}
 			}
 		}
 	}
 	/**
+	 * Gibt den String zurück der maxLength maximal ausfüllt mit chr
+	 * @param composite für dieses Composite Font/Style/Size/Graphics
+	 * @param maxLength maximal erlaubte Länge in Pixeln
+	 * @param chr der String wird mit diesem Buchstaben gefüllt
+	 * @return den ermittelten String
+	 */
+	public static String getMaxLengthString(Composite composite, final int maxLength, final String chr)	{
+		double oneCharWidth = stringWidth(composite, chr);
+		int numOfChars = (int) (maxLength / oneCharWidth);
+		String fillString = StringTool.filler(chr, numOfChars);
+		double currStringWidth = stringWidth(composite, fillString);
+		if (currStringWidth == maxLength)	{
+			return fillString;
+		}
+		if (currStringWidth < maxLength)	{
+			while (currStringWidth < maxLength)	{
+				String newFillString = fillString + chr;
+				double newStringWidth = stringWidth(composite, newFillString);
+				if (newStringWidth > maxLength){
+					return fillString;
+				} else {
+					fillString = newFillString;
+				}
+				currStringWidth = newStringWidth;
+			}
+		} else {
+			while (currStringWidth > maxLength)	{
+				String newFillString = fillString.substring(1, fillString.length() - chr.length());
+				double newStringWidth = stringWidth(composite, newFillString);
+				if (newStringWidth < maxLength){
+					return fillString;
+				} else {
+					fillString = newFillString;
+				}
+				currStringWidth = newStringWidth;
+			}
+		}
+		return fillString;
+	}
+	/**
 	 * Länge eines Strings in Pixeln ermitteln. Es wird der Zeichensatz benutzt, der im Feld
-	 * composite verwendet wird.
+	 * composite verwendet wird. 
+	 * Etwas umständlich, da das Resultat von getStringBounds() "falsch" rauskommt
 	 * @param composite: Berechnung für dieses Feld
 	 * @param str: die Länge dieses Strings wird berechnet
 	 * @return
 	 */
 	@SuppressWarnings("serial")
 	public static double stringWidth(Composite composite, final String str)	{
-		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
-		FontData[] fontData = currentFont.getFontData();
-		String fontName  = fontData[0].getName();
-		int    fontStyle = fontData[0].getStyle();
-		int    fontSize  = fontData[0].getHeight();
-		Font font = new Font(fontName, fontStyle, fontSize);
-//		FontRenderContext frc;
-//		font.getStringBounds(str, frc);
-		JPanel jPanel = new JPanel();
-		jPanel.setFont(font);
-		int tmp = jPanel.getFontMetrics(font).stringWidth(str);
-		
-		int horDpi = composite.getDisplay().getDPI().x;
-		int maxWidth = SwingUtilities.computeStringWidth ( jPanel.getFontMetrics(font), str ); 
-		tmp = tmp * horDpi / 72;
-		System.out.println("composite.getDisplay().getDPI(): " + composite.getDisplay().getDPI());
-		return tmp;
-/*		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
-		FontData[] fontData = currentFont.getFontData();
-		String fontName  = fontData[0].getName();
-		int    fontStyle = fontData[0].getStyle();
-		int    fontSize  = fontData[0].getHeight();
-		Font font = new Font(fontName, fontStyle, fontSize);
-*/
-//		Font font = new Font("Verdana", 0, 8);
-//		JPanel jPanel = new JPanel();
-//		jPanel.setFont(font);
-//		Container cnt = new Container();
-//		Frame frame = new Frame();
-//		System.out.println("composite.getDisplay().getDPI(): " + composite.getDisplay().getDPI());
-//		Graphics g = jPanel.getGraphics();
-//		Graphics2D gfx = (Graphics2D)g;
-//		gfx.setFont(font);
-//		
-//		FontMetrics fm = gfx.getFontMetrics();
-//		Rectangle2D rect = fm.getStringBounds(str, gfx);
-/*		rect.setRect(rect.getX() + 100, rect.getY() + 50, rect.getWidth(), rect.getHeight());
-		gfx.draw(rect);
-		
-		gfx.setPaint(Color.BLACK);
-		
-		Point2D loc = new Point2D.Float(100, 50);
-		FontRenderContext frc = gfx.getFontRenderContext();
-		TextLayout layout = new TextLayout(text, font, frc);
-		layout.draw(gfx, (float)loc.getX(), (float)loc.getY());
-		
-		Rectangle2D bounds = layout.getBounds();
-		bounds.setRect(bounds.getX()+loc.getX(), bounds.getY()+loc.getY(),
-			bounds.getWidth(), bounds.getHeight());
-		gfx.draw(bounds);
-		return rect.getBounds().width;
-*/
-/*		String fontName  = "Verdana";
-		int    fontStyle = 0;
-		int    fontSize  = 8;
-		Font font = new Font(fontName, fontStyle, fontSize);
-		//= composite.getFont();
-        FontMetrics metrics = new FontMetrics(font) {};
-        int width = metrics.stringWidth(str);
-        //getFontMetrics( font );
-		//int width = metrics.stringWidth( theString );
-		//return width;
-		return width;
-*/
-/*		MyGraphics g = new MyGraphics();
-		Graphics2D gfx = (Graphics2D)g;
-		
-		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
-		FontData[] fontData = currentFont.getFontData();
-		String fontName  = fontData[0].getName();
-		int    fontStyle = fontData[0].getStyle();
-		int    fontSize  = fontData[0].getHeight();
-		Font font = new Font(fontName, fontStyle, fontSize);
-		gfx.setFont(font);
-		FontMetrics fm = gfx.getFontMetrics();
-		Rectangle2D rect = fm.getStringBounds(str, gfx);
-        return (int) rect.getWidth();
-*/
-/*		org.eclipse.swt.graphics.Font currentFont = composite.getFont();
-		FontData[] fontData = currentFont.getFontData();
-		String fontName  = fontData[0].getName();
-		int    fontStyle = fontData[0].getStyle();
-		int    fontSize  = fontData[0].getHeight();
-		System.out.println("fontName: " + fontName);
-		System.out.println("fontSize: " + fontSize);
-		Font font = new Font(fontName, fontStyle, fontSize);
-        FontMetrics metrics = new FontMetrics(font) {};
-        Rectangle2D bounds = metrics.getStringBounds(str, null);
-        return (int) bounds.getWidth();
-*/	}
-	class LandPopupSelectionListener implements SelectionListener	{
-		public void widgetDefaultSelected(SelectionEvent e) {
-		}
-		public void widgetSelected(SelectionEvent e) {
-			//System.out.println(e.widget.);
-			MenuItem menuItem = (MenuItem)e.item;
-			System.out.println(menuItem.getText());
-			popupping.setText(e.text);
-		}
+		FontData[] fontData = composite.getFont().getFontData();
+        FontMetrics metrics = new FontMetrics(new Font(fontData[0].getName(), fontData[0].getStyle(), fontData[0].getHeight())) {};
+        double width = metrics.getStringBounds(str, null).getWidth();
+        // muss offensichtlich um Auflösung korrgiert werden - hoffe, das funktioniert auf allen OSes gleich
+        int horDpi = composite.getDisplay().getDPI().x;
+        width = width * horDpi / 72;
+        return width;
 	}
-	class PopupMouseListener implements MouseListener	{
-		public void mouseDoubleClick(MouseEvent e) {
-		}
-		public void mouseDown(MouseEvent e) {
-			Point pt = new Point(popupping.getBounds().x, popupping.getBounds().y);			
-			pt = top.toDisplay(pt);
-			menuTester.setLocation(pt.x, pt.y + popupping.getBounds().height);
-			menuTester.setVisible(!menuTester.getVisible());
-		}
-		public void mouseUp(MouseEvent e) {
-		}
-	}
-	
 	/**
 	 * Die Einträge ermitteln, die in der Plz-Liste angezeigt werden sollen. 
 	 * Diese Routine wird aufgerufen, wenn der Text im Textfeld geändert wurde.
@@ -499,12 +383,27 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	}
 	
 	class LandModifyListener implements ModifyListener	{
+		int oldSelectedItem = 0;
 		public void modifyText(ModifyEvent arg0) {
 			int selected = cbLandCombo.getSelectionIndex();
 			if (selected != -1)	{
 				// setzen des isoStrings
 				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
-				landIso2Field.setText(returnStrings[selected]);
+				String tmpStr = returnStrings[selected];
+				if (StringTool.isNothing(tmpStr))	{
+					landIso2Field.setText("");
+					oldSelectedItem = selected;
+				} else	{
+					if (tmpStr.substring(0, 1).equals("-"))	{
+						cbLandCombo.setText(cbLandCombo.getItem(oldSelectedItem));
+						tmpStr = returnStrings[oldSelectedItem];
+						if (StringTool.isNothing(tmpStr)) tmpStr = "";
+						landIso2Field.setText(tmpStr);
+					} else {
+						landIso2Field.setText(tmpStr);
+						oldSelectedItem = selected;
+					}
+				}
 			}
 			String landIso2 = landIso2Field.getText();
 			// plz
@@ -520,6 +419,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 			plzMCCombo.setShowFields(plzShowField);
 			plzMCCombo.setSortFields(plzShowField);
 			plzMCCombo.setReturnFields(plzReturnFields);
+			plzMCCombo.redraw();
 			// ort
 			String[] ortShowField = null;
 			Object[] ortReturnFields = null;
@@ -533,32 +433,9 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 			ortMCCombo.setShowFields(ortShowField);
 			ortMCCombo.setSortFields(ortShowField);
 			ortMCCombo.setReturnFields(ortReturnFields);
+			ortMCCombo.redraw();
 		}
-	}
-	class PopupModifyListener implements ModifyListener	{
-		public void modifyText(ModifyEvent arg0) {
-			int selected = cbLandCombo.getSelectionIndex();
-			if (selected != -1)	{
-				// setzen des isoStrings
-				String[] returnStrings = (String[]) cbLandCombo.getData("LandIso2");
-				landIso2Field.setText(returnStrings[selected]);
-			}
-			String landIso2 = landIso2Field.getText();
-			String[] plzShowField = null;
-			Object[] plzReturnFields = null;
-			if (StringTool.isNothing(landIso2))	{
-				plzShowField = new String[] {"plz", "ort27", "kanton", "land"};
-				plzReturnFields = new Object[] {plzMCCombo, ortMCCombo, null, landIso2Field};
-			} else {
-				plzShowField = new String[] {"plz", "ort27", "kanton"};
-				plzReturnFields = new Object[] {plzMCCombo, ortMCCombo, null};
-			}
-			plzMCCombo.setShowFields(plzShowField);
-			plzMCCombo.setSortFields(plzShowField);
-			plzMCCombo.setReturnFields(plzReturnFields);
-		}
-	}
-	
+	}	
 	/**
 	 * WorkbenchPart Methods
 	 */	
@@ -617,7 +494,12 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				System.out.println("stringWidth: " + stringWidth(ortMCCombo, "aaaaaaaaaaaaaaaaa"));
+				int dayDiff;
+				GregorianCalendar gc1 = new GregorianCalendar( 2002, Calendar.OCTOBER, 6);
+				GregorianCalendar gc2 = new GregorianCalendar( 2009, Calendar.MAY, 23);
+
+				dayDiff = (int)((gc1.getTimeInMillis() - gc2.getTimeInMillis()) / (24*60*60*1000));
+				System.out.println("dayDiff: " + dayDiff);
 				
 				// ENVIRONS, PROPERTIES
 				if (1==0) {
@@ -680,6 +562,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	}	
 	/**
 	 * nur Länder mit allen 3 Isos dürfen auswählbar sein: iso2, iso3 isonum! Muss schnell sein, deshalb
+	 * direkt Zugriff mittels sql auf die Datenbank.
 	 * @param fieldName dieses DB-Feld wird ausgelesen
 	 * @param orderBy   sortieren nach diesen Feldern, comma-delimited
 	 * @param locale
@@ -691,11 +574,11 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		
 		// Bedingung für isos erstellen
 		String isoQuery = "";
-		isoQuery = isoQuery + "and iso2   is not null ";
-		isoQuery = isoQuery + "and iso3   is not null ";
-		isoQuery = isoQuery + "and isonum is not null ";
-		isoQuery = isoQuery + "and iso2   != " + JdbcLink.wrap("") + " ";
-		isoQuery = isoQuery + "and iso3   != " + JdbcLink.wrap("") + " ";
+//		isoQuery = isoQuery + "and iso2   is not null ";
+//		isoQuery = isoQuery + "and iso3   is not null ";
+//		isoQuery = isoQuery + "and isonum is not null ";
+//		isoQuery = isoQuery + "and iso2   != " + JdbcLink.wrap("") + " ";
+//		isoQuery = isoQuery + "and iso3   != " + JdbcLink.wrap("") + " ";
 		
 		// Anzahl Länder-Datensätze ermitteln
     	int numOfRows = 0;
