@@ -136,7 +136,7 @@ public class MCCombo extends Composite {
 		// die Shell erstellen, in welcher die Liste/Tabelle erstellt wird **********
 		popup = new Shell(getShell(), SWT.NO_TRIM);
 		
-		int listStyle = SWT.SINGLE | SWT.V_SCROLL;
+		int listStyle = SWT.SINGLE | SWT.V_SCROLL | SWT.FULL_SELECTION;
 		
 		if ((style & SWT.FLAT) != 0) listStyle |= SWT.FLAT;
 		if ((style & SWT.RIGHT_TO_LEFT) != 0) listStyle |= SWT.RIGHT_TO_LEFT;
@@ -865,6 +865,7 @@ public class MCCombo extends Composite {
 	public void setItems(String[][] items) {
 	//	setDataProviderCaller();
 		checkWidget();
+		
 		if (items == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
 		int style = getStyle();
 		
@@ -916,6 +917,7 @@ public class MCCombo extends Composite {
 		
 		// no unnecessary redraw
 		//oldText = text.getText();
+		table.getItem(0).setGrayed(true);
 	}
 	public void setSelection(Point selection) {
 		checkWidget();
