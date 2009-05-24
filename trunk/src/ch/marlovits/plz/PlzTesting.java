@@ -11,17 +11,16 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.graphics.FontData;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -40,7 +39,7 @@ import ch.rgw.tools.JdbcLink.Stm;
 public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	public  static final String ID = "ch.marlovits.plz.PLZView";
 	// noch keine gute Methode gefunden, um die Breite des Menu-Innenteils festzustellen...
-	public  static final int    scrollBarWidth = 25;
+	public  static final int    scrollBarWidth = 5;
 	
 	// die Felder auf der ViewPart
 	private Composite		top;
@@ -51,8 +50,6 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	private ModifyListener	landModifyListener;
 	private MCCombo			ortMCCombo;
 	private MCCombo			plzMCCombo;
-	private Text			popupping;
-	private Menu			menuTester;
 	
 	// Actions für ViewMenu, etc
 	private Action			testingAction;
@@ -145,6 +142,10 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		plzMCCombo.installDataProvider(new PlzMCComboDataProvider());
 		ortMCCombo.installDataProvider(new OrtMCComboDataProvider());		
 		cbLandCombo.addControlListener(new landComboControlListener());
+		
+		CCombo myCCombo = new CCombo(top, SWT.BORDER);
+		String[] itemss = {"item1", "item2", "item3", "item4", "item5"};
+		myCCombo.setItems(itemss);
 	}
 	
 	/**
