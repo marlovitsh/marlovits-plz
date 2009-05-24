@@ -118,6 +118,10 @@ public MCCombo2 (Composite parent, int style) {
 				listEvent (event);
 				return;
 			}
+			if (list2 == event.widget) {
+				listEvent (event);
+				return;
+			}
 			if (arrow == event.widget) {
 				arrowEvent (event);
 				return;
@@ -480,6 +484,7 @@ void createPopup(String[] items, int selectionIndex) {
 	for (int i=0; i<popupEvents.length; i++) popup.addListener (popupEvents [i], listener);
 	int [] listEvents = {SWT.MouseUp, SWT.MouseDown, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.Dispose, SWT.MouseHover, SWT.MouseMove};
 	for (int i=0; i<listEvents.length; i++) list.addListener (listEvents [i], listener);
+	for (int i=0; i<listEvents.length; i++) list2.addListener (listEvents [i], listener);
 	
 	// +++++
 	if (items != null) list.setItems (items);
