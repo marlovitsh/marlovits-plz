@@ -161,22 +161,22 @@ public class MCCombo extends Composite {
 		Listener listener = new Listener() {
 			public void handleEvent(Event event) {
 				if (popup == event.widget) {
-					//System.out.println("event.widget == popup, calling popupEvent(event)");
+					System.out.println("event.widget == popup, calling popupEvent(event)");
 					popupEvent(event);
 					return;
 				}
 				if (text == event.widget) {
-					//System.out.println("event.widget == text");
+					System.out.println("event.widget == text");
 					textEvent(event);
 					return;
 				}
 				if (table == event.widget) {
-					//System.out.println("event.widget == list, calling listEvent(event)");
+					System.out.println("event.widget == list, calling listEvent(event)");
 					listEvent(event);
 					return;
 				}
 				if (MCCombo.this == event.widget) {
-					//System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
+					System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
 					comboEvent(event);
 					return;
 				}
@@ -662,7 +662,7 @@ public class MCCombo extends Composite {
 				//System.out.println("listEvent: SWT.KeyUp");
 				int index = table.getSelectionIndex();
 				if (index == -1) return;
-				text.setText(table.getItem(index).getText(0));
+				////////////text.setText(table.getItem(index).getText(0));
 				Event e = new Event();
 				e.time      = event.time;
 				e.character = event.character;
