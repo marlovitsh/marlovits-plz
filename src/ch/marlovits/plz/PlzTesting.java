@@ -10,6 +10,7 @@ import java.util.GregorianCalendar;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ControlEvent;
@@ -17,10 +18,14 @@ import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.graphics.FontData;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -38,8 +43,9 @@ import ch.rgw.tools.JdbcLink.Stm;
 
 public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	public  static final String ID = "ch.marlovits.plz.PLZView";
+	
 	// noch keine gute Methode gefunden, um die Breite des Menu-Innenteils festzustellen...
-	public  static final int    scrollBarWidth = 5;
+	public  int				scrollBarWidth;
 	
 	// die Felder auf der ViewPart
 	private Composite		top;
@@ -60,6 +66,12 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	// constructor
 	public PlzTesting() {
 		super();
+		// wenn jemand eine Methode weiss, wie man den Innenbereich des Menus erhält...
+		if (System.getProperties().getProperty("os.name").equals("Windows XP")){ 
+			scrollBarWidth = 25;
+		} else	{
+			scrollBarWidth = 5;
+		}
 		landModifyListener  = new LandModifyListener();
 	}
 	
@@ -146,6 +158,10 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		CCombo myCCombo = new CCombo(top, SWT.BORDER);
 		String[] itemss = {"item1", "item2", "item3", "item4", "item5"};
 		myCCombo.setItems(itemss);
+		
+		// Another possibility
+		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER);
+		mCCombo2.setItems(itemss);
 	}
 	
 	/**
