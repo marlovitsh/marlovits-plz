@@ -10,7 +10,6 @@ import java.util.GregorianCalendar;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
-import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ControlEvent;
@@ -18,14 +17,10 @@ import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.graphics.FontData;
-import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -156,7 +151,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		cbLandCombo.addControlListener(new landComboControlListener());
 		
 		CCombo myCCombo = new CCombo(top, SWT.BORDER);
-		String[] itemss = {"item1", "item2", "item3", "item4", "item5"};
+		String[] itemss = {"item1", "item2", "item3", "item4", "item5", "item6", "item7", "item8", "item9", "item10"};
 		myCCombo.setItems(itemss);
 		
 		// Another possibility

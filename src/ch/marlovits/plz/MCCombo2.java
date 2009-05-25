@@ -22,11 +22,38 @@
 package ch.marlovits.plz;
 
 
-import org.eclipse.swt.*;
-import org.eclipse.swt.graphics.*;
-import org.eclipse.swt.events.*;
-import org.eclipse.swt.widgets.*;
-import org.eclipse.swt.accessibility.*;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
+import org.eclipse.swt.accessibility.ACC;
+import org.eclipse.swt.accessibility.AccessibleAdapter;
+import org.eclipse.swt.accessibility.AccessibleControlAdapter;
+import org.eclipse.swt.accessibility.AccessibleControlEvent;
+import org.eclipse.swt.accessibility.AccessibleEvent;
+import org.eclipse.swt.accessibility.AccessibleTextAdapter;
+import org.eclipse.swt.accessibility.AccessibleTextEvent;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.events.VerifyListener;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Layout;
+import org.eclipse.swt.widgets.List;
+import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Text;
+import org.eclipse.swt.widgets.TypedListener;
+import org.eclipse.swt.widgets.Widget;
 
 /**
  * The CCombo class represents a selectable user interface object
@@ -359,7 +386,7 @@ public void clearSelection () {
 	list2.deselectAll ();
 }
 void comboEvent (Event event) {
-	System.out.println("comboEvent");
+	//System.out.println("comboEvent");
 	switch (event.type) {
 		case SWT.Dispose:
 			if (popup != null && !popup.isDisposed ()) {
@@ -463,9 +490,12 @@ public void copy () {
 }
 void createPopup(String[] items, int selectionIndex) {		
 	// create shell and list
-	popup = new Shell (getShell (), SWT.NO_TRIM | SWT.ON_TOP);
+	// +++++ added V_SCROLL flag
+	popup = new Shell (getShell (), SWT.NO_TRIM | SWT.ON_TOP | SWT.V_SCROLL);
+	// +++++ added scrollbar listener
+	popup.getVerticalBar().addSelectionListener(new PopUpScrollBarSelectionListener());
 	int style = getStyle ();
-	int listStyle = SWT.SINGLE | SWT.V_SCROLL;
+	int listStyle = SWT.SINGLE;
 	if ((style & SWT.FLAT) != 0) listStyle |= SWT.FLAT;
 	if ((style & SWT.RIGHT_TO_LEFT) != 0) listStyle |= SWT.RIGHT_TO_LEFT;
 	if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
@@ -482,7 +512,7 @@ void createPopup(String[] items, int selectionIndex) {
 	
 	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate};
 	for (int i=0; i<popupEvents.length; i++) popup.addListener (popupEvents [i], listener);
-	int [] listEvents = {SWT.MouseUp, SWT.MouseDown, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.Dispose, SWT.MouseHover, SWT.MouseMove};
+	int [] listEvents = {SWT.SCROLL_LINE, SWT.MouseUp, SWT.MouseDown, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.Dispose, SWT.MouseHover, SWT.MouseMove};
 	for (int i=0; i<listEvents.length; i++) list.addListener (listEvents [i], listener);
 	for (int i=0; i<listEvents.length; i++) list2.addListener (listEvents [i], listener);
 	
@@ -506,6 +536,58 @@ void createPopup(String[] items, int selectionIndex) {
  * 
  * @since 3.3
  */
+class PopUpScrollBarSelectionListener implements SelectionListener	{
+	@Override
+	public void widgetDefaultSelected(SelectionEvent e) {
+		System.out.println(popup.getVerticalBar().getSelection());
+	}
+	@Override
+	public void widgetSelected(SelectionEvent e) {
+		int oldTop;
+		int currSel;
+		switch(e.detail)	{
+		case(SWT.DRAG):  // called while dragging
+			currSel = popup.getVerticalBar().getSelection() + popup.getVerticalBar().getIncrement() / 2;
+			list.setTopIndex(currSel / popup.getVerticalBar().getIncrement());
+			list2.setTopIndex(currSel / popup.getVerticalBar().getIncrement());
+			break;
+		case(SWT.NONE):  // for the end of a drag
+			currSel = popup.getVerticalBar().getSelection();
+			popup.getVerticalBar().setSelection(list.getTopIndex() * popup.getVerticalBar().getIncrement());
+			break;
+		case(SWT.HOME):
+			list.setTopIndex(0);
+			list2.setTopIndex(0);
+			//System.out.println("SWT.HOME");
+			break;
+		case(SWT.END):
+			oldTop = list.getItemCount() - 1;
+			list.setTopIndex(oldTop);
+			list2.setTopIndex(oldTop);
+			break;
+		case(SWT.ARROW_DOWN):
+			oldTop = list.getTopIndex();
+			list.setTopIndex(oldTop + 1);
+			list2.setTopIndex(oldTop + 1);
+			break;
+		case(SWT.ARROW_UP):
+			oldTop = list.getTopIndex();
+			list.setTopIndex(oldTop - 1);
+			list2.setTopIndex(oldTop - 1);
+			break;
+		case(SWT.PAGE_DOWN):
+			currSel = popup.getVerticalBar().getSelection() / popup.getVerticalBar().getIncrement();
+			list.setTopIndex(currSel);
+			list2.setTopIndex(currSel);
+			break;
+		case(SWT.PAGE_UP):
+			currSel = popup.getVerticalBar().getSelection() / popup.getVerticalBar().getIncrement();
+			list.setTopIndex(currSel);
+			list2.setTopIndex(currSel);
+			break;
+		}
+	}	
+}
 public void cut () {
 	checkWidget ();
 	text.cut ();
@@ -608,6 +690,16 @@ void dropDown (boolean drop) {
 	if (y + height > displayRect.y + displayRect.height) y = parentRect.y - height;
 	if (x + width > displayRect.x + displayRect.width) x = displayRect.x + displayRect.width - listRect.width;
 	popup.setBounds (x, y, width, height);
+	// +++++ setting scrollbar params
+	int numOfItems = list.getItemCount();
+	int shownItems = list.getBounds().height / list.getItemHeight();
+	int scrollSteps = numOfItems - shownItems + 1;
+	popup.getVerticalBar().setMaximum(scrollSteps * 10);
+	popup.getVerticalBar().setMinimum(0);
+	popup.getVerticalBar().setIncrement(10);
+	popup.getVerticalBar().setPageIncrement((shownItems - 1) * 10);
+	popup.getVerticalBar().setSelection(0);
+	// make visible
 	popup.setVisible (true);
 	if (isFocusControl()) list.setFocus ();
 }
@@ -1066,10 +1158,12 @@ void listEvent (Event event) {
 			//System.out.println("SWT.MouseMove");
 			int itemHeight = list.getItemHeight();
 			int itemSel = event.y / itemHeight;
-			System.out.println(itemSel);
+			//System.out.println(itemSel);
 			//System.out.println("" + event.x + "/" + event.y);
-			list.setSelection(itemSel);
-			list2.setSelection(itemSel);
+			int currTopIx = list.getTopIndex();
+			list.setSelection(currTopIx + itemSel);
+			list2.setSelection(currTopIx + itemSel);
+			//list2.setTopIndex(list.getTopIndex());
 			break;
 		case SWT.MouseHover:
 			System.out.println("SWT.MouseHover");
@@ -1107,6 +1201,10 @@ void listEvent (Event event) {
 			e.doit = event.doit;
 			notifyListeners (SWT.Selection, e);
 			event.doit = e.doit;
+			
+			// +++++
+			popup.getVerticalBar().setSelection(list.getTopIndex() * popup.getVerticalBar().getIncrement());
+			
 			break;
 		}
 		case SWT.Traverse: {
@@ -1158,7 +1256,7 @@ void listEvent (Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
-			System.out.println("KeyDown - List");
+			//System.out.println("KeyDown - List");
 			if (event.character == SWT.ESC) { 
 				// Escape key cancels popup list
 				dropDown (false);
@@ -1438,6 +1536,8 @@ public void select (int index) {
 			list.showSelection ();
 			list2.select (index);
 			list2.showSelection ();
+			// ++++ synchronize with popup scrollbar
+			popup.getVerticalBar().setSelection(list.getTopIndex() * popup.getVerticalBar().getIncrement());
 		}
 	}
 }
