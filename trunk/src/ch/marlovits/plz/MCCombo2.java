@@ -92,6 +92,8 @@ public final class MCCombo2 extends Composite {
 	Color foreground, background;
 	Font font;
 	
+	boolean mouseIsDownInList = false;
+	
 /**
  * Constructs a new instance of this class given its parent
  * and a style value describing its behavior and appearance.
@@ -701,7 +703,8 @@ void dropDown (boolean drop) {
 	popup.getVerticalBar().setSelection(0);
 	// make visible
 	popup.setVisible (true);
-	if (isFocusControl()) list.setFocus ();
+	// +++++
+	//if (isFocusControl()) list.setFocus ();
 }
 /*
  * Return the lowercase of the first non-'&' character following
@@ -1158,12 +1161,49 @@ void listEvent (Event event) {
 			//System.out.println("SWT.MouseMove");
 			int itemHeight = list.getItemHeight();
 			int itemSel = event.y / itemHeight;
+			System.out.println("itemSel: " + itemSel);
 			//System.out.println(itemSel);
 			//System.out.println("" + event.x + "/" + event.y);
-			int currTopIx = list.getTopIndex();
-			list.setSelection(currTopIx + itemSel);
-			list2.setSelection(currTopIx + itemSel);
-			//list2.setTopIndex(list.getTopIndex());
+			// +++++ synchronize the list-line selection
+			int newSelection = list.getTopIndex() + itemSel;
+			int currSel = list.getSelectionIndex();
+			int currSel2 = list2.getSelectionIndex();
+			if ((itemSel >= 0) && (itemSel <= 4))	{
+				if (currSel != newSelection)	{
+					list.setSelection(newSelection);
+				}
+				if (currSel2 != newSelection)	{
+					list2.setSelection(newSelection);
+				}
+			}
+			if (mouseIsDownInList == true){
+				// +++++ synchronizing topItems
+				int currTopIx = ((List) (event.widget)).getTopIndex();
+				list.setTopIndex(currTopIx);
+				list2.setTopIndex(currTopIx);
+			}
+			// +++++ drawing selection rect
+			Rectangle listRect = list.getBounds();
+			int offset = itemSel * itemHeight;
+			int arrowWidth = arrow.getBounds().width;
+			GC gc = new GC (list);
+			gc.setForeground(new Color(gc.getDevice(), 255, 0, 0));
+			//gc.drawRectangle(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight - 1);
+			gc.drawFocus(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight);
+			//gc.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
+			//gc.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
+			//gc.drawLine(listRect.x - 1, listRect.y + offset - 1, listRect.x - 1, listRect.y + offset + itemHeight - 2);
+			gc.dispose ();
+			GC gc2 = new GC (list2);
+			gc2.setForeground(new Color(gc2.getDevice(), 255, 0, 0));
+			//gc2.drawRectangle(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10 - 1, itemHeight - 1);
+			gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10, itemHeight);
+			//gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth, itemHeight);
+			//gc2.setClipping(x, y, width, height)
+			//gc2.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
+			//gc2.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
+			//gc2.drawLine(listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset - 1, listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset + itemHeight - 2);
+			gc2.dispose ();
 			break;
 		case SWT.MouseHover:
 			System.out.println("SWT.MouseHover");
@@ -1185,6 +1225,7 @@ void listEvent (Event event) {
 			System.out.println("MouseUp - List");
 			if (event.button != 1) return;
 			dropDown (false);
+			mouseIsDownInList = false;
 			break;
 		}
 		case SWT.Selection: {
@@ -1253,6 +1294,7 @@ void listEvent (Event event) {
 			e.keyCode = event.keyCode;
 			notifyListeners (SWT.MouseDown, e);
 			event.doit = e.doit;
+			mouseIsDownInList = true;
 			break;
 		}
 		case SWT.KeyDown: {
