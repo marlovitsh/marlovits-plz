@@ -91,6 +91,7 @@ public final class MCCombo2 extends Composite {
 	Listener listener, filter;
 	Color foreground, background;
 	Font font;
+	int currListFocus = -1;
 	
 	boolean mouseIsDownInList = false;
 	
@@ -704,7 +705,7 @@ void dropDown (boolean drop) {
 	// make visible
 	popup.setVisible (true);
 	// +++++
-	//if (isFocusControl()) list.setFocus ();
+	if (isFocusControl()) list.setFocus ();
 }
 /*
  * Return the lowercase of the first non-'&' character following
@@ -1176,6 +1177,7 @@ void listEvent (Event event) {
 					list2.setSelection(newSelection);
 				}
 			}
+			// currListFocus
 			if (mouseIsDownInList == true){
 				// +++++ synchronizing topItems
 				int currTopIx = ((List) (event.widget)).getTopIndex();
@@ -1183,27 +1185,29 @@ void listEvent (Event event) {
 				list2.setTopIndex(currTopIx);
 			}
 			// +++++ drawing selection rect
-			Rectangle listRect = list.getBounds();
-			int offset = itemSel * itemHeight;
-			int arrowWidth = arrow.getBounds().width;
-			GC gc = new GC (list);
-			gc.setForeground(new Color(gc.getDevice(), 255, 0, 0));
-			//gc.drawRectangle(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight - 1);
-			gc.drawFocus(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight);
-			//gc.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
-			//gc.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
-			//gc.drawLine(listRect.x - 1, listRect.y + offset - 1, listRect.x - 1, listRect.y + offset + itemHeight - 2);
-			gc.dispose ();
-			GC gc2 = new GC (list2);
-			gc2.setForeground(new Color(gc2.getDevice(), 255, 0, 0));
-			//gc2.drawRectangle(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10 - 1, itemHeight - 1);
-			gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10, itemHeight);
-			//gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth, itemHeight);
-			//gc2.setClipping(x, y, width, height)
-			//gc2.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
-			//gc2.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
-			//gc2.drawLine(listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset - 1, listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset + itemHeight - 2);
-			gc2.dispose ();
+			if (currListFocus == 11111){
+				Rectangle listRect = list.getBounds();
+				int offset = itemSel * itemHeight;
+				int arrowWidth = arrow.getBounds().width;
+				GC gc = new GC (list);
+				gc.setForeground(new Color(gc.getDevice(), 255, 0, 0));
+				//gc.drawRectangle(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight - 1);
+				gc.drawFocus(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight);
+				//gc.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
+				//gc.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
+				//gc.drawLine(listRect.x - 1, listRect.y + offset - 1, listRect.x - 1, listRect.y + offset + itemHeight - 2);
+				gc.dispose ();
+				GC gc2 = new GC (list2);
+				gc2.setForeground(new Color(gc2.getDevice(), 255, 0, 0));
+				//gc2.drawRectangle(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10 - 1, itemHeight - 1);
+				gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10, itemHeight);
+				//gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth, itemHeight);
+				//gc2.setClipping(x, y, width, height)
+				//gc2.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
+				//gc2.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
+				//gc2.drawLine(listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset - 1, listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset + itemHeight - 2);
+				gc2.dispose ();
+			}
 			break;
 		case SWT.MouseHover:
 			System.out.println("SWT.MouseHover");
