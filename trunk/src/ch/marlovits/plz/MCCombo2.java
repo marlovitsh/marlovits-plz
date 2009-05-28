@@ -540,11 +540,9 @@ void createPopup(String[] items, int selectionIndex) {
  * @since 3.3
  */
 class PopUpScrollBarSelectionListener implements SelectionListener	{
-	@Override
 	public void widgetDefaultSelected(SelectionEvent e) {
 		System.out.println(popup.getVerticalBar().getSelection());
 	}
-	@Override
 	public void widgetSelected(SelectionEvent e) {
 		int oldTop;
 		int currSel;
@@ -705,7 +703,7 @@ void dropDown (boolean drop) {
 	// make visible
 	popup.setVisible (true);
 	// +++++
-	if (isFocusControl()) list.setFocus ();
+	//if (isFocusControl()) list.setFocus ();
 }
 /*
  * Return the lowercase of the first non-'&' character following

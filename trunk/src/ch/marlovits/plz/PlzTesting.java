@@ -21,6 +21,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -91,7 +93,8 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		// LandCombo
 		String[] laenderListeNamen = getLaenderListe("name", "landsorting, name", "en");
 		String[] laenderListeIsos = getLaenderListe("iso2", "landsorting, name", "en");
-		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
+		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN/* + SWT.READ_ONLY*/);
+		//cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
 		cbLandCombo.setItems(laenderListeNamen);
 		cbLandCombo.setData("LandIso2", laenderListeIsos);
 		cbLandCombo.setVisibleItemCount(20);
@@ -157,7 +160,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		// Another possibility
 		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER);
 		mCCombo2.setItems(itemss);
-	}
+		}
 	
 	/**
 	 * Berechnet die Länge der Divider neu und setzt die neuen Dividers
@@ -506,12 +509,17 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
+				System.out.println("SWT.Drag: " + SWT.DRAG);
+				System.out.println("SWT.KeyDown: " + SWT.KeyDown);
+				
+				if (1==0) {
 				int dayDiff;
 				GregorianCalendar gc1 = new GregorianCalendar( 2002, Calendar.OCTOBER, 6);
 				GregorianCalendar gc2 = new GregorianCalendar( 2009, Calendar.MAY, 23);
 
 				dayDiff = (int)((gc1.getTimeInMillis() - gc2.getTimeInMillis()) / (24*60*60*1000));
 				System.out.println("dayDiff: " + dayDiff);
+				}
 				
 				// ENVIRONS, PROPERTIES
 				if (1==0) {
