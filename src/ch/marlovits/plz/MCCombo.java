@@ -23,6 +23,7 @@
 
 package ch.marlovits.plz;
 
+import java.awt.MouseInfo;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -76,6 +77,7 @@ public class MCCombo extends Composite {
 	                                          // same number of items as in showFields, same order
 	                                          // must be fields from showFields
 	private MCComboDataProvider dataProviderClass;
+	boolean isTrackingTable = false;
 	
 	// test caller
 	public void callDataProvider()	{
@@ -171,7 +173,7 @@ public class MCCombo extends Composite {
 					return;
 				}
 				if (table == event.widget) {
-					System.out.println("event.widget == list, calling listEvent(event)");
+					//System.out.println("event.widget == list, calling listEvent(event)");
 					listEvent(event);
 					return;
 				}
@@ -180,24 +182,81 @@ public class MCCombo extends Composite {
 					comboEvent(event);
 					return;
 				}
+//				if (table.getColumn(0) == event.widget) {
+//					System.out.println("event.widget == table.getColumn(0), calling columnEvent(event)");
+//					columnEvent(event);
+//					return;
+//				}
 				System.out.println("other: event.widget == " + event.widget);
 			}
 		};
 		
-		int [] comboEvents = {SWT.Dispose, SWT.Move, SWT.Resize, SWT.DRAG, SWT.DragDetect};
+		int [] comboEvents = {SWT.Dispose, SWT.Move, SWT.Resize, SWT.DRAG, SWT.DragDetect, SWT.Traverse};
 		for (int i=0; i<comboEvents.length; i++) this.addListener(comboEvents [i], listener);
 		
-		int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate};
+		int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate, SWT.MouseMove, SWT.MouseExit};
 		for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
 		
 		int [] textEvents = {SWT.KeyDown, SWT.KeyUp, SWT.Modify, SWT.MouseDown, SWT.MouseUp, SWT.Traverse, SWT.FocusIn, SWT.FocusOut, SWT.DEL};
 		for (int i=0; i<textEvents.length; i++) text.addListener(textEvents [i], listener);
 		
-		int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut};
+		int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit};
 		for (int i=0; i<listEvents.length; i++) table.addListener(listEvents [i], listener);
+		
+//		int [] tableViewerEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit};
+//		for (int i=0; i<tableViewerEvents.length; i++) table.getColumn(0).addListener(tableViewerEvents [i], listener);
 		
 		initAccessible();
 	}
+/*
+	void columnEvent(Event event) {
+		switch(event.type) {
+			case SWT.MouseUp:
+				System.out.println("MouseUp");
+				break;
+			case SWT.Selection:
+				System.out.println("Selection");
+				break;
+			case SWT.Traverse:
+				System.out.println("KeyUp");
+				break;
+			//case SWT.KeyDown:
+			//	break;
+			case SWT.KeyUp:
+				System.out.println("KeyUp");
+				break;
+			case SWT.FocusIn:
+				System.out.println("FocusIn");
+				break;
+			case SWT.FocusOut:
+				System.out.println("FocusOut");
+				break;
+			case SWT.MouseMove:
+				System.out.println("MouseMove");
+				break;
+			case SWT.DRAG:
+				System.out.println("DRAG");
+				break;
+			case SWT.NONE:
+				System.out.println("NONE");
+				break;
+			case SWT.MouseDown:
+				System.out.println("MouseDown");
+				break;
+			case SWT.MouseHover:
+				System.out.println("MouseHover");
+				break;
+			case SWT.MouseExit:
+				System.out.println("MouseExit");
+				break;
+			default:
+				System.out.println("other");
+				//textEvent(event);
+				break;
+		}
+	}
+
+*/	
 	public Table getList()	{
 		return table;
 	}
@@ -269,6 +328,13 @@ public class MCCombo extends Composite {
 			case SWT.Resize:
 				internalLayout();
 				break;
+//			default:
+//				text.setFocus();
+//				//textEvent(event);
+//				break;
+//			case SWT.Traverse:
+//				System.out.println("comboEvent Traverse");
+//				break;
 		}
 	}
 	public Point computeSize(int wHint, int hHint, boolean changed) {
@@ -577,7 +643,37 @@ public class MCCombo extends Composite {
 	void listEvent(Event event) {
 		//System.out.println("listEvent called");
 		switch(event.type) {
-			case SWT.FocusIn: {
+//		case SWT.DRAG:	{
+//			
+//		}
+		case SWT.MouseExit:
+			System.out.println("List: MouseExit");
+			break;
+		case SWT.MouseDown:
+			text.setFocus();
+			System.out.println("List: MouseDown");
+			isTrackingTable = true;
+			break;
+		case SWT.MouseMove: {
+			if (isTrackingTable == false)	{
+				System.out.println("List: MouseMove");
+				int itemHeight = table.getItemHeight();
+				int itemSel = event.y / itemHeight;
+				//System.out.println("itemSel: " + itemSel);
+				int newSelection = table.getTopIndex() + itemSel;
+				int currSel = table.getSelectionIndex();
+				System.out.println("num of buttons: " + MouseInfo.getNumberOfButtons());
+				if (currSel != newSelection)	{
+					table.setSelection(newSelection);
+				}
+			} else {
+				System.out.println("mousePos: " + MouseInfo.getPointerInfo().getLocation());
+				System.out.println("num of buttons: " + MouseInfo.getNumberOfButtons());
+				
+				//MouseInfo mi = Greenfoot.getMouseInfo();
+			}
+		}
+		case SWT.FocusIn: {
 				if (hasFocus) return;
 				hasFocus = true;
 				if (getEditable()) text.selectAll();
@@ -608,6 +704,7 @@ public class MCCombo extends Composite {
 				Event e = new Event();
 				e.time = event.time;
 				notifyListeners(SWT.DefaultSelection, e);
+				isTrackingTable = false;
 				break;
 			}
 			case SWT.Selection: {
@@ -749,6 +846,12 @@ public class MCCombo extends Composite {
 			case SWT.Deactivate:
 				//System.out.println("popup: deactivate");
 				//dropDown(false);
+				break;
+			case SWT.MouseMove:
+				System.out.println("popupEvent: MouseMove");
+				break;
+			case SWT.MouseHover:
+				System.out.println("popupEvent: MouseHover");
 				break;
 			default:
 				//System.out.println("popup: alles andere");
