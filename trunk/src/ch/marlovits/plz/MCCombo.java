@@ -163,12 +163,12 @@ public class MCCombo extends Composite {
 		Listener listener = new Listener() {
 			public void handleEvent(Event event) {
 				if (popup == event.widget) {
-					System.out.println("event.widget == popup, calling popupEvent(event)");
+					//System.out.println("event.widget == popup, calling popupEvent(event)");
 					popupEvent(event);
 					return;
 				}
 				if (text == event.widget) {
-					System.out.println("event.widget == text");
+					//System.out.println("event.widget == text");
 					textEvent(event);
 					return;
 				}
@@ -178,7 +178,7 @@ public class MCCombo extends Composite {
 					return;
 				}
 				if (MCCombo.this == event.widget) {
-					System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
+					//System.out.println("event.widget == MyCComboSaved2, calling comboEvent(event)");
 					comboEvent(event);
 					return;
 				}
@@ -200,7 +200,7 @@ public class MCCombo extends Composite {
 		int [] textEvents = {SWT.KeyDown, SWT.KeyUp, SWT.Modify, SWT.MouseDown, SWT.MouseUp, SWT.Traverse, SWT.FocusIn, SWT.FocusOut, SWT.DEL};
 		for (int i=0; i<textEvents.length; i++) text.addListener(textEvents [i], listener);
 		
-		int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit};
+		int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit, SWT.MouseEnter};
 		for (int i=0; i<listEvents.length; i++) table.addListener(listEvents [i], listener);
 		
 //		int [] tableViewerEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit};
@@ -646,8 +646,16 @@ public class MCCombo extends Composite {
 //		case SWT.DRAG:	{
 //			
 //		}
+//		case SWT.SCROLL_LINE:
+//			System.out.println("List: SCROLL_LINE");
+//			break;
+		case SWT.MouseEnter:
+			System.out.println("List: MouseEnter");
+			//isTrackingTable = true;
+			break;
 		case SWT.MouseExit:
 			System.out.println("List: MouseExit");
+			//isTrackingTable = false;
 			break;
 		case SWT.MouseDown:
 			text.setFocus();
@@ -655,21 +663,29 @@ public class MCCombo extends Composite {
 			isTrackingTable = true;
 			break;
 		case SWT.MouseMove: {
+			int itemHeight = table.getItemHeight();
 			if (isTrackingTable == false)	{
 				System.out.println("List: MouseMove");
-				int itemHeight = table.getItemHeight();
 				int itemSel = event.y / itemHeight;
 				//System.out.println("itemSel: " + itemSel);
 				int newSelection = table.getTopIndex() + itemSel;
 				int currSel = table.getSelectionIndex();
-				System.out.println("num of buttons: " + MouseInfo.getNumberOfButtons());
 				if (currSel != newSelection)	{
 					table.setSelection(newSelection);
 				}
 			} else {
-				System.out.println("mousePos: " + MouseInfo.getPointerInfo().getLocation());
-				System.out.println("num of buttons: " + MouseInfo.getNumberOfButtons());
+				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
+				System.out.println("_mousePos: " + MouseInfo.getPointerInfo().getLocation());
+				pt = table.toControl(pt);
+				System.out.println("_mousePos: " + pt);
 				
+				int itemSel = pt.y / itemHeight;
+				//System.out.println("itemSel: " + itemSel);
+				int newSelection = table.getTopIndex() + itemSel;
+				int currSel = table.getSelectionIndex();
+				if (currSel != newSelection)	{
+					table.setSelection(newSelection);
+				}
 				//MouseInfo mi = Greenfoot.getMouseInfo();
 			}
 		}
@@ -775,7 +791,7 @@ public class MCCombo extends Composite {
 				break;
 			}
 			case SWT.KeyDown: {
-				//System.out.println("listEvent: SWT.KeyDown");
+				System.out.println("listEvent: SWT.KeyDown");
 				if (event.character == SWT.ESC) { 
 					// escape key cancels popup list
 					dropDown(false);
