@@ -93,7 +93,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		// LandCombo
 		String[] laenderListeNamen = getLaenderListe("name", "landsorting, name", "en");
 		String[] laenderListeIsos = getLaenderListe("iso2", "landsorting, name", "en");
-		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN/* + SWT.READ_ONLY*/);
+		cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN + SWT.READ_ONLY);
 		//cbLandCombo = new Combo(rightComposite, SWT.DROP_DOWN|SWT.READ_ONLY);
 		cbLandCombo.setItems(laenderListeNamen);
 		cbLandCombo.setData("LandIso2", laenderListeIsos);
@@ -158,7 +158,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		myCCombo.setItems(itemss);
 		
 		// Another possibility
-		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER);
+		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER | SWT.READ_ONLY);
 		mCCombo2.setItems(itemss);
 		}
 	
