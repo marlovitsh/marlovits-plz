@@ -97,6 +97,7 @@ public final class MCCombo2 extends Composite {
 	Font		font;
 	int			currListFocus = -1;
 	boolean		mouseIsDownInList = false;
+	int			textLinkedListIndex = 0;	// list from which text for text field is extracted
 	
 /**
  * Constructs a new instance of this class given its parent
@@ -472,7 +473,7 @@ void comboEvent (Event event) {
 			dropDown(false);
 			break;
 		case SWT.Resize:
-			internalLayout (false);
+			internalLayout(false);
 			break;
 	}
 }
@@ -518,29 +519,37 @@ void comboEvent_OLD (Event event) {
 	}
 }
 
+/**
+ * calc comboBox field size
+ */
+//DONE +++++ LIST 
 public Point computeSize(int listIx, int wHint, int hHint, boolean changed)	{
-	checkWidget ();
-	int width = 0, height = 0;
-	String[] items = list.getItems ();
-	GC gc = new GC (text);
-	int spacer = gc.stringExtent (" ").x; //$NON-NLS-1$
-	int textWidth = gc.stringExtent (text.getText ()).x;
+	checkWidget();
+	int width  = 0;
+	int height = 0;
+	String[] items = lists[listIx].getItems();
+	GC gc = new GC(text);
+	int spacer = gc.stringExtent(" ").x; //$NON-NLS-1$
+	int textWidth = gc.stringExtent(text.getText()).x;
 	for (int i = 0; i < items.length; i++) {
-		textWidth = Math.max (gc.stringExtent (items[i]).x, textWidth);
+		textWidth = Math.max(gc.stringExtent(items[i]).x, textWidth);
 	}
 	gc.dispose ();
-	Point textSize = text.computeSize (SWT.DEFAULT, SWT.DEFAULT, changed);
-	Point arrowSize = arrow.computeSize (SWT.DEFAULT, SWT.DEFAULT, changed);
-	Point listSize = list.computeSize (SWT.DEFAULT, SWT.DEFAULT, changed);
-	int borderWidth = getBorderWidth ();
+	Point textSize  = text.         computeSize(SWT.DEFAULT, SWT.DEFAULT, changed);
+	Point arrowSize = arrow.        computeSize(SWT.DEFAULT, SWT.DEFAULT, changed);
+	Point listSize  = lists[listIx].computeSize(SWT.DEFAULT, SWT.DEFAULT, changed);
+	int borderWidth = getBorderWidth();
 	
-	height = Math.max (textSize.y, arrowSize.y);
-	width = listSize.x;
+	height = Math.max(textSize.y, arrowSize.y);
+	width  = Math.max(textWidth + 2 * spacer + arrowSize.x + 2 * borderWidth, listSize.x);
+	//width = listSize.x;
 	if (wHint != SWT.DEFAULT) width = wHint;
 	if (hHint != SWT.DEFAULT) height = hHint;
-	return new Point (width + 2*borderWidth, height + 2*borderWidth);
+	return new Point(width + 2 * borderWidth, height + 2 * borderWidth);
 }
-
+/**
+ * calc comboBox field size
+ */
 public Point computeSize (int wHint, int hHint, boolean changed) {
 	checkWidget ();
 	int width = 0, height = 0;
@@ -600,10 +609,12 @@ public Point computeSize2 (int wHint, int hHint, boolean changed) {
  * 
  * @since 3.3
  */
+//DONE +++++ LIST 
 public void copy () {
 	checkWidget ();
 	text.copy ();
 }
+//DONE +++++ LIST 
 void createLists(int numOfLists)	{
 	// *** adjusting style ***************************************************
 	int style = getStyle ();
@@ -628,18 +639,20 @@ void createLists(int numOfLists)	{
 			currList = lists[listIx];
 		} else {
 			currList = new List(popup, listStyle);
+			lists[listIx] = currList; // ++++ space allocated???
 		}
 		// set font/colors, etc
-		if (font != null) list.setFont (font);
-		if (foreground != null) list.setForeground (foreground);
-		if (background != null) list.setBackground (background);
+		if (font != null)       currList.setFont(font);
+		if (foreground != null) currList.setForeground(foreground);
+		if (background != null) currList.setBackground(background);
 		// set listeners for lists
 		int [] listEvents = {SWT.MouseUp, SWT.MouseDown, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.Dispose, SWT.MouseHover, SWT.MouseMove};
 		for (int eventIx = 0; eventIx < listEvents.length; eventIx++)	{
-			lists[listIx].addListener(listEvents[eventIx], listener);
+			currList.addListener(listEvents[eventIx], listener);
 		}
 	}
 }
+//DONE +++++ LIST 
 void createPopup(String[][] items, int selectionIndex) {
 	// create shell and list
 	popup = new Shell (getShell (), SWT.ON_TOP | SWT.V_SCROLL | SWT.TOOL);
@@ -671,24 +684,25 @@ void createPopup(String[][] items, int selectionIndex) {
 			currList = lists[listIx];
 		} else {
 			currList = new List(popup, listStyle);
+			lists[listIx] = currList; // ++++ space allocated???
 		}
 		// set font/colors, etc
-		if (font != null) list.setFont (font);
-		if (foreground != null) list.setForeground (foreground);
-		if (background != null) list.setBackground (background);
+		if (font != null)       currList.setFont(font);
+		if (foreground != null) currList.setForeground (foreground);
+		if (background != null) currList.setBackground (background);
 		// set listeners for lists
 		int [] listEvents = {SWT.MouseUp, SWT.MouseDown, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.Dispose, SWT.MouseHover, SWT.MouseMove};
 		for (int eventIx = 0; eventIx < listEvents.length; eventIx++)	{
-			lists[listIx].addListener(listEvents[eventIx], listener);
+			currList.addListener(listEvents[eventIx], listener);
 		}
 		// set items +++++ stimmt das mit listIx???
-		if (items != null) lists[listIx].setItems(items[listIx]);
-		if (selectionIndex != -1) lists[listIx].setSelection (selectionIndex);
+		if (items != null) currList.setItems(items[listIx]);
+		if (selectionIndex != -1) currList.setSelection (selectionIndex);
 	}
-		
+	
 	// *** set listeners for popup *******************************************
 	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate};
-	for (int i=0; i<popupEvents.length; i++) popup.addListener (popupEvents [i], listener);
+	for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
 }
 
 // +++++ single list version
@@ -728,7 +742,64 @@ void createPopup(String[] items, int selectionIndex) {
 	if (items != null) list2.setItems (items);
 	if (selectionIndex != -1) list2.setSelection (selectionIndex);
 }
+//DONE +++++ LIST 
 class PopUpScrollBarSelectionListener implements SelectionListener	{
+	public void widgetDefaultSelected(SelectionEvent e) {
+	}
+	public void widgetSelected(SelectionEvent e) {
+		int oldTop;
+		int currSel;
+		switch(e.detail)	{
+		case(SWT.DRAG):  // called while dragging
+			currSel = popup.getVerticalBar().getSelection() + popup.getVerticalBar().getIncrement() / 2;
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(currSel / popup.getVerticalBar().getIncrement());
+			}
+			break;
+		case(SWT.NONE):  // for the end of a drag
+			currSel = popup.getVerticalBar().getSelection();
+			popup.getVerticalBar().setSelection(lists[0].getTopIndex() * popup.getVerticalBar().getIncrement());
+			break;
+		case(SWT.HOME):
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(0);
+			}
+			//System.out.println("SWT.HOME");
+			break;
+		case(SWT.END):
+			oldTop = lists[0].getItemCount() - 1;
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(oldTop);
+			}
+			break;
+		case(SWT.ARROW_DOWN):
+			oldTop = lists[0].getTopIndex();
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(oldTop + 1);
+			}
+			break;
+		case(SWT.ARROW_UP):
+			oldTop = lists[0].getTopIndex();
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(oldTop - 1);
+			}
+			break;
+		case(SWT.PAGE_DOWN):
+			currSel = popup.getVerticalBar().getSelection() / popup.getVerticalBar().getIncrement();
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(currSel);
+			}
+			break;
+		case(SWT.PAGE_UP):
+			currSel = popup.getVerticalBar().getSelection() / popup.getVerticalBar().getIncrement();
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].setTopIndex(currSel);
+			}
+			break;
+		}
+	}	
+}
+class PopUpScrollBarSelectionListener_OLD implements SelectionListener	{
 	public void widgetDefaultSelected(SelectionEvent e) {
 		System.out.println(popup.getVerticalBar().getSelection());
 	}
@@ -792,6 +863,7 @@ class PopUpScrollBarSelectionListener implements SelectionListener	{
  * 
  * @since 3.3
  */
+//DONE +++++ LIST 
 public void cut () {
 	checkWidget ();
 	text.cut ();
@@ -808,7 +880,19 @@ public void cut () {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
+//DONE +++++ LIST 
 public void deselect (int index) {
+	checkWidget ();
+	if (0 <= index && index < lists[0].getItemCount() && index == lists[0].getSelectionIndex())	{
+		if (text.getText().equals(lists[textLinkedListIndex].getItem(index))) {
+			text.setText("");  //$NON-NLS-1$
+			for (int i = 0; i < lists.length; i++)	{
+				lists[i].deselect (index);
+			}
+		}
+	}
+}
+public void deselect_OLD (int index) {
 	checkWidget ();
 	if (0 <= index && index < list.getItemCount () &&
 			index == list.getSelectionIndex() && 
@@ -833,14 +917,93 @@ public void deselect (int index) {
  *
  * @see #clearSelection
  */
-public void deselectAll () {
+//DONE +++++ LIST 
+public void deselectAll() {
+	checkWidget();
+	text.setText("");  //$NON-NLS-1$
+	for (int i = 0; i < lists.length; i++)	{
+		lists[i].deselectAll();
+	}
+}
+public void deselectAll_OLD() {
 	checkWidget ();
 	text.setText("");  //$NON-NLS-1$
 	// +++++
 	list.deselectAll ();
 	list2.deselectAll ();
 }
-void dropDown (boolean drop) {
+// *********************************************
+void dropDown(boolean drop) {
+	if (drop == isDropped()) return;
+	if (!drop) {
+		popup.setVisible(false);
+		if (!isDisposed() && isFocusControl()) {
+			text.setFocus();
+		}
+		return;
+	}
+
+	if (getShell() != popup.getParent()) {
+		String[] items = list.getItems(); // +++++++++++++++++++++++++++++++++++++++
+		int selectionIndex = lists[0].getSelectionIndex();
+		// +++++
+		for (int i = 0; i < lists.length; i++)	{
+			lists[i].removeListener(SWT.Dispose, listener);
+			lists[i] = null;
+		}
+		popup.dispose();
+		popup = null;
+		// recreate lists
+		createPopup (items, selectionIndex);
+	}
+	
+	Point size = getSize ();
+	int itemCount = list.getItemCount ();
+	itemCount = (itemCount == 0) ? visibleItemCount : Math.min(visibleItemCount, itemCount);
+	int itemHeight = list.getItemHeight () * itemCount;
+	// +++++
+	Point listSize = list.computeSize (SWT.DEFAULT, itemHeight, false);
+	Point listSize2 = list2.computeSize (SWT.DEFAULT, itemHeight, false);
+	list.setBounds  (0,                      0, Math.max (size.x - 2, listSize.x),  listSize.y);
+	list2.setBounds (list.getBounds().width, 0, Math.max (size.x - 2, listSize2.x), listSize2.y);
+	
+	int index = list.getSelectionIndex ();
+	if (index != -1)	{
+		// +++++
+		list.setTopIndex (index);
+		list2.setTopIndex (index);
+	}
+	Display display = getDisplay ();
+	// +++++
+	Rectangle listRect = list.getBounds ();
+	Rectangle listRect2 = list2.getBounds ();
+	Rectangle parentRect = display.map (getParent (), null, getBounds ());
+	Point comboSize = getSize ();
+	Rectangle displayRect = getMonitor ().getClientArea ();
+	// +++++ ersetzt
+	//int width = Math.max (comboSize.x, listRect.width + 2);
+	int width = Math.max (comboSize.x, listRect.width + listRect2.width + 2 + arrow.getBounds().width);
+	int height = listRect.height + 2;
+	int x = parentRect.x;
+	int y = parentRect.y + comboSize.y;
+	if (y + height > displayRect.y + displayRect.height) y = parentRect.y - height;
+	if (x + width > displayRect.x + displayRect.width) x = displayRect.x + displayRect.width - listRect.width;
+	popup.setBounds (x, y, width, height);
+	// +++++ setting scrollbar params
+	int numOfItems = list.getItemCount();
+	int shownItems = list.getBounds().height / list.getItemHeight();
+	int scrollSteps = numOfItems - shownItems + 1;
+	popup.getVerticalBar().setMaximum(scrollSteps * 10);
+	popup.getVerticalBar().setMinimum(0);
+	popup.getVerticalBar().setIncrement(10);
+	popup.getVerticalBar().setPageIncrement((shownItems - 1) * 10);
+	popup.getVerticalBar().setSelection(0);
+	// make visible
+	popup.setVisible (true);
+	// +++++
+	if (isFocusControl()) list.setFocus ();
+}
+void dropDown_OLD(boolean drop) {
 	if (drop == isDropped ()) return;
 	if (!drop) {
 		popup.setVisible (false);
@@ -1025,9 +1188,17 @@ public int getItemHeight () {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
-public String [] getItems () {
-	checkWidget ();
+public String[][] getItems () {
+	checkWidget();
+	
 	return list.getItems ();
+}
+public String[] getItems(int columnIx) {
+	checkWidget();
+	if ((columnIx >= 0) && (columnIx < lists.length))	{
+		return lists[columnIx].getItems();
+	}
+	return null;
 }
 /**
  * Returns <code>true if the receiver's list is visible,
