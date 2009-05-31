@@ -21,8 +21,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -159,7 +157,13 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		
 		// Another possibility
 		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER | SWT.READ_ONLY);
-		mCCombo2.setItems(itemss);
+//		String[][] items2 = {
+//				{"Line 1-1", "Line 1-2", "Line 1-3", "Line 1-4"},
+//				{"Line 2-1", "Line 2-2", "Line 2-3", "Line 2-4"},
+//				{"Line 3-1", "Line 3-2", "Line 3-3", "Line 3-4"},
+//				{"Line 4-1", "Line 4-2", "Line 4-3", "Line 4-4"}};
+		String[][] items2 = dataProviderForMCCombo2("c");
+		mCCombo2.setItems(items2);
 		}
 	
 	/**
@@ -629,4 +633,61 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		}
 		return tmpStringArray;
 	}
+
+	public String[][] dataProviderForMCCombo2(final String startOfString) {
+		String[][] plzStrings = null;
+		
+		// wenn Feld leer, dann keine Auswahl anzeigen
+		if (StringTool.isNothing(startOfString))	{
+			return plzStrings;
+		}
+		
+		String[] queryFields = {"ort27", "kanton", "plz", "land"};
+		String[] sortFields = {"land", "ort27", "kanton", "plz"};
+		String queryFieldsString  = stringArrayToString(queryFields,  ",");
+		String sortFieldsString  = stringArrayToString(sortFields,  ",");
+		
+		// Anzahl anzuzeigender=abzufragender Felder ist in showFields definiert
+		int numOfFields = sortFields.length;
+		
+		// alle passenden Einträge aus der Datenbank auslesen
+		// Datenbank anzapfen - oozapft is...
+		Stm stm = PersistentObject.getConnection().getStatement();
+		
+		// Anzahl Einträge ermitteln, die passen
+		int numOfEntries = 0;
+		// wenn kein Land ausgewählt ist, dann via sql ALLE Länder abfragen
+		String landStr = "CH";
+		String landClause = " lower(land) = lower(" + JdbcLink.wrap(landStr) + ") "; 
+		ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(startOfString + "%") + ") and plztyp != 80");
+		try {
+			rs.next();
+			numOfEntries = Integer.decode(rs.getString("cnt"));
+			rs.close();
+		} catch (SQLException exc) {
+			System.out.println("SQLException 1 in OrtMCComboDataProvider:");
+			exc.printStackTrace();
+		}
+		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
+		if (numOfEntries > 0)	{
+			rs = stm.query("select " + queryFieldsString + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(startOfString + "%") + ")  and plztyp != 80 order by " + sortFieldsString);
+			try {
+				plzStrings = new String[numOfEntries][numOfFields];
+				int iii = 0;
+				while (rs.next())	{
+					String[] rowData = new String[numOfFields];
+					for (int showFieldsIx = 0; showFieldsIx < numOfFields; showFieldsIx++)	{
+						rowData[showFieldsIx] = rs.getString(showFieldsIx+1);
+					}
+					plzStrings[iii] = rowData;
+					iii++;
+				}
+			} catch (SQLException e1) {
+				System.out.println("SQLException 2 in OrtMCComboDataProvider:");
+				e1.printStackTrace();
+			}
+		}
+		return plzStrings;
+		}
+
 }
