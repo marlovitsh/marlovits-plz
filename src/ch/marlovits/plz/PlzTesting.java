@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.LinkedList;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -671,23 +672,53 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
 		if (numOfEntries > 0)	{
 			rs = stm.query("select " + queryFieldsString + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(startOfString + "%") + ")  and plztyp != 80 order by " + sortFieldsString);
-			try {
-				plzStrings = new String[numOfEntries][numOfFields];
-				int iii = 0;
-				while (rs.next())	{
-					String[] rowData = new String[numOfFields];
-					for (int showFieldsIx = 0; showFieldsIx < numOfFields; showFieldsIx++)	{
-						rowData[showFieldsIx] = rs.getString(showFieldsIx+1);
-					}
-					plzStrings[iii] = rowData;
-					iii++;
-				}
-			} catch (SQLException e1) {
-				System.out.println("SQLException 2 in OrtMCComboDataProvider:");
-				e1.printStackTrace();
-			}
+			//plzStrings = new String[numOfFields][numOfEntries];
+			//int iii = 0;
+			plzStrings = recordSetToStringArray(rs, new int[] {0, 1, 2, 3});
+//				rs.next();
+//				for (int ii = 0; ii < numOfFields; ii++)	{
+//					//Array columnArray = rs.getArray(ii + 1);
+//					String[] columnStrings = recordSetToStringArray(rs, ii + 1);
+//					//String[] columnStrings = (String[])columnArray.getArray(0, numOfEntries);
+//					//String[] columnStrings = columnArray.getArray(Map<String, Class<String>>);
+//					plzStrings[ii] = columnStrings;
+//				}
+//				while (rs.next())	{
+//					String[] rowData = new String[numOfFields];
+//					for (int showFieldsIx = 0; showFieldsIx < numOfFields; showFieldsIx++)	{
+//						rowData[showFieldsIx] = rs.getString(showFieldsIx+1);
+//					}
+//					plzStrings[iii] = rowData;
+//					iii++;
+			int i = 1;
+//				}
 		}
 		return plzStrings;
 		}
+@SuppressWarnings({ "unchecked", "null"})
+public static String[][] recordSetToStringArray(ResultSet rs, int[] columnIndexes/* 1-based*/)	{
+	int numOfColumns = columnIndexes.length;
+	LinkedList[] linkedList = new LinkedList[numOfColumns];
+	for (int i = 0; i < numOfColumns; i++){
+		linkedList[i] = new LinkedList();
+	}
+	try {
+		while (rs.next())	{
+			for (int i = 0; i < numOfColumns; i++){
+				linkedList[i].add(rs.getString(columnIndexes[i] + 1));
+			}
+		}
+	} catch (SQLException e) {
+		e.printStackTrace();
+	}
+	int numOfEntries = linkedList[0].size();
+	String[][] strArray = new String[numOfColumns][numOfEntries];
+	for (int colIx = 0; colIx < numOfColumns; colIx++){
+		for (int rowIx = 0; rowIx < numOfEntries; rowIx++){
+			strArray[colIx][rowIx] = (String) linkedList[colIx].get(rowIx);
+		}
+	}
+	return strArray;
+	}
 
 }
