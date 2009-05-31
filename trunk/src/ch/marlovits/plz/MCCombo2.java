@@ -22,9 +22,6 @@
 package ch.marlovits.plz;
 
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.accessibility.ACC;
@@ -58,12 +55,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
 import org.eclipse.swt.widgets.Widget;
-
-import ch.elexis.data.PersistentObject;
-import ch.marlovits.plz.MCCombo.MCComboDataProvider;
-import ch.rgw.tools.JdbcLink;
-import ch.rgw.tools.StringTool;
-import ch.rgw.tools.JdbcLink.Stm;
 
 /**
  * The CCombo class represents a selectable user interface object
@@ -105,7 +96,7 @@ public final class MCCombo2 extends Composite {
 	Font		font;
 	int			currListFocus = -1;
 	boolean		mouseIsDownInList = false;
-	int			textLinkedListIndex = 2;	// list from which text for text field is extracted
+	int			textLinkedListIndex = 0;	// list from which text for text field is extracted
 	
 /**
  * Constructs a new instance of this class given its parent
@@ -1035,7 +1026,8 @@ void dropDown(boolean drop) {
 	int listLeft = 0;
 	for (int i = 0; i < lists.length; i++)	{
 		Point listSize = lists[i].computeSize(SWT.DEFAULT, itemHeight, false);
-		int listWidth = Math.max (size.x - 2, listSize.x);
+		//int listWidth = Math.max (size.x - 2, listSize.x);
+		int listWidth = listSize.x;
 		lists[i].setBounds(listLeft, 0, listWidth,  listSize.y);
 		listLeft = listLeft + listWidth;
 	}
@@ -2292,10 +2284,10 @@ public void setItems(int columnIx, String[] items) {
 //DONE +++++ LIST
 public void setItems(String[][] items) {
 	checkWidget ();
-	int numOfLists = items[0].length;
+	int numOfLists = items.length;
 	createLists(numOfLists);
-	int numOfItems = items.length;
-	for (int i = 0; i < numOfItems; i++)	{
+	int numOfItems = items[0].length;
+	for (int i = 0; i < numOfLists; i++)	{
 		String[] itm = items[i];
 		lists[i].setItems(itm);
 	}
