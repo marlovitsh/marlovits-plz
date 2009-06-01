@@ -32,6 +32,8 @@ import org.eclipse.swt.accessibility.AccessibleEvent;
 import org.eclipse.swt.accessibility.AccessibleTextAdapter;
 import org.eclipse.swt.accessibility.AccessibleTextEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.PaintEvent;
+import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
@@ -54,7 +56,6 @@ import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
-import org.eclipse.swt.widgets.Widget;
 
 /**
  * The CCombo class represents a selectable user interface object
@@ -80,6 +81,12 @@ import org.eclipse.swt.widgets.Widget;
  * <dd>DefaultSelection, Modify, Selection, Verify
  * </dl>
  */
+enum MCCDisplayLines   {fixed,	// number of displayed lines as in visibleItemCount
+						parent,	// number of displayed lines fitting parent
+						app,	// number of displayed lines fitting application window
+						screen	//  number of displayed lines fitting screen (current monitor)
+	
+}
 public final class MCCombo2 extends Composite {
 
 	Text		text;
@@ -96,7 +103,15 @@ public final class MCCombo2 extends Composite {
 	Font		font;
 	int			currListFocus = -1;
 	boolean		mouseIsDownInList = false;
-	int			textLinkedListIndex = 0;	// list from which text for text field is extracted
+	int			textLinkedListIndex = 0;				// list from which text for text field is extracted
+	// for list formatting
+	int			columnSpacing = 9;						// space between columns, best if uneven
+	int			columnLeftMargin  = columnSpacing / 2;	// space on the left of leftmost list
+	int			columnRightMargin = columnLeftMargin;	// space on the right of leftmost list
+	boolean		drawDividerLines = true;
+	Color		dividerLineColor;
+	
+	GC 			popupGC;
 	
 /**
  * Constructs a new instance of this class given its parent
@@ -126,8 +141,51 @@ public final class MCCombo2 extends Composite {
  * @see SWT#FLAT
  * @see Widget#getStyle()
  */
+/*******************************************************************************
+ * new methods for this new Composite
+ * START
+ *******************************************************************************/
+public void setDrawDividerLines(final boolean doDrawDividerLines)	{
+	drawDividerLines = doDrawDividerLines;
+}
+public boolean getDrawDividerLines()	{
+	return drawDividerLines;
+}
+public void setDividerLineColor(final int newColor)	{
+	dividerLineColor = getDisplay().getSystemColor(newColor);
+}
+public void setDividerLineColor(final Color newColor)	{
+	dividerLineColor = newColor;
+}
+public Color getDividerLineColor()	{
+	return dividerLineColor;
+}
+public void setColumnSpacing(final int colSpacing)	{
+	columnSpacing = colSpacing;
+}
+public int getColumnSpacing()	{
+	return columnSpacing;
+}
+public void setColumnLeftMargin(final int newLeftMargin)	{
+	columnLeftMargin = newLeftMargin;
+}
+public int getColumnLeftMargin()	{
+	return columnLeftMargin;
+}
+public void setColumnRightMargin(final int newRightMargin)	{
+	columnRightMargin = newRightMargin;
+}
+public int getColumnRightMargin()	{
+	return columnRightMargin;
+}
+/*******************************************************************************
+ * new methods for this new Composite
+ * END
+ *******************************************************************************/
 public MCCombo2(Composite parent, int style) {
 	super (parent, style = checkStyle (style));
+	
+	dividerLineColor = getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND);
 	
 	int textStyle = SWT.SINGLE;
 	if ((style & SWT.READ_ONLY) != 0) textStyle |= SWT.READ_ONLY;
@@ -191,9 +249,49 @@ public MCCombo2(Composite parent, int style) {
 	int [] arrowEvents = {SWT.MouseDown, SWT.MouseUp, SWT.Selection, SWT.FocusIn};
 	for (int i=0; i<arrowEvents.length; i++) arrow.addListener(arrowEvents [i], listener);
 	
+	
 	String[][] tmp = null;
 	createPopup(tmp, -1);
 	initAccessible();
+	
+	// +++++ disposing when???
+	popupGC = new GC(popup);
+	
+	popup.addPaintListener(new paintListener());
+}
+class  paintListener implements PaintListener	{
+	public void paintControl(PaintEvent e) {
+		if (1==1) return;
+		if (popup    == null) return;
+		if (lists    == null) return;
+		if (lists[0] == null) return;
+		
+		// get drawing environment
+		GC gc = new GC (popup);
+		
+		// drawing background in the same color as list background color
+		Rectangle popupRect = popup.getBounds();
+		Point pt = new Point(popupRect.x, popupRect.y);
+		pt = popup.toControl(pt);
+		popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
+		gc.setBackground(lists[0].getBackground());
+		gc.fillRectangle(popupRect);
+		
+		// drawing vertical dividers between lists/columns if needed
+		int lineTop    = popupRect.y;
+		int lineBottom = popupRect.y + popupRect.height;
+		gc.setForeground(new Color(gc.getDevice(), 200, 200, 200));
+		
+		for (int i = 0; i < lists.length; i++){
+			System.out.println(lists[i].getBounds());
+			int left = (lists[i].getBounds().x + lists[i].getBounds().width + (columnSpacing / 2));
+			System.out.println("left: " + left);
+			gc.drawLine(left, lineTop, left, lineBottom);
+		}
+		
+		// dispose drawing environment
+		gc.dispose();
+	}
 }
 static int checkStyle (int style) {
 	int mask = SWT.BORDER | SWT.READ_ONLY | SWT.FLAT | SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT;
@@ -752,7 +850,6 @@ void createPopup(String[][] items, int selectionIndex) {
 		if (items != null) currList.setItems(items[listIx]);
 		if (selectionIndex != -1) currList.setSelection (selectionIndex);
 	}
-	
 	// *** set listeners for popup *******************************************
 	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate};
 	for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
@@ -1023,13 +1120,13 @@ void dropDown(boolean drop) {
 	int itemHeight = lists[0].getItemHeight() * itemCount;
 	
 	// calculating sizes of Lists and setting the sizes
-	int listLeft = 0;
+	int listLeft = columnLeftMargin;
 	for (int i = 0; i < lists.length; i++)	{
 		Point listSize = lists[i].computeSize(SWT.DEFAULT, itemHeight, false);
 		//int listWidth = Math.max (size.x - 2, listSize.x);
 		int listWidth = listSize.x;
 		lists[i].setBounds(listLeft, 0, listWidth,  listSize.y);
-		listLeft = listLeft + listWidth;
+		listLeft = listLeft + listWidth + columnSpacing;
 	}
 	
 	// synchronizing topIndexes cross the lists
@@ -1046,6 +1143,7 @@ void dropDown(boolean drop) {
 	for (int i = 0; i < lists.length; i++)	{
 		totalListWidth = totalListWidth + lists[i].getBounds().width;
 	}
+	totalListWidth = lists[lists.length-1].getBounds().x + lists[lists.length-1].getBounds().width + columnRightMargin;
 	Rectangle parentRect = display.map(getParent(), null, getBounds());
 	Point comboSize = getSize();
 	Rectangle displayRect = getMonitor().getClientArea();
@@ -1071,6 +1169,9 @@ void dropDown(boolean drop) {
 	sb.setIncrement(10);
 	sb.setPageIncrement((shownItems - 1) * 10);
 	sb.setSelection(0);
+	
+	popup.setForeground(foreground);
+	popup.setBackground(background);
 	
 	// make visible
 	popup.setVisible(true);
@@ -1687,39 +1788,43 @@ void internalLayout(boolean changed) {
  */
 // TODO +++++++++++++++++++++++++++++++++++++
 void drawFocus(int item)	{
+	int itemInList = item - lists[0].getTopIndex();
 	int itemHeight = lists[0].getItemHeight();
 	
-	// draw left vertical 
-	for (int i = 0; i < lists.length; i++)	{
-		List currList = lists[i];
-		Rectangle currListRect = currList.getBounds();
-		
-	}
-	Rectangle listRect = list.getBounds();
+	System.out.println("item: " + item);
+	System.out.println("itemInList: " + itemInList);
 	
-	int numOfLists = lists.length;
+	int vOffset = itemInList * itemHeight;
 	
-	int itemSel = 0; // +++++
-	int offset = itemSel * itemHeight;
-	int arrowWidth = arrow.getBounds().width;
-	GC gc = new GC (list);
-	gc.setForeground(new Color(gc.getDevice(), 255, 0, 0));
-	//gc.drawRectangle(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight - 1);
-	gc.drawFocus(listRect.x - 1, listRect.y + offset - 1, listRect.width + 10, itemHeight);
-	//gc.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
-	//gc.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
-	//gc.drawLine(listRect.x - 1, listRect.y + offset - 1, listRect.x - 1, listRect.y + offset + itemHeight - 2);
-	gc.dispose ();
-	GC gc2 = new GC (list2);
-	gc2.setForeground(new Color(gc2.getDevice(), 255, 0, 0));
-	//gc2.drawRectangle(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10 - 1, itemHeight - 1);
-	gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth + 10, itemHeight);
-	//gc2.drawFocus(listRect.x - 10, listRect.y + offset - 1, listRect.width - arrowWidth, itemHeight);
-	//gc2.setClipping(x, y, width, height)
-	//gc2.drawLine(listRect.x, listRect.y + offset - 1,              listRect.x + listRect.width, listRect.y + offset - 1);
-	//gc2.drawLine(listRect.x, listRect.y + offset + itemHeight - 2, listRect.x + listRect.width, listRect.y + offset + itemHeight - 2);
-	//gc2.drawLine(listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset - 1, listRect.x + listRect.width - arrowWidth - 1, listRect.y + offset + itemHeight - 2);
-	gc2.dispose ();
+	Rectangle popupRect = popup.getBounds();
+	Point pt = new Point(popupRect.x, popupRect.y);
+	pt = popup.toControl(pt);
+	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
+	
+	Rectangle upperRect = new Rectangle(pt.x, pt.y + 1, popupRect.width, vOffset);
+	popupGC.setBackground(lists[0].getBackground());
+	popupGC.fillRectangle(upperRect);
+	
+	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width, itemHeight);
+	popupGC.setBackground(getDisplay().getSystemColor(SWT.COLOR_LIST_SELECTION));
+	popupGC.fillRectangle(selRect);
+	
+	Rectangle lowerRect = new Rectangle(pt.x, pt.y + vOffset + 1 + itemHeight, popupRect.width, popupRect.height);
+	popupGC.setBackground(lists[0].getBackground());
+	popupGC.fillRectangle(lowerRect);
+	
+	//gc.dispose();
+
+	// drawing vertical dividers between lists/columns if needed
+//	if (drawDividerLines == true)	{
+//		popupGC.setForeground(dividerLineColor);
+//		
+//		for (int i = 0; i < lists.length; i++){
+//			int left = (lists[i].getBounds().x + lists[i].getBounds().width + (columnSpacing / 2));
+//			popupGC.drawLine(left, pt.y + 1, left, vOffset);
+//			popupGC.drawLine(left, pt.y + vOffset + 1 + itemHeight, left, popupRect.height);
+//		}
+//	}
 }
 //DONE +++++ LIST
 void listEvent(Event event) {
@@ -1751,6 +1856,8 @@ void listEvent(Event event) {
 				//}
 			}
 			// currListFocus
+			drawFocus(((List) (event.widget)).getSelectionIndex());
+			
 			int currTopIx = ((List) (event.widget)).getTopIndex();
 			// synchronizing topItems
 			if (mouseIsDownInList == true){
@@ -1805,6 +1912,7 @@ void listEvent(Event event) {
 			event.doit = e.doit;
 			
 			popup.getVerticalBar().setSelection(((List) (event.widget)).getTopIndex() * popup.getVerticalBar().getIncrement());
+			drawFocus(lists[0].getSelectionIndex());
 			
 			break;
 		}
@@ -1883,6 +1991,9 @@ void listEvent(Event event) {
 			e.keyCode   = event.keyCode;
 			e.stateMask = event.stateMask;
 			notifyListeners(SWT.KeyDown, e);
+
+			//drawFocus(((List) (event.widget)).getSelectionIndex());
+			
 			break;
 			
 		}
@@ -1911,13 +2022,37 @@ public void paste () {
 void popupEvent(Event event) {
 	switch(event.type) {
 		case SWT.Paint:
-			// draw black rectangle around list -> now done by popup
-			Rectangle listRect = lists[0].getBounds();
-			Color black = getDisplay().getSystemColor(SWT.COLOR_BLACK);
-			event.gc.setForeground(black);
-			// +++++ ersetzt
-			//event.gc.drawRectangle(0, 0, listRect.width + 1, listRect.height + 1);
-			///////////////event.gc.drawRectangle(0, 0, listRect.width + listRect2.width + 1 + arrow.getBounds().width, listRect.height + listRect2.height + 1);
+			// avoid errs...
+			if (popup    == null) return;
+			if (lists    == null) return;
+			if (lists[0] == null) return;
+			
+			// get drawing environment
+			//GC gc = new GC (popup);
+			
+			// drawing background in the same color as list background color
+			Rectangle popupRect = popup.getBounds();
+			Point pt = new Point(popupRect.x, popupRect.y);
+			pt = popup.toControl(pt);
+			popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
+			popupGC.setBackground(lists[0].getBackground());
+			popupGC.fillRectangle(popupRect);
+			
+			// drawing vertical dividers between lists/columns if needed
+			if (drawDividerLines == true)	{
+				int lineTop    = popupRect.y;
+				int lineBottom = popupRect.y + popupRect.height;
+				popupGC.setForeground(dividerLineColor);
+				
+				for (int i = 0; i < lists.length; i++){
+					int left = (lists[i].getBounds().x + lists[i].getBounds().width + (columnSpacing / 2));
+					popupGC.drawLine(left, lineTop, left, lineBottom);
+				}
+			}
+			
+			// dispose drawing environment
+			//gc.dispose();
+			
 			break;
 		case SWT.Close:
 			event.doit = false;
@@ -2664,10 +2799,8 @@ void textEvent(Event event) {
 			break;
 		}
 	}
+	//drawFocus(((List) (event.widget)).getSelectionIndex());
 }
-
-
-
 
 
 }
