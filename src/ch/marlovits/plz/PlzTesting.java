@@ -157,14 +157,14 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		myCCombo.setItems(itemss);
 		
 		// Another possibility
+		// NO: THIS SEEMS TO BE THE SOLUTION !!!
 		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER | SWT.READ_ONLY);
-//		String[][] items2 = {
-//				{"Line 1-1", "Line 1-2", "Line 1-3", "Line 1-4"},
-//				{"Line 2-1", "Line 2-2", "Line 2-3", "Line 2-4"},
-//				{"Line 3-1", "Line 3-2", "Line 3-3", "Line 3-4"},
-//				{"Line 4-1", "Line 4-2", "Line 4-3", "Line 4-4"}};
 		String[][] items2 = dataProviderForMCCombo2("c");
 		mCCombo2.setItems(items2);
+		//mCCombo2.setDividerLineColor(SWT.COLOR_DARK_MAGENTA);
+		//mCCombo2.setDrawDividerLines(false);
+		//mCCombo2.setColumnSpacing(20);
+		//mCCombo2.setColumnLeftMargin(0);
 		}
 	
 	/**
