@@ -56,7 +56,6 @@ import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
-import org.eclipse.swt.widgets.Widget;
 
 /**
  * The CCombo class represents a selectable user interface object
@@ -750,12 +749,6 @@ void createLists(int numOfLists)	{
 	if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
 	
 	// *** create lists == columns *******************************************
-	int numOfRows = 0;
-	if (lists != null)	{
-		if (lists[0] != null)	{
-			numOfRows = lists[0].getItemCount();
-		}
-	}
 	// disposing of unused lists/columns
 	int currListCount = 0;
 	if (lists != null)	{
@@ -806,11 +799,8 @@ void createPopup(String[][] items, int selectionIndex) {
 	if ((style & SWT.LEFT_TO_RIGHT) != 0) listStyle |= SWT.LEFT_TO_RIGHT;
 	
 	// *** create lists == columns *******************************************
-	int numOfRows = 0;
 	int numOfLists = 1;
 	if (items != null)	{
-		numOfRows = items.length;
-//		if (numOfRows == 0) return;
 		numOfLists = items[0].length;
 	}
 	// disposing of unused lists/columns
@@ -852,7 +842,7 @@ void createPopup(String[][] items, int selectionIndex) {
 		if (selectionIndex != -1) currList.setSelection (selectionIndex);
 	}
 	// *** set listeners for popup *******************************************
-	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate};
+	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate, SWT.MouseDown};
 	for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
 }
 
@@ -1115,7 +1105,6 @@ void dropDown(boolean drop) {
 		createPopup(items, selectionIndex);
 	}
 	
-	Point size = getSize();
 	int itemCount = lists[0].getItemCount();
 	itemCount = (itemCount == 0) ? visibleItemCount : Math.min(visibleItemCount, itemCount);
 	int itemHeight = lists[0].getItemHeight() * itemCount;
@@ -1176,7 +1165,7 @@ void dropDown(boolean drop) {
 	// make visible
 	popup.setVisible(true);
 	
-	drawFocus(lists[0].getSelectionIndex());
+	drawSelection(lists[0].getSelectionIndex());
 	
 	// donno if I should or not... +++++
 	if (isFocusControl()) lists[0].setFocus();
@@ -1788,8 +1777,42 @@ void internalLayout(boolean changed) {
  * Draws a focus rect around the selected line specified by the param item
  * @param item
  */
-// TODO +++++++++++++++++++++++++++++++++++++
+// 
 void drawFocus(int item)	{
+	System.out.println("drawFocus");
+	int itemInList = item - lists[0].getTopIndex();
+	if (item == -1)	{
+		if (1==1) return;
+		System.out.println("item == " + item);
+		itemInList = lists[0].getItemCount();
+	}
+	int itemHeight = lists[0].getItemHeight();
+	int vOffset = itemInList * itemHeight;
+	
+	Rectangle popupRect = popup.getBounds();
+	Point pt = new Point(popupRect.x, popupRect.y);
+	pt = popup.toControl(pt);
+	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
+	
+	Rectangle upperRect = new Rectangle(pt.x, pt.y + 1, popupRect.width, vOffset);
+	popupGC.setBackground(lists[0].getBackground());
+//	popupGC.fillRectangle(upperRect);
+	
+	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width, itemHeight);
+	popupGC.setBackground(getDisplay().getSystemColor(SWT.COLOR_CYAN));
+	popupGC.drawFocus(selRect.x, selRect.y, selRect.width, selRect.height);
+	
+	Rectangle lowerRect = new Rectangle(pt.x, pt.y + vOffset + 1 + itemHeight, popupRect.width, popupRect.height);
+	popupGC.setBackground(lists[0].getBackground());
+//	popupGC.fillRectangle(lowerRect);
+}
+/**
+ * Draws the selection for the selected line specified by the param item: paint in popup
+ * @param item
+ */
+// 
+void drawSelection(int item)	{
+	System.out.println("drawSelection");
 	int itemInList = item - lists[0].getTopIndex();
 	if (item == -1)	{
 		if (1==1) return;
@@ -1850,24 +1873,45 @@ void listEvent(Event event) {
 				 * if mouse below list       -> scroll list do NOT change selected item
 				 * if mouse above list       -> scroll list do NOT change selected item
 				 */
-				System.out.println("listEvent: SWT.MouseMove with mouseDown");
-				System.out.println("x: " + event.x + ", y: " + event.y);
-				if (event.x > ((List) (event.widget)).getBounds().width)	{
-					System.out.println("right of list");
-					for (int i = 0; i < lists.length; i++){
-						if (((List) (event.widget)) == lists[i])	{
-							lists[i+1].setFocus();
-						}
-					}
+				Rectangle bounds = popup.getBounds();
+				Point globalPt = ((List) (event.widget)).toDisplay(new Point(event.x, event.y));
+				
+				bounds.width = bounds.width - popup.getVerticalBar().getSize().x;
+				
+				int itemHeight = lists[0].getItemHeight();
+				int itemSel2    = event.y / itemHeight;
+				itemSel2 = ((List) (event.widget)).getTopIndex() + itemSel2;
+				if (bounds.contains(globalPt))	{
+					System.out.println("inside");
+					((List) (event.widget)).setSelection(itemSel2);
+					lists[0].setSelection(itemSel2);
+					lists[1].setSelection(itemSel2);
+					lists[2].setSelection(itemSel2);
+					lists[3].setSelection(itemSel2);
+				} else {
+					drawFocus(itemSel2);
+					System.out.println("outside");
+					event.doit = false;
 				}
-				int itemSel = ((List) (event.widget)).getSelectionIndex();
-				int newSelection = itemSel;
-				for (int i = 0; i < lists.length; i++){
-					int currSel = lists[i].getSelectionIndex();
-					if (currSel != newSelection)	{
-						lists[i].setSelection(newSelection);
-					}
-				}
+				
+//				//System.out.println("listEvent: SWT.MouseMove with mouseDown");
+//				//System.out.println("x: " + event.x + ", y: " + event.y);
+//				if (event.x > ((List) (event.widget)).getBounds().width)	{
+//					//System.out.println("right of list");
+//					for (int i = 0; i < lists.length; i++){
+//						if (((List) (event.widget)) == lists[i])	{
+//							//lists[i+1].setFocus();
+//						}
+//					}
+//				}
+//				int itemSel = ((List) (event.widget)).getSelectionIndex();
+//				int newSelection = itemSel;
+//				for (int i = 0; i < lists.length; i++){
+//					int currSel = lists[i].getSelectionIndex();
+//					if (currSel != newSelection)	{
+//						/////////////////lists[i].setSelection(newSelection);
+//					}
+//				}
 			} else {
 				int itemHeight = lists[0].getItemHeight();
 				int itemSel = event.y / itemHeight;
@@ -1880,7 +1924,7 @@ void listEvent(Event event) {
 				}
 			}
 			// currListFocus
-			drawFocus(((List) (event.widget)).getSelectionIndex());
+			drawSelection(((List) (event.widget)).getSelectionIndex());
 			
 			int currTopIx = ((List) (event.widget)).getTopIndex();
 			// synchronizing topItems
@@ -1933,7 +1977,7 @@ void listEvent(Event event) {
 			event.doit = e.doit;
 			
 			popup.getVerticalBar().setSelection(((List) (event.widget)).getTopIndex() * popup.getVerticalBar().getIncrement());
-			drawFocus(lists[0].getSelectionIndex());
+			drawSelection(lists[0].getSelectionIndex());
 			
 			break;
 		}
@@ -2013,7 +2057,7 @@ void listEvent(Event event) {
 			e.stateMask = event.stateMask;
 			notifyListeners(SWT.KeyDown, e);
 			
-			//drawFocus(((List) (event.widget)).getSelectionIndex());
+			//drawSelection(((List) (event.widget)).getSelectionIndex());
 			
 			break;
 		}
@@ -2039,8 +2083,14 @@ public void paste () {
 	text.paste();
 }
 //DONE +++++ LIST
+protected void listMouseTracker()	{
+	
+}
 void popupEvent(Event event) {
 	switch(event.type) {
+		case SWT.MouseDown:
+			System.out.println("popup MouseDown");
+			break;
 		case SWT.Paint:
 			// avoid errs...
 			if (popup    == null) return;
@@ -2441,7 +2491,6 @@ public void setItems(String[][] items) {
 	checkWidget ();
 	int numOfLists = items.length;
 	createLists(numOfLists);
-	int numOfItems = items[0].length;
 	for (int i = 0; i < numOfLists; i++)	{
 		String[] itm = items[i];
 		lists[i].setItems(itm);
@@ -2819,7 +2868,7 @@ void textEvent(Event event) {
 			break;
 		}
 	}
-	//drawFocus(((List) (event.widget)).getSelectionIndex());
+	//drawSelection(((List) (event.widget)).getSelectionIndex());
 }
 
 
