@@ -1844,6 +1844,22 @@ void listEvent(Event event) {
 			// synchronize the list-topIndexes
 			// draw the focusRect for all lists
 			if (mouseIsDownInList == true)	{
+				/*
+				 * Behaviour for windows:
+				 * if mouse inside an item   -> select this item
+				 * if mouse below list       -> scroll list do NOT change selected item
+				 * if mouse above list       -> scroll list do NOT change selected item
+				 */
+				System.out.println("listEvent: SWT.MouseMove with mouseDown");
+				System.out.println("x: " + event.x + ", y: " + event.y);
+				if (event.x > ((List) (event.widget)).getBounds().width)	{
+					System.out.println("right of list");
+					for (int i = 0; i < lists.length; i++){
+						if (((List) (event.widget)) == lists[i])	{
+							lists[i+1].setFocus();
+						}
+					}
+				}
 				int itemSel = ((List) (event.widget)).getSelectionIndex();
 				int newSelection = itemSel;
 				for (int i = 0; i < lists.length; i++){
