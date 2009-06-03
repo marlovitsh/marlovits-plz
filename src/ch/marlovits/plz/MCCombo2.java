@@ -1800,7 +1800,8 @@ void drawFocus(int item)	{
 	
 	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width, itemHeight);
 	popupGC.setBackground(getDisplay().getSystemColor(SWT.COLOR_CYAN));
-	popupGC.drawFocus(selRect.x, selRect.y, selRect.width, selRect.height);
+	//popupGC.drawFocus(selRect.x, selRect.y, selRect.width, selRect.height);
+	popupGC.fillRectangle(selRect);
 	
 	Rectangle lowerRect = new Rectangle(pt.x, pt.y + vOffset + 1 + itemHeight, popupRect.width, popupRect.height);
 	popupGC.setBackground(lists[0].getBackground());
@@ -1890,6 +1891,8 @@ void listEvent(Event event) {
 					lists[3].setSelection(itemSel2);
 				} else {
 					drawFocus(itemSel2);
+					long endTime = System.nanoTime() + 1 * 1000 * 1000 * 1000;
+					while (endTime > System.nanoTime()) {}
 					System.out.println("outside");
 					event.doit = false;
 				}
@@ -2092,6 +2095,7 @@ void popupEvent(Event event) {
 			System.out.println("popup MouseDown");
 			break;
 		case SWT.Paint:
+			if (1==1) return;
 			// avoid errs...
 			if (popup    == null) return;
 			if (lists    == null) return;
