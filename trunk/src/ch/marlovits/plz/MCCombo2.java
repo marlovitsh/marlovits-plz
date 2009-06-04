@@ -110,6 +110,7 @@ public final class MCCombo2 extends Composite {
 	int			columnRightMargin = columnLeftMargin;	// space on the right of leftmost list
 	boolean		drawDividerLines = true;
 	Color		dividerLineColor;
+	int			focusItem = -1;
 	
 	GC 			popupGC;
 	
@@ -842,7 +843,7 @@ void createPopup(String[][] items, int selectionIndex) {
 		if (selectionIndex != -1) currList.setSelection (selectionIndex);
 	}
 	// *** set listeners for popup *******************************************
-	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate, SWT.MouseDown};
+	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate, SWT.MouseDown, SWT.MouseMove};
 	for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
 }
 
@@ -1778,7 +1779,11 @@ void internalLayout(boolean changed) {
  * @param item
  */
 // 
-void drawFocus(int item)	{
+void drawFocus(Event event, int item)	{
+	// draw focus for this item
+	// whiten rest of popupRect
+	// except a line that may be selected
+	//focusItem
 	System.out.println("drawFocus");
 	int itemInList = item - lists[0].getTopIndex();
 	if (item == -1)	{
@@ -1786,26 +1791,57 @@ void drawFocus(int item)	{
 		System.out.println("item == " + item);
 		itemInList = lists[0].getItemCount();
 	}
+	if (itemInList == focusItem)	{
+		return;
+	}
 	int itemHeight = lists[0].getItemHeight();
-	int vOffset = itemInList * itemHeight;
 	
 	Rectangle popupRect = popup.getBounds();
 	Point pt = new Point(popupRect.x, popupRect.y);
 	pt = popup.toControl(pt);
 	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
 	
-	Rectangle upperRect = new Rectangle(pt.x, pt.y + 1, popupRect.width, vOffset);
-	popupGC.setBackground(lists[0].getBackground());
-//	popupGC.fillRectangle(upperRect);
+	// *** undraw old focus *************************************************
+	int unselVOffset = focusItem * itemHeight;
+	Rectangle unselRect = new Rectangle(pt.x, pt.y + unselVOffset + 1, popupRect.width, itemHeight);
+//	popupGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
+//	for (int i = 0; i < lists.length; i++)	{
+//		GC listGC = new GC(lists[i]);
+//		listGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
+//		listGC.dispose();
+//	}
+	int vOffset = focusItem * itemHeight;
+	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width - popup.getVerticalBar().getSize().x, itemHeight);
+	Rectangle origFocus = ((List) (event.widget)).getBounds();
+	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
+	// undraw focus for selected item in list with focus
+	GC listGC1 = new GC((List) (event.widget));
+	listGC1.drawFocus(origFocus.x, selRect.y, origFocus.width, selRect.height);
+	listGC1.dispose();
+	popupGC.drawFocus(selRect.x + 1, selRect.y, selRect.width - 2, selRect.height);
+	for (int i = 0; i < lists.length; i++)	{
+		GC listGC = new GC(lists[i]);
+		listGC.drawFocus(selRect.x - 50, selRect.y, selRect.width, selRect.height);
+		listGC.dispose();
+	}
 	
-	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width, itemHeight);
-	popupGC.setBackground(getDisplay().getSystemColor(SWT.COLOR_CYAN));
-	//popupGC.drawFocus(selRect.x, selRect.y, selRect.width, selRect.height);
-	popupGC.fillRectangle(selRect);
+	// *** draw new focus ***************************************************
+	vOffset = itemInList * itemHeight;
+	selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width - popup.getVerticalBar().getSize().x, itemHeight);
+	origFocus = ((List) (event.widget)).getBounds();
+	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
+	// undraw focus for selected item in list with focus
+	listGC1 = new GC((List) (event.widget));
+	listGC1.drawFocus(origFocus.x, selRect.y, origFocus.width, selRect.height);
+	listGC1.dispose();
+	popupGC.drawFocus(selRect.x + 1, selRect.y, selRect.width - 2, selRect.height);
+	for (int i = 0; i < lists.length; i++)	{
+		GC listGC = new GC(lists[i]);
+		listGC.drawFocus(selRect.x - 50, selRect.y, selRect.width, selRect.height);
+		listGC.dispose();
+	}
 	
-	Rectangle lowerRect = new Rectangle(pt.x, pt.y + vOffset + 1 + itemHeight, popupRect.width, popupRect.height);
-	popupGC.setBackground(lists[0].getBackground());
-//	popupGC.fillRectangle(lowerRect);
+	focusItem = itemInList;
 }
 /**
  * Draws the selection for the selected line specified by the param item: paint in popup
@@ -1889,10 +1925,15 @@ void listEvent(Event event) {
 					lists[1].setSelection(itemSel2);
 					lists[2].setSelection(itemSel2);
 					lists[3].setSelection(itemSel2);
+					// currListFocus
+					//drawSelection(((List) (event.widget)).getSelectionIndex());
+					drawSelection(lists[0].getSelectionIndex());
+					focusItem = -1;
+					drawFocus(event, lists[0].getSelectionIndex());
 				} else {
-					drawFocus(itemSel2);
-					long endTime = System.nanoTime() + 1 * 1000 * 1000 * 1000;
-					while (endTime > System.nanoTime()) {}
+					drawFocus(event, itemSel2);
+					//long endTime = System.nanoTime() + 1 * 1000 * 1000 * 1000;
+					//while (endTime > System.nanoTime()) {}
 					System.out.println("outside");
 					event.doit = false;
 				}
@@ -1925,9 +1966,12 @@ void listEvent(Event event) {
 						lists[i].setSelection(newSelection);
 					}
 				}
+				// currListFocus
+				//drawSelection(((List) (event.widget)).getSelectionIndex());
+				drawSelection(lists[0].getSelectionIndex());
+				focusItem = -1;
+				drawFocus(event, lists[0].getSelectionIndex());
 			}
-			// currListFocus
-			drawSelection(((List) (event.widget)).getSelectionIndex());
 			
 			int currTopIx = ((List) (event.widget)).getTopIndex();
 			// synchronizing topItems
@@ -2091,6 +2135,9 @@ protected void listMouseTracker()	{
 }
 void popupEvent(Event event) {
 	switch(event.type) {
+		case SWT.MouseMove:
+			listEvent(event);
+			break;
 		case SWT.MouseDown:
 			System.out.println("popup MouseDown");
 			break;
