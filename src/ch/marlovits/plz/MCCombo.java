@@ -34,9 +34,9 @@ import org.eclipse.swt.accessibility.AccessibleAdapter;
 import org.eclipse.swt.accessibility.AccessibleControlAdapter;
 import org.eclipse.swt.accessibility.AccessibleControlEvent;
 import org.eclipse.swt.accessibility.AccessibleEvent;
-import org.eclipse.swt.events.DragDetectEvent;
-import org.eclipse.swt.events.DragDetectListener;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
@@ -80,6 +80,7 @@ public class MCCombo extends Composite {
 	                                          // must be fields from showFields
 	private MCComboDataProvider dataProviderClass;
 	boolean isTrackingTable = false;
+	TestListener tempMouseListener = new TestListener();
 	
 	// test caller
 	public void callDataProvider()	{
@@ -138,7 +139,8 @@ public class MCCombo extends Composite {
 		text = new Text(this, textStyle);
 		
 		// die Shell erstellen, in welcher die Liste/Tabelle erstellt wird **********
-		popup = new Shell(getShell(), SWT.NO_TRIM);
+		//popup = new Shell(getShell(), SWT.NO_TRIM);
+		popup = new Shell(getShell(), SWT.NO_TRIM | SWT.TOOL);
 		
 		int listStyle = SWT.SINGLE | SWT.V_SCROLL | SWT.FULL_SELECTION;
 		
@@ -208,17 +210,7 @@ public class MCCombo extends Composite {
 //		int [] tableViewerEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit};
 //		for (int i=0; i<tableViewerEvents.length; i++) table.getColumn(0).addListener(tableViewerEvents [i], listener);
 		
-		table.addDragDetectListener(new TableDragDetectListener());
-		table.setDragDetect(true);
-		
 		initAccessible();
-	}
-	class TableDragDetectListener implements DragDetectListener	{
-		@Override
-		public void dragDetected(DragDetectEvent e) {
-			// TODO Auto-generated method stub
-			System.out.println("Drag detected for list");
-		}
 	}
 /*
 	void columnEvent(Event event) {
@@ -412,6 +404,17 @@ public class MCCombo extends Composite {
 		Point comboSize = getSize();
 		Display desktop = getDisplay();
 		
+		
+		
+		table.setHeaderVisible(true);
+		table.setToolTipText("ToolTipText");
+		table.getColumn(0).setAlignment(SWT.RIGHT);
+		table.getColumn(1).setAlignment(SWT.RIGHT);
+		table.getColumn(2).setAlignment(SWT.RIGHT);
+		
+		
+		
+		
 		// recalc optimized column sizes
 		resizeColums();
 		
@@ -429,15 +432,15 @@ public class MCCombo extends Composite {
 		pt = text.toDisplay(pt);
 		pt.y = pt.y + text.getBounds().height + 2 * text.getBorderWidth();
 		pt.x = pt.x +                         + 2 * text.getBorderWidth();
-		int verticalSpace = desktop.getClientArea().height - pt.y - 4;
+		int headerHeight = table.getHeaderHeight();
+		int verticalSpace = desktop.getClientArea().height - headerHeight - pt.y - 4;
 		if (tableSize.y > verticalSpace)	{
 			if (System.getProperties().getProperty("os.name").equals("Windows XP")){ 
-				tableSize.y = (int)((verticalSpace / table.getItemHeight()) - 2) * table.getItemHeight(); 
-			} else { 
-				tableSize.y = (int)(verticalSpace / table.getItemHeight()) * table.getItemHeight(); 
+				tableSize.y = (int)((verticalSpace / table.getItemHeight()) - 2) * table.getItemHeight() + headerHeight;
+			} else {
+				tableSize.y = (int)(verticalSpace / table.getItemHeight()) * table.getItemHeight() + headerHeight;
 			}
 		}
-		
 		// correct horizontal table position: hSize remains, we just move the popup to the left
 		int horizontalSpace = desktop.getClientArea().width  - tableSize.x - 2;
 		if (pt.x > horizontalSpace)	{
@@ -652,6 +655,11 @@ public class MCCombo extends Composite {
 		}
 		return true;
 	}
+	class TestListener implements MouseMoveListener	{
+		public void mouseMove(MouseEvent e) {
+			System.out.println("testListener: mouseMove");
+		}
+	}
 	void listEvent(Event event) {
 		//System.out.println("listEvent called");
 		switch(event.type) {
@@ -668,35 +676,48 @@ public class MCCombo extends Composite {
 			break;
 		case SWT.MouseDown:
 			text.setFocus();
-			System.out.println("List: MouseDown");
 			isTrackingTable = true;
+			Display desktop = getDisplay();
+			desktop.addListener(SWT.MouseMove, (Listener) tempMouseListener);
 			break;
+		case SWT.MouseUp: {
+			if (event.button != 1) return;
+			dropDown(false);
+			Event e = new Event();
+			e.time = event.time;
+			notifyListeners(SWT.DefaultSelection, e);
+			isTrackingTable = false;
+			desktop = getDisplay();
+			desktop.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
+			break;
+		}
 		case SWT.MouseMove: {
 			int itemHeight = table.getItemHeight();
 			if (isTrackingTable == false)	{
-				table.setCapture(true);
+				//table.setCapture(true);
 				System.out.println("List: MouseMove");
-				int itemSel = event.y / itemHeight;
+				int itemSel = (event.y - table.getHeaderHeight()) / itemHeight;
 				//System.out.println("itemSel: " + itemSel);
 				int newSelection = table.getTopIndex() + itemSel;
 				int currSel = table.getSelectionIndex();
+				// windows behaviour
 				if (currSel != newSelection)	{
 					table.setSelection(newSelection);
 				}
 			} else {
+				table.setCapture(true);
 				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
-				System.out.println("_mousePos: " + MouseInfo.getPointerInfo().getLocation());
 				pt = table.toControl(pt);
-				System.out.println("_mousePos: " + pt);
-				
-				int itemSel = pt.y / itemHeight;
+				int itemSel = (pt.y - table.getHeaderHeight()) / itemHeight;
 				//System.out.println("itemSel: " + itemSel);
 				int newSelection = table.getTopIndex() + itemSel;
 				int currSel = table.getSelectionIndex();
-				if (currSel != newSelection)	{
-					table.setSelection(newSelection);
-				}
-				//MouseInfo mi = Greenfoot.getMouseInfo();
+				Rectangle bounds = popup.getBounds();
+				//if (bounds.contains(pt))	{
+					if (currSel != newSelection)	{
+						table.setSelection(newSelection);
+					}
+				//}
 			}
 		}
 		case SWT.FocusIn: {
@@ -722,16 +743,6 @@ public class MCCombo extends Composite {
 					}
 				});
 				System.out.println("listEvent FocusOut");
-				break;
-			}
-			case SWT.MouseUp: {
-				if (event.button != 1) return;
-				dropDown(false);
-				Event e = new Event();
-				e.time = event.time;
-				notifyListeners(SWT.DefaultSelection, e);
-				isTrackingTable = false;
-				table.setCapture(false);
 				break;
 			}
 			case SWT.Selection: {

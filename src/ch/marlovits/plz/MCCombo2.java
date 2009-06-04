@@ -1088,7 +1088,6 @@ void dropDown(boolean drop) {
 	if (!drop) {
 		popup.setVisible(false);
 		if (!isDisposed() && isFocusControl()) {
-			text.setFocus();
 		}
 		return;
 	}

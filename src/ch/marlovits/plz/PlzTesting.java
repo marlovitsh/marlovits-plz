@@ -514,13 +514,13 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 				setToolTipText("Testing Methods");
 			}			
 			public void run(){
-				System.out.println("SWT.Drag: " + SWT.DRAG);
-				System.out.println("SWT.KeyDown: " + SWT.KeyDown);
+				//System.out.println("SWT.Drag: " + SWT.DRAG);
+				//System.out.println("SWT.KeyDown: " + SWT.KeyDown);
 				
-				if (1==0) {
+				if (1==1) {
 				int dayDiff;
-				GregorianCalendar gc1 = new GregorianCalendar( 2002, Calendar.OCTOBER, 6);
-				GregorianCalendar gc2 = new GregorianCalendar( 2009, Calendar.MAY, 23);
+				GregorianCalendar gc1 = new GregorianCalendar( 2005, Calendar.MAY, 21);
+				GregorianCalendar gc2 = new GregorianCalendar( 2009, Calendar.JUNE, 6);
 
 				dayDiff = (int)((gc1.getTimeInMillis() - gc2.getTimeInMillis()) / (24*60*60*1000));
 				System.out.println("dayDiff: " + dayDiff);
