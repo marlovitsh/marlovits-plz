@@ -653,6 +653,7 @@ public class MCCombo extends Composite {
 			    return false;
 			}
 		}
+		if (1==0) return true;
 		return true;
 	}
 	class TestListener implements MouseMoveListener	{
