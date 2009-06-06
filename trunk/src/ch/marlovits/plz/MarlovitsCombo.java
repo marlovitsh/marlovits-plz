@@ -22,6 +22,8 @@
 package ch.marlovits.plz;
 
 
+import java.awt.MouseInfo;
+
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
@@ -33,6 +35,8 @@ import org.eclipse.swt.accessibility.AccessibleEvent;
 import org.eclipse.swt.accessibility.AccessibleTextAdapter;
 import org.eclipse.swt.accessibility.AccessibleTextEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.MouseMoveListener;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.VerifyListener;
@@ -57,6 +61,8 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
+
+import ch.marlovits.plz.MCCombo.TestListener;
 
 /**
  * The CCombo class represents a selectable user interface object
@@ -115,7 +121,9 @@ public final class MarlovitsCombo extends Composite {
 	
 	private TableViewer	tableViewer;
 	private Table		table;
-
+	TestListener tempMouseListener = new TestListener();
+	boolean		isTrackingTable;
+	
 /**
  * Constructs a new instance of this class given its parent
  * and a style value describing its behavior and appearance.
@@ -148,6 +156,14 @@ public final class MarlovitsCombo extends Composite {
  * new methods for this new Composite
  * START
  *******************************************************************************/
+	class TestListener implements MouseMoveListener	{
+		public void mouseMove(MouseEvent e) {
+			System.out.println("testListener: mouseMove");
+		}
+	}
+public Table getTable()	{
+	return table;
+}
 public void setDrawDividerLines(final boolean doDrawDividerLines)	{
 	drawDividerLines = doDrawDividerLines;
 }
@@ -205,26 +221,32 @@ public MarlovitsCombo(Composite parent, int style) {
 	listener = new Listener() {
 		public void handleEvent(Event event) {
 			if (popup == event.widget) {
+				System.out.println("popup == event.widget");
 				popupEvent(event);
 				return;
 			}
 			if (text == event.widget) {
+				System.out.println("text == event.widget");
 				textEvent(event);
 				return;
 			}
-			if (table != null){
+			if (table == event.widget){
+				System.out.println("table == event.widget");
 				tableEvent(event);
 				return;
 			}
 			if (arrow == event.widget) {
+				System.out.println("arrow == event.widget");
 				arrowEvent(event);
 				return;
 			}
 			if (MarlovitsCombo.this == event.widget) {
+				System.out.println("MarlovitsCombo.this == event.widget");
 				comboEvent(event);
 				return;
 			}
 			if (getShell() == event.widget) {
+				System.out.println("getShell() == event.widget");
 				getDisplay().asyncExec(new Runnable() {
 					public void run() {
 						if (isDisposed()) return;
@@ -236,6 +258,7 @@ public MarlovitsCombo(Composite parent, int style) {
 	};
 	filter = new Listener() {
 		public void handleEvent(Event event) {
+			System.out.println("handleEvent");
 			Shell shell = ((Control)event.widget).getShell();
 			if (shell == MarlovitsCombo.this.getShell()) {
 				handleFocus(SWT.FocusOut);
@@ -244,19 +267,23 @@ public MarlovitsCombo(Composite parent, int style) {
 	};
 	
 	int [] comboEvents = {SWT.Dispose, SWT.FocusIn, SWT.Move, SWT.Resize};
-	for (int i=0; i<comboEvents.length; i++) this.addListener(comboEvents [i], listener);
+	for (int i = 0; i < comboEvents.length; i++)	{
+		this.addListener(comboEvents[i], listener);
+	}
 	
 	int [] textEvents = {SWT.DefaultSelection, SWT.KeyDown, SWT.KeyUp, SWT.MenuDetect, SWT.Modify, SWT.MouseDown, SWT.MouseUp, SWT.MouseDoubleClick, SWT.MouseWheel, SWT.Traverse, SWT.FocusIn, SWT.Verify};
-	for (int i=0; i<textEvents.length; i++) text.addListener(textEvents [i], listener);
+	for (int i = 0; i < textEvents.length; i++)	{
+		text.addListener(textEvents[i], listener);
+	}
 	
 	int [] arrowEvents = {SWT.MouseDown, SWT.MouseUp, SWT.Selection, SWT.FocusIn};
-	for (int i=0; i<arrowEvents.length; i++) arrow.addListener(arrowEvents [i], listener);
+	for (int i = 0; i < arrowEvents.length; i++)	{
+		arrow.addListener(arrowEvents[i], listener);
+	}
 	
 	String[][] tmp = null;
 	createPopup(tmp, -1);
 	initAccessible();
-	// ++++++
-	internalLayout(true);
 }
 static int checkStyle (int style) {
 	int mask = SWT.BORDER | SWT.READ_ONLY | SWT.FLAT | SWT.LEFT_TO_RIGHT | SWT.RIGHT_TO_LEFT;
@@ -432,6 +459,7 @@ void arrowEvent(Event event) {
 			mouseEvent.x		 = event.x; mouseEvent.y = event.y;
 			notifyListeners(SWT.MouseDown, mouseEvent);
 			event.doit = mouseEvent.doit;
+			//dropDown(true);
 			break;
 		}
 		case SWT.MouseUp: {
@@ -476,8 +504,8 @@ public void clearSelection() {
 	table.deselectAll();
 }
 // IO +++++
-void comboEvent (Event event) {
-	//System.out.println("comboEvent");
+void comboEvent(Event event) {
+	System.out.println("comboEvent");
 	switch(event.type) {
 		case SWT.Dispose:
 			if (popup != null && !popup.isDisposed ()) {
@@ -653,59 +681,60 @@ void createPopup(String[][] items, int selectionIndex) {
 	table.setLinesVisible(false);
 	
 	// count rows and items
-	if (items == null)	{
-		return;  // 
-	}
-	int numOfRows    = items.length;
-	if (numOfRows == 0) return;
-	int numOfColumns = items[0].length;
-	
-	// delete unused columns
-	int currColumnCount = table.getColumnCount();
-	if (numOfColumns < currColumnCount)	{
-		for (int i = numOfColumns; i < currColumnCount; i++)	{
-			table.getColumns()[i].dispose();
+	if (items != null)	{
+		int numOfRows    = items.length;
+		if (numOfRows == 0) return;
+		int numOfColumns = items[0].length;
+		
+		// delete unused columns
+		int currColumnCount = table.getColumnCount();
+		if (numOfColumns < currColumnCount)	{
+			for (int i = numOfColumns; i < currColumnCount; i++)	{
+				table.getColumns()[i].dispose();
+			}
 		}
-	}
-	
-	// create additional columns if necessary
-	for (int colIx = 0; colIx < numOfColumns; colIx++)	{
-		// detect or create column
-		TableColumn currColumn = null;
-		if (colIx < currColumnCount){
-			currColumn = table.getColumns()[colIx];
-		} else {
-			currColumn = new TableColumn(table, SWT.NULL);
+		
+		// create additional columns if necessary
+		for (int colIx = 0; colIx < numOfColumns; colIx++)	{
+			// detect or create column
+			TableColumn currColumn = null;
+			if (colIx < currColumnCount){
+				currColumn = table.getColumns()[colIx];
+			} else {
+				currColumn = new TableColumn(table, SWT.NULL);
+			}
 		}
+		
+		// set items *************************************************************
+		// no flickering when redrawing for XP
+		popup.setRedraw(false);
+		
+		// insert data into table
+		for (int rowIx = 0; rowIx < numOfRows; rowIx++)	{
+			TableItem tableItem = new TableItem(table, SWT.NULL);
+			tableItem.setText(items[rowIx]);
+		}
+		
+		// optimize size of the columns
+		for (int colIx = 0; colIx < numOfColumns; colIx++)	{
+			table.getColumn(colIx).setWidth(1000);   // bug workaround for Windows XP which makes colums smaller but not bigger in pack()
+			table.getColumn(colIx).pack();
+		}
+		
+		// no flickering when redrawing for XP
+		popup.setRedraw(true);
 	}
 	
-	// set items *************************************************************
-	// no flickering when redrawing for XP
-	popup.setRedraw(false);
-	
-	// insert data into table
-	for (int rowIx = 0; rowIx < numOfRows; rowIx++)	{
-		TableItem tableItem = new TableItem(table, SWT.NULL);
-		tableItem.setText(items[rowIx]);
+	// (re)install event listeners
+	int [] tableEvents = {SWT.MouseMove, SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit, SWT.MouseEnter};
+	for (int i = 0; i < tableEvents.length; i++)	{
+		table.addListener(tableEvents[i], listener);
 	}
-	
-	// optimize size of the columns
-	for (int colIx = 0; colIx < numOfColumns; colIx++)	{
-		table.getColumn(colIx).setWidth(1000);   // bug workaround for Windows XP which makes colums smaller but not bigger in pack()
-		table.getColumn(colIx).pack();
-	}
-	
-	// no flickering when redrawing for XP
-	popup.setRedraw(true);
-	
-	// TODO GUT HIER???  START
-	int [] listEvents = {SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit, SWT.MouseEnter};
-	for (int i=0; i<listEvents.length; i++) table.addListener(listEvents [i], listener);
 	
 	int [] popupEvents = {SWT.Close, SWT.Paint, SWT.Deactivate, SWT.MouseDown, SWT.MouseMove};
-	for (int i=0; i<popupEvents.length; i++) popup.addListener(popupEvents [i], listener);
-	// TODO GUT HIER???  END
-	
+	for (int i = 0; i < popupEvents.length; i++)	{
+		popup.addListener(popupEvents[i], listener);
+	}
 }
 
 /**
@@ -870,11 +899,16 @@ void dropDown(boolean drop) {
 	table.setBounds(1, 1, tableSize.x, tableSize.y);
 	popup.setBounds(rect.x, rect.y + comboSize.y, tableSize.x + 2, tableSize.y + 2);
 
+	
+	table.getColumn(0).setAlignment(SWT.RIGHT);
+	table.getColumn(0).setAlignment(SWT.RIGHT_TO_LEFT);
+
+	
 	// make visible
 	popup.setVisible(true);
 	
 	// donno if I should or not... +++++
-	if (isFocusControl()) table.setFocus();
+	//if (isFocusControl()) table.setFocus();
 }
 /*
  * Return the lowercase of the first non-'&' character following
@@ -1417,7 +1451,7 @@ void internalLayout(boolean changed) {
 	int height = rect.height;
 	Point arrowSize = arrow.computeSize(SWT.DEFAULT, height, changed);
 	text.setBounds(0, 0, width - arrowSize.x, height);
-	arrow.setBounds(width - arrowSize.x, 0, arrowSize.x, arrowSize.y);
+	arrow.setBounds(width - arrowSize.x, 0, arrowSize.x, 17/*arrowSize.y*/);
 }
 /**
  * Draws a focus rect around the selected line specified by the param item
@@ -1546,8 +1580,37 @@ void drawSelection(int item)	{
 //DONE +++++ LIST
 void tableEvent(Event event) {
 //	dropDown(false);
+	System.out.println("tableEvent");
 	switch(event.type) {
-		case SWT.MouseMove:
+	case SWT.MouseMove: {
+		int itemHeight = table.getItemHeight();
+		if (isTrackingTable == false)	{
+			//table.setCapture(true);
+			System.out.println("List: MouseMove");
+			int itemSel = (event.y - table.getHeaderHeight()) / itemHeight;
+			//System.out.println("itemSel: " + itemSel);
+			int newSelection = table.getTopIndex() + itemSel;
+			int currSel = table.getSelectionIndex();
+			// windows behaviour
+			if (currSel != newSelection)	{
+				table.setSelection(newSelection);
+			}
+		} else {
+			table.setCapture(true);
+			Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
+			pt = table.toControl(pt);
+			int itemSel = (pt.y - table.getHeaderHeight()) / itemHeight;
+			//System.out.println("itemSel: " + itemSel);
+			int newSelection = table.getTopIndex() + itemSel;
+			int currSel = table.getSelectionIndex();
+			Rectangle bounds = popup.getBounds();
+			//if (bounds.contains(pt))	{
+				if (currSel != newSelection)	{
+					table.setSelection(newSelection);
+				}
+			//}
+		}
+	}
 /*			if (mouseIsDownInList == true)	{
 				Rectangle bounds = popup.getBounds();
 				Point globalPt = ((List) (event.widget)).toDisplay(new Point(event.x, event.y));
@@ -1645,6 +1708,13 @@ void tableEvent(Event event) {
 			if (event.button != 1) return;
 			dropDown(false);
 			mouseIsDownInList = false;
+
+			Display desktop = getDisplay();
+//			cmp = this;
+//			while ((cmp = cmp.getParent()) != null)	{
+//				cmp.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
+//			}
+			desktop.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
 			break;
 		}
 		case SWT.Selection: {
@@ -1708,6 +1778,17 @@ void tableEvent(Event event) {
 			notifyListeners(SWT.MouseDown, e);
 			event.doit = e.doit;
 			mouseIsDownInList = true;
+
+			
+			isTrackingTable = true;
+			Display desktop = getDisplay();
+			table.setCapture(true);
+//			Composite cmp = this;
+//			while ((cmp = cmp.getParent()) != null)	{
+//				cmp.addListener(SWT.MouseMove, (Listener) tempMouseListener);
+//			}
+			desktop.addListener(SWT.MouseMove, (Listener) tempMouseListener);
+
 			break;
 		}
 		case SWT.KeyDown: {
@@ -2480,6 +2561,7 @@ void textEvent(Event event) {
 			if (!event.doit) break;
 			if (event.button != 1) return;
 			if (text.getEditable()) return;
+			isTrackingTable = false;
 			text.selectAll();
 			break;
 		}
