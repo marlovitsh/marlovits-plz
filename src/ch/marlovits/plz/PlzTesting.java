@@ -157,7 +157,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		myCCombo.setItems(itemss);
 		
 		// Another possibility
-		// NO: THIS SEEMS TO BE THE SOLUTION !!!
+		// NO: THIS SEEMS TO BE THE SOLUTION !!! Nö - doch nicht...
 		MCCombo2 mCCombo2 = new MCCombo2(top, SWT.BORDER | SWT.READ_ONLY);
 		String[][] items2 = dataProviderForMCCombo2("c");
 		mCCombo2.setItems(items2);
@@ -165,6 +165,11 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		//mCCombo2.setDrawDividerLines(false);
 		//mCCombo2.setColumnSpacing(20);
 		//mCCombo2.setColumnLeftMargin(0);
+		
+		MarlovitsCombo marloCombo = new MarlovitsCombo(top, SWT.BORDER);
+		String[][] marlovitsItems = dataProviderForMarlovitsCombo("c");
+		marloCombo.setItems(marlovitsItems);
+		marloCombo.dropDown(true);
 		}
 	
 	/**
@@ -695,6 +700,66 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		}
 		return plzStrings;
 		}
+	public String[][] dataProviderForMarlovitsCombo(final String startOfString) {
+		String[][] plzStrings = null;
+		
+		// wenn Feld leer, dann keine Auswahl anzeigen
+		if (StringTool.isNothing(startOfString))	{
+			return plzStrings;
+		}
+		
+		String[] queryFields = {"ort27", "kanton", "plz", "land"};
+		String[] sortFields = {"land", "ort27", "kanton", "plz"};
+		String queryFieldsString  = stringArrayToString(queryFields,  ",");
+		String sortFieldsString  = stringArrayToString(sortFields,  ",");
+		
+		// Anzahl anzuzeigender=abzufragender Felder ist in showFields definiert
+		int numOfFields = sortFields.length;
+		
+		// alle passenden Einträge aus der Datenbank auslesen
+		// Datenbank anzapfen - oozapft is...
+		Stm stm = PersistentObject.getConnection().getStatement();
+		
+		// Anzahl Einträge ermitteln, die passen
+		int numOfEntries = 0;
+		// wenn kein Land ausgewählt ist, dann via sql ALLE Länder abfragen
+		String landStr = "CH";
+		String landClause = " lower(land) = lower(" + JdbcLink.wrap(landStr) + ") "; 
+		ResultSet rs = stm.query("select count(*) as cnt from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(startOfString + "%") + ") and plztyp != 80");
+		try {
+			rs.next();
+			numOfEntries = Integer.decode(rs.getString("cnt"));
+			rs.close();
+		} catch (SQLException exc) {
+			System.out.println("SQLException 1 in OrtMCComboDataProvider:");
+			exc.printStackTrace();
+		}
+		// Die einzelnen Einträge abfragen und in einen String-Array und dann in die Liste schreiben
+		if (numOfEntries > 0)	{
+			rs = stm.query("select " + queryFieldsString + " from " + PlzEintrag.getTableName2() + " where " + landClause + " and lower(ort27) like lower(" + JdbcLink.wrap(startOfString + "%") + ")  and plztyp != 80 order by " + sortFieldsString);
+			//plzStrings = new String[numOfFields][numOfEntries];
+			//int iii = 0;
+			plzStrings = recordSetToStringArray2(rs, new int[] {0, 1, 2, 3});
+//				rs.next();
+//				for (int ii = 0; ii < numOfFields; ii++)	{
+//					//Array columnArray = rs.getArray(ii + 1);
+//					String[] columnStrings = recordSetToStringArray(rs, ii + 1);
+//					//String[] columnStrings = (String[])columnArray.getArray(0, numOfEntries);
+//					//String[] columnStrings = columnArray.getArray(Map<String, Class<String>>);
+//					plzStrings[ii] = columnStrings;
+//				}
+//				while (rs.next())	{
+//					String[] rowData = new String[numOfFields];
+//					for (int showFieldsIx = 0; showFieldsIx < numOfFields; showFieldsIx++)	{
+//						rowData[showFieldsIx] = rs.getString(showFieldsIx+1);
+//					}
+//					plzStrings[iii] = rowData;
+//					iii++;
+			int i = 1;
+//				}
+		}
+		return plzStrings;
+		}
 @SuppressWarnings({ "unchecked", "null"})
 public static String[][] recordSetToStringArray(ResultSet rs, int[] columnIndexes/* 1-based*/)	{
 	int numOfColumns = columnIndexes.length;
@@ -716,6 +781,30 @@ public static String[][] recordSetToStringArray(ResultSet rs, int[] columnIndexe
 	for (int colIx = 0; colIx < numOfColumns; colIx++){
 		for (int rowIx = 0; rowIx < numOfEntries; rowIx++){
 			strArray[colIx][rowIx] = (String) linkedList[colIx].get(rowIx);
+		}
+	}
+	return strArray;
+	}
+public static String[][] recordSetToStringArray2(ResultSet rs, int[] columnIndexes/* 1-based*/)	{
+	int numOfColumns = columnIndexes.length;
+	LinkedList[] linkedList = new LinkedList[numOfColumns];
+	for (int i = 0; i < numOfColumns; i++){
+		linkedList[i] = new LinkedList();
+	}
+	try {
+		while (rs.next())	{
+			for (int i = 0; i < numOfColumns; i++){
+				linkedList[i].add(rs.getString(columnIndexes[i] + 1));
+			}
+		}
+	} catch (SQLException e) {
+		e.printStackTrace();
+	}
+	int numOfEntries = linkedList[0].size();
+	String[][] strArray = new String[numOfEntries][numOfColumns];
+	for (int colIx = 0; colIx < numOfColumns; colIx++){
+		for (int rowIx = 0; rowIx < numOfEntries; rowIx++){
+			strArray[rowIx][colIx] = (String) linkedList[colIx].get(rowIx);
 		}
 	}
 	return strArray;

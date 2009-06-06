@@ -679,6 +679,11 @@ public class MCCombo extends Composite {
 			text.setFocus();
 			isTrackingTable = true;
 			Display desktop = getDisplay();
+			table.setCapture(true);
+//			Composite cmp = this;
+//			while ((cmp = cmp.getParent()) != null)	{
+//				cmp.addListener(SWT.MouseMove, (Listener) tempMouseListener);
+//			}
 			desktop.addListener(SWT.MouseMove, (Listener) tempMouseListener);
 			break;
 		case SWT.MouseUp: {
@@ -689,6 +694,10 @@ public class MCCombo extends Composite {
 			notifyListeners(SWT.DefaultSelection, e);
 			isTrackingTable = false;
 			desktop = getDisplay();
+//			cmp = this;
+//			while ((cmp = cmp.getParent()) != null)	{
+//				cmp.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
+//			}
 			desktop.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
 			break;
 		}
