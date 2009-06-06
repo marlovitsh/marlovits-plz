@@ -22,6 +22,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -112,32 +113,32 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		String landIso2 = landIso2Field.getText();
 		
 		// *** PLZ MCCombo
-		plzMCCombo = new MCCombo(top, SWT.BORDER);
-		plzMCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		String[] plzShowField = null;
-		Object[] plzReturnFields = null;
-		if (StringTool.isNothing(landIso2))	{
-			plzShowField = new String[] {"plz", "ort27", "kanton", "land"};
-			plzReturnFields = new Object[] {plzMCCombo, ortMCCombo, null, landIso2Field};
-		} else {
-			plzShowField = new String[] {"plz", "ort27", "kanton"};
-			plzReturnFields = new Object[] {plzMCCombo, ortMCCombo, null};
-		}
-		plzMCCombo.setShowFields(plzShowField);
-		plzMCCombo.setSortFields(plzShowField);
-		plzMCCombo.setReturnFields(plzReturnFields);
+//		plzMCCombo = new MCCombo(top, SWT.BORDER);
+//		plzMCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+//		String[] plzShowField = null;
+//		Object[] plzReturnFields = null;
+//		if (StringTool.isNothing(landIso2))	{
+//			plzShowField = new String[] {"plz", "ort27", "kanton", "land"};
+//			plzReturnFields = new Object[] {plzMCCombo, ortMCCombo, null, landIso2Field};
+//		} else {
+//			plzShowField = new String[] {"plz", "ort27", "kanton"};
+//			plzReturnFields = new Object[] {plzMCCombo, ortMCCombo, null};
+//		}
+//		plzMCCombo.setShowFields(plzShowField);
+//		plzMCCombo.setSortFields(plzShowField);
+//		plzMCCombo.setReturnFields(plzReturnFields);
 		
 		// Ort Label  *************************************
-		new Label(top, SWT.NONE).setText("Ort");
+//		new Label(top, SWT.NONE).setText("Ort");
 		
 		// *** Ort MCCombo
-		ortMCCombo = new MCCombo(top, SWT.BORDER);
-		ortMCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		String[] ortShowField = {"ort27", "kanton", "plz", "land"};
-		ortMCCombo.setShowFields(ortShowField);
-		ortMCCombo.setSortFields(ortShowField);
-		Object[] ortReturnFields = {ortMCCombo, null, plzMCCombo, landIso2Field};
-		ortMCCombo.setReturnFields(ortReturnFields);
+//		ortMCCombo = new MCCombo(top, SWT.BORDER);
+//		ortMCCombo.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
+//		String[] ortShowField = {"ort27", "kanton", "plz", "land"};
+//		ortMCCombo.setShowFields(ortShowField);
+//		ortMCCombo.setSortFields(ortShowField);
+//		Object[] ortReturnFields = {ortMCCombo, null, plzMCCombo, landIso2Field};
+//		ortMCCombo.setReturnFields(ortReturnFields);
 		
 		// Erstellen der Actions für die Menus, etc
 		makeActions();
@@ -147,10 +148,10 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		menu.createMenu(testingAction, importCountriesAction, null, importNamesAction, importTabDelimitedAction);
 		
 		// *** alle Listener, etc. intallieren
-		cbLandCombo.addModifyListener(landModifyListener);
-		plzMCCombo.installDataProvider(new PlzMCComboDataProvider());
-		ortMCCombo.installDataProvider(new OrtMCComboDataProvider());		
-		cbLandCombo.addControlListener(new landComboControlListener());
+//		cbLandCombo.addModifyListener(landModifyListener);
+//		plzMCCombo.installDataProvider(new PlzMCComboDataProvider());
+//		ortMCCombo.installDataProvider(new OrtMCComboDataProvider());		
+//		cbLandCombo.addControlListener(new landComboControlListener());
 		
 		CCombo myCCombo = new CCombo(top, SWT.BORDER);
 		String[] itemss = {"item1", "item2", "item3", "item4", "item5", "item6", "item7", "item8", "item9", "item10"};
@@ -169,7 +170,10 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		MarlovitsCombo marloCombo = new MarlovitsCombo(top, SWT.BORDER);
 		String[][] marlovitsItems = dataProviderForMarlovitsCombo("c");
 		marloCombo.setItems(marlovitsItems);
-		marloCombo.dropDown(true);
+		//marloCombo.dropDown(true);
+		Table table = marloCombo.getTable();
+		table.getColumn(0).setAlignment(SWT.RIGHT);
+		table.getColumn(0).setAlignment(SWT.RIGHT_TO_LEFT);
 		}
 	
 	/**
