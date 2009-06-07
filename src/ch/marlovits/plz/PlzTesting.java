@@ -167,7 +167,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		//mCCombo2.setColumnSpacing(20);
 		//mCCombo2.setColumnLeftMargin(0);
 		
-		MarlovitsCombo marloCombo = new MarlovitsCombo(top, SWT.BORDER);
+		MarlovitsCombo marloCombo = new MarlovitsCombo(top, SWT.BORDER | SWT.READ_ONLY);
 		String[][] marlovitsItems = dataProviderForMarlovitsCombo("c");
 		marloCombo.setItems(marlovitsItems);
 		//marloCombo.dropDown(true);

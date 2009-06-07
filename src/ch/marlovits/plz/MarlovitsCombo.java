@@ -314,6 +314,7 @@ public void add(String[] strings) {
 	
 	// setting items
 	if (strings == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
+	TableItem tableItem = table.getItem(index)
 	for (int i = 0; i < lists.length; i++)	{
 		lists[i].add(strings[i]);
 	}
@@ -1592,9 +1593,9 @@ void tableEvent(Event event) {
 			int newSelection = table.getTopIndex() + itemSel;
 			int currSel = table.getSelectionIndex();
 			// windows behaviour
-			if (currSel != newSelection)	{
-				table.setSelection(newSelection);
-			}
+			//if (currSel != newSelection)	{
+			//	table.setSelection(newSelection);
+			//}
 		} else {
 			table.setCapture(true);
 			Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
@@ -1604,11 +1605,11 @@ void tableEvent(Event event) {
 			int newSelection = table.getTopIndex() + itemSel;
 			int currSel = table.getSelectionIndex();
 			Rectangle bounds = popup.getBounds();
-			//if (bounds.contains(pt))	{
+			if (bounds.contains(pt))	{
 				if (currSel != newSelection)	{
 					table.setSelection(newSelection);
 				}
-			//}
+			}
 		}
 	}
 /*			if (mouseIsDownInList == true)	{
@@ -1819,6 +1820,10 @@ void tableEvent(Event event) {
 			notifyListeners(SWT.KeyDown, e);
 			break;
 		}
+	}
+	if (event.type != SWT.MouseMove)	{
+		isTrackingTable = false;
+		table.setCapture(false);
 	}
 }
 /**
