@@ -17,12 +17,14 @@ import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.ISaveablePart2;
 import org.eclipse.ui.part.ViewPart;
@@ -59,6 +61,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 	private Action			importNamesAction;
 	private Action			importCountriesAction;
 	private Action			importTabDelimitedAction;
+	MarlovitsCombo marloCombo;
 	
 	// constructor
 	public PlzTesting() {
@@ -167,15 +170,46 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		//mCCombo2.setColumnSpacing(20);
 		//mCCombo2.setColumnLeftMargin(0);
 		
-		MarlovitsCombo marloCombo = new MarlovitsCombo(top, SWT.BORDER | SWT.READ_ONLY);
+		marloCombo = new MarlovitsCombo(top, SWT.BORDER | SWT.READ_ONLY);
 		String[][] marlovitsItems = dataProviderForMarlovitsCombo("c");
-		marloCombo.setItems(marlovitsItems);
-		//marloCombo.dropDown(true);
-		Table table = marloCombo.getTable();
-		table.getColumn(0).setAlignment(SWT.RIGHT);
-		table.getColumn(0).setAlignment(SWT.RIGHT_TO_LEFT);
+		//marloCombo.setItems(marlovitsItems);
+		
+		Button button = new Button(top, SWT.NONE);
+		button.setText("Testing");
+		button.addSelectionListener(new ButtonListener());
 		}
 	
+	class ButtonListener implements SelectionListener	{
+		@Override
+		public void widgetDefaultSelected(SelectionEvent e) {			
+			System.out.println("widet default selected");
+		}
+		@Override
+		public void widgetSelected(SelectionEvent e) {
+			//marloCombo.setBackground(marloCombo.getDisplay().getSystemColor(SWT.COLOR_CYAN));
+			//String[][] items = {{"1", "2", "3", "4", "5"}, {"_1", "_2", "_3", "_4", "_5"}};
+			//marloCombo.setItems(items);
+			int rowNum = marloCombo.getTable().getItemCount() + 1;
+			//String[] rowCells = {rowNum + "1", rowNum + "2", rowNum + "3", rowNum + "4", rowNum + "5"};
+			//String[] rowCells = {rowNum + "1", rowNum + "2", rowNum + "3", rowNum + "4", rowNum + "5", rowNum + "6"};
+			for (rowNum = 1; rowNum < 10; rowNum++)	{
+				String[] rowCells = {"row " + rowNum + "/1", "row " + rowNum + "/2", "row " + rowNum + "/3", "row " + rowNum + "/4"};
+				marloCombo.add(rowCells);
+			}
+			
+			//System.out.println(marloCombo.indexOf(0, "row 9/1"));
+//			String[] strs = marloCombo.getItemStringArray(3);
+//			for (int i = 0; i < strs.length; i++)	{
+//				System.out.println(strs[i]);
+//			}
+			//marloCombo.setCell(0, 0, "replaced");
+//			String[] strs = {"repla 1", "asdff 2", ":__sd 3", "aff 4", "55555 4"};
+//			marloCombo.setItem(2, strs);
+
+			String[][] marlovitsItems = dataProviderForMarlovitsCombo("c");
+			marloCombo.setItems(marlovitsItems);
+		}
+	}
 	/**
 	 * Berechnet die Länge der Divider neu und setzt die neuen Dividers
 	 * @author Harry

@@ -95,7 +95,9 @@ enum MARLOVITSCOMBO_DISPLAYLINES   {fixed,	// number of displayed lines as in vi
 	
 }
 public final class MarlovitsCombo extends Composite {
-
+	
+	int			leftMarginOffset = -4;   // +++++ for WindowsXP
+	
 	Text		text;
 	int			visibleItemCount = 5;
 	Shell		popup;
@@ -231,7 +233,7 @@ public MarlovitsCombo(Composite parent, int style) {
 				return;
 			}
 			if (table == event.widget){
-				System.out.println("table == event.widget");
+//				System.out.println("table == event.widget");
 				tableEvent(event);
 				return;
 			}
@@ -304,22 +306,11 @@ static int checkStyle (int style) {
  *
  * @see #add(String,int)
  */
-/*
-// +++++ Data
-public void add(String[] strings) {
-	checkWidget();
-	
-	// dispose of lists/create lists as needed
-	createLists(strings.length);
-	
-	// setting items
-	if (strings == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-	TableItem tableItem = table.getItem(index)
-	for (int i = 0; i < lists.length; i++)	{
-		lists[i].add(strings[i]);
-	}
+//IO +++++
+public void add(String[] rowCells) {
+	int index = table.getItemCount();
+	add(rowCells, index);
 }
-*/
 /**
  * Adds the argument to the receiver's list at the given
  * zero-relative index.
@@ -343,21 +334,37 @@ public void add(String[] strings) {
  *
  * @see #add(String)
  */
-/*
-// +++++ Data
-public void add(String[] strings, int index) {
+//IO +++++
+public void add(String[] rowCells, int index) {
 	checkWidget();
 	
-	// dispose of lists/create lists as needed
-	createLists(strings.length);
+	if (table == null) return;
 	
-	// setting items
-	if (strings == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-	for (int i = 0; i < lists.length; i++)	{
-		lists[i].add(strings[i], index);
+	int itemCount = table.getItemCount();
+	
+	// test for out of range
+	if ((index < 0) || (index > itemCount))	{
+		return;
 	}
+	
+	// if no columns yet created -> create popup
+	int colCount = table.getColumnCount();
+	if (colCount == 0){
+		String[][] tmpStrings = new String[1][1];
+		tmpStrings[0] = rowCells;
+		createPopup(tmpStrings, -1);
+		return;
+	}
+	
+	// if numOfColumns of table < rowCells.length -> not allowed
+	if (table.getColumnCount() < rowCells.length)	{
+		return;
+	}
+	
+	// setting item
+	TableItem tableItem = new TableItem(table, SWT.None, index);
+	tableItem.setText(rowCells);
 }
-*/
 /**
  * Adds the  to the collection of listeners who will
  * be notified when the receiver's text is modified, by sending
@@ -643,15 +650,9 @@ void createLists(int numOfLists)	{
 	}
 }
 */
+// IO +++++
 void createPopup(TableItem[] items, int selectionIndex) {
-	int numOfColumns = items.length;
-	int numOfItems   = 333;
-	String[][] stringItems = new String[numOfColumns][numOfItems];
-	for (int colIx = 0 ; colIx < numOfColumns; colIx++){
-		for (int rowIx = 0 ; rowIx < numOfColumns; rowIx++){
-			stringItems[colIx][rowIx] = items[rowIx].getText(colIx);
-		}
-	}
+	String[][] stringItems = tableItemsToStrings(items);
 	createPopup(stringItems, selectionIndex);
 }
 // IO +++++
@@ -797,19 +798,14 @@ public void deselectAll() {
 }
 // IMPORTED
 protected void resizeColums()	{
-	//////////////////////////////////////////////
-	if (1==0) return;
-	
 	checkWidget();
 	int width = 0;
-	//////////////////////table.setBounds(0, 0, 500, 500);
 	for (int colIx = 0; colIx < table.getColumnCount(); colIx++)	{
 		TableColumn currColumn = table.getColumns()[colIx];
 		currColumn.setResizable(true);
 		currColumn.pack();
 		width = width + currColumn.getWidth();
 	}
-	//table.setSize(width, table.getSize().y);  // wrong: missing scrollbar!
 	table.pack();
 }
 // ALMOST IO  +++++
@@ -897,19 +893,32 @@ void dropDown(boolean drop) {
 	}
 	
 	// set size of table and popup
-	table.setBounds(1, 1, tableSize.x, tableSize.y);
-	popup.setBounds(rect.x, rect.y + comboSize.y, tableSize.x + 2, tableSize.y + 2);
-
+	table.setBounds(leftMarginOffset, 0, tableSize.x, tableSize.y);
 	
-	table.getColumn(0).setAlignment(SWT.RIGHT);
-	table.getColumn(0).setAlignment(SWT.RIGHT_TO_LEFT);
-
+	int sbWidth = 0;
+	if (!table.getVerticalBar().getVisible()){
+		sbWidth = table.getVerticalBar().getSize().x;
+		System.out.println("sbWidth: " + sbWidth);
+	}
+	popup.setBounds(rect.x, rect.y + comboSize.y, tableSize.x + 2 - sbWidth + leftMarginOffset, tableSize.y + 2);
+	
+	// ++++++++++++++++++++ find left margin width of table
+	System.out.println("table.getClientArea(): " + table.getClientArea());
+	System.out.println("table.getBounds(): " + table.getBounds());
+	int fullWidth = table.getBounds().width;
+	int addedColumnWidth = 0;
+	for (int i = 0; i < table.getColumnCount(); i++){
+		addedColumnWidth = addedColumnWidth + table.getColumn(i).getWidth();
+	}
+	System.out.println("fullWidth: " + fullWidth);
+	System.out.println("addedColumnWidth: " + addedColumnWidth);
+	//table.getColumn(0).
 	
 	// make visible
 	popup.setVisible(true);
 	
 	// donno if I should or not... +++++
-	//if (isFocusControl()) table.setFocus();
+	if (isFocusControl()) table.setFocus();
 }
 /*
  * Return the lowercase of the first non-'&' character following
@@ -983,24 +992,42 @@ public boolean getEditable () {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
-/*
-// +++++ Data
-public String getItem(int columnIx, int rowIx) {
+
+// IO +++++
+public String getCell(int columnIx, int rowIx) {
 	checkWidget();
-	return lists[columnIx].getItem(rowIx);
+	if (rowIx < 0) return null;
+	if (columnIx < 0) return null;
+	int numOfRows = table.getItemCount();
+	if (rowIx >= numOfRows) return null;
+	TableItem tableItem = table.getItem(rowIx);
+	if (tableItem == null) return null;
+	int numOfCols = table.getColumnCount();
+	if (columnIx >= numOfCols) return null;
+	return tableItem.getText(columnIx);
 }
-*/
-/*
-// +++++ Data
-public String[] getItem(int rowIx) {
+
+
+// IO +++++
+public TableItem getItem(int rowIx) {
 	checkWidget();
-	String[] tmp = new String[lists.length];
-	for (int i = 0; i < lists.length; i++)	{
-		tmp[i] = lists[i].getItem(rowIx);
+	if (rowIx < 0) return null;
+	if (rowIx >= table.getItemCount()) return null;
+	return table.getItem(rowIx);
+}
+// IO +++++
+public String[] getItemStringArray(int rowIx) {
+	checkWidget();
+	TableItem tableItem = getItem(rowIx);
+	if (tableItem == null) return null;
+	int numOfCols = table.getColumnCount();
+	String[] stringCells = new String[numOfCols];
+	for (int i = 0; i < numOfCols; i++)	{
+		stringCells[i] = tableItem.getText(i);
 	}
-	return tmp;
+	return stringCells;
 }
-*/
+
 /**
  * Returns the number of items contained in the receiver's list.
  *
@@ -1048,31 +1075,30 @@ public int getItemHeight () {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
+//IO +++++
 public TableItem[] getItems()	{
 	checkWidget();
 	return table.getItems();
 }
-/*
-// +++++ Data
-public String[][] getItems () {
-	checkWidget();
-	String[][] items = new String[lists.length][lists[0].getItemCount()];
-	for (int i = 0; i < lists.length; i++)	{
-		System.arraycopy(lists[i].getItems(), 0, items, 0, lists[0].getItemCount());
+// NEW
+public String[][] tableItemsToStrings(TableItem[] tableItems)	{
+	int numOfColumns = tableItems.length;
+	int numOfItems = tableItems[0].getParent().getColumnCount();
+	String[][] stringItems = new String[numOfColumns][numOfItems];
+	for (int colIx = 0 ; colIx < numOfColumns; colIx++){
+		for (int rowIx = 0 ; rowIx < numOfColumns; rowIx++){
+			stringItems[colIx][rowIx] = tableItems[rowIx].getText(colIx);
+		}
 	}
-	return items;
+	return stringItems;
 }
-*/
-/*
-// +++++ Data
-public String[] getItems(int columnIx) {
+// IO +++++
+public String[][] getItemsStringArray() {
 	checkWidget();
-	if ((columnIx >= 0) && (columnIx < lists.length))	{
-		return lists[columnIx].getItems();
-	}
-	return null;
+	TableItem[] tableItems = getItems();
+	String[][] stringItems = tableItemsToStrings(tableItems);
+	return stringItems;
 }
-*/
 /**
  * Returns <code>true if the receiver's list is visible,
  * and <code>false otherwise.
@@ -1260,32 +1286,15 @@ void handleFocus(int type) {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
-/*
-//+++++ Data
+
+// IO +++++
 public int indexOf(int columnIx, String string) {
-	checkWidget();
-	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-	if ((columnIx < 0) || (columnIx >= lists.length))	{
-		return -1;
-	}
-	return lists[columnIx].indexOf(string);
+	return indexOf(columnIx, string, 0);
 }
-*/
-/*
-//+++++ Data
+// IO +++++
 public int indexOf(String string) {
-	checkWidget();
-	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-	int indexOf = -1;
-	for (int i = 0; i < lists.length; i++)	{
-		int tmpIx = lists[i].indexOf(string);
-		if (tmpIx > indexOf){
-			indexOf = tmpIx;
-		}
-	}
-	return indexOf;
+	return indexOf(string, 0);
 }
-*/
 /**
  * Searches the receiver's list starting at the given, 
  * zero-relative index until an item is found that is equal
@@ -1305,32 +1314,50 @@ public int indexOf(String string) {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
-/*
-//+++++ Data
+
+// IO +++++
 public int indexOf(String string, int start) {
 	checkWidget();
 	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-	int indexOf = -1;
-	for (int i = 0; i < lists.length; i++)	{
-		int tmpIx = lists[i].indexOf(string, start);
-		if (tmpIx > indexOf){
-			indexOf = tmpIx;
+	
+	if (start < 0) return -1;
+	TableItem[] tableItems = table.getItems();
+	int numOfItems  = tableItems.length;
+	if (start >= numOfItems) return -1;
+	int numOfColums = table.getColumnCount();
+	for (int i = start; i < numOfItems; i++){
+		TableItem tableItem = tableItems[i];
+		for (int colIx = 0; colIx < numOfColums; colIx++){
+			String cellText = tableItem.getText(colIx);
+			if (cellText.equals(string))	{
+				return i;
+			}
 		}
 	}
-	return indexOf;
+	return -1;
 }
-*/
-/*
-// +++++ Data
+
+
+// IO +++++
 public int indexOf(int columnIx, String string, int start) {
 	checkWidget();
 	if (string == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-	if ((columnIx < 0) || (columnIx >= lists.length))	{
-		return -1;
+	if (start < 0) return -1;
+	int numOfColums = table.getColumnCount();
+	if (columnIx >= numOfColums) return -1;
+	TableItem[] tableItems = table.getItems();
+	int numOfItems  = tableItems.length;
+	if (start >= numOfItems) return -1;
+	for (int i = start; i < numOfItems; i++){
+		TableItem tableItem = tableItems[i];
+		String cellText = tableItem.getText(columnIx);
+		if (cellText.equals(string))	{
+			return i;
+		}
 	}
-	return lists[columnIx].indexOf(string, start);
+	return -1;
 }
-*/
+
 // IO +++++
 void initAccessible() {
 	AccessibleAdapter accessibleAdapter = new AccessibleAdapter() {
@@ -1454,244 +1481,55 @@ void internalLayout(boolean changed) {
 	text.setBounds(0, 0, width - arrowSize.x, height);
 	arrow.setBounds(width - arrowSize.x, 0, arrowSize.x, 17/*arrowSize.y*/);
 }
-/**
- * Draws a focus rect around the selected line specified by the param item
- * @param item
- */
-/*
-void drawFocus(Event event, int item)	{
-	// draw focus for this item
-	// whiten rest of popupRect
-	// except a line that may be selected
-	//focusItem
-	System.out.println("drawFocus");
-	int itemInList = item - lists[0].getTopIndex();
-	if (item == -1)	{
-		if (1==1) return;
-		System.out.println("item == " + item);
-		itemInList = lists[0].getItemCount();
-	}
-	if (itemInList == focusItem)	{
-		return;
-	}
-	int itemHeight = lists[0].getItemHeight();
-	
-	Rectangle popupRect = popup.getBounds();
-	Point pt = new Point(popupRect.x, popupRect.y);
-	pt = popup.toControl(pt);
-	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
-	
-	// *** undraw old focus *************************************************
-	int unselVOffset = focusItem * itemHeight;
-	Rectangle unselRect = new Rectangle(pt.x, pt.y + unselVOffset + 1, popupRect.width, itemHeight);
-//	popupGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
-//	for (int i = 0; i < lists.length; i++)	{
-//		GC listGC = new GC(lists[i]);
-//		listGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
-//		listGC.dispose();
-//	}
-	int vOffset = focusItem * itemHeight;
-	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width - popup.getVerticalBar().getSize().x, itemHeight);
-	Rectangle origFocus = ((List) (event.widget)).getBounds();
-	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
-	// undraw focus for selected item in list with focus
-	GC listGC1 = new GC((List) (event.widget));
-	listGC1.drawFocus(origFocus.x, selRect.y, origFocus.width, selRect.height);
-	listGC1.dispose();
-	popupGC.drawFocus(selRect.x + 1, selRect.y, selRect.width - 2, selRect.height);
-	for (int i = 0; i < lists.length; i++)	{
-		GC listGC = new GC(lists[i]);
-		listGC.drawFocus(selRect.x - 50, selRect.y, selRect.width, selRect.height);
-		listGC.dispose();
-	}
-	
-	// *** draw new focus ***************************************************
-	vOffset = itemInList * itemHeight;
-	selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width - popup.getVerticalBar().getSize().x, itemHeight);
-	origFocus = ((List) (event.widget)).getBounds();
-	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
-	// undraw focus for selected item in list with focus
-	listGC1 = new GC((List) (event.widget));
-	listGC1.drawFocus(origFocus.x, selRect.y, origFocus.width, selRect.height);
-	listGC1.dispose();
-	popupGC.drawFocus(selRect.x + 1, selRect.y, selRect.width - 2, selRect.height);
-	for (int i = 0; i < lists.length; i++)	{
-		GC listGC = new GC(lists[i]);
-		listGC.drawFocus(selRect.x - 50, selRect.y, selRect.width, selRect.height);
-		listGC.dispose();
-	}
-	
-	focusItem = itemInList;
-}
-*/
-/**
- * Draws the selection for the selected line specified by the param item: paint in popup
- * @param item
- */
-/*
-void drawSelection(int item)	{
-	System.out.println("drawSelection");
-	int itemInList = item - lists[0].getTopIndex();
-	if (item == -1)	{
-		if (1==1) return;
-		System.out.println("item == " + item);
-		itemInList = lists[0].getItemCount();
-	}
-	int itemHeight = lists[0].getItemHeight();
-	
-//	System.out.println("item: " + item);
-//	System.out.println("itemInList: " + itemInList);
-	
-	int vOffset = itemInList * itemHeight;
-	
-	Rectangle popupRect = popup.getBounds();
-	Point pt = new Point(popupRect.x, popupRect.y);
-	pt = popup.toControl(pt);
-	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
-	
-	Rectangle upperRect = new Rectangle(pt.x, pt.y + 1, popupRect.width, vOffset);
-	popupGC.setBackground(lists[0].getBackground());
-	popupGC.fillRectangle(upperRect);
-	
-	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width, itemHeight);
-	popupGC.setBackground(getDisplay().getSystemColor(SWT.COLOR_LIST_SELECTION));
-	popupGC.fillRectangle(selRect);
-	
-	Rectangle lowerRect = new Rectangle(pt.x, pt.y + vOffset + 1 + itemHeight, popupRect.width, popupRect.height);
-	popupGC.setBackground(lists[0].getBackground());
-	popupGC.fillRectangle(lowerRect);
-	
-	//gc.dispose();
-
-	// drawing vertical dividers between lists/columns if needed
-	if (drawDividerLines == true)	{
-		popupGC.setForeground(dividerLineColor);
-		//popupGC.setForeground(getDisplay().getSystemColor(SWT.COLOR_LIST_SELECTION_TEXT));
-		
-		for (int i = 0; i < lists.length; i++){
-			int left = (lists[i].getBounds().x + lists[i].getBounds().width + (columnSpacing / 2));
-			if (itemInList > 0)	{
-				popupGC.drawLine(left, pt.y + 1, left, vOffset - 1);
-			}
-			popupGC.drawLine(left, pt.y + vOffset + 1 + itemHeight, left, popupRect.height);
-		}
-	}
-}
-*/
-//DONE +++++ LIST
+// IO +++++
 void tableEvent(Event event) {
 //	dropDown(false);
-	System.out.println("tableEvent");
+	//System.out.println("tableEvent");
 	switch(event.type) {
-	case SWT.MouseMove: {
-		int itemHeight = table.getItemHeight();
-		if (isTrackingTable == false)	{
-			//table.setCapture(true);
-			System.out.println("List: MouseMove");
-			int itemSel = (event.y - table.getHeaderHeight()) / itemHeight;
-			//System.out.println("itemSel: " + itemSel);
-			int newSelection = table.getTopIndex() + itemSel;
-			int currSel = table.getSelectionIndex();
-			// windows behaviour
-			//if (currSel != newSelection)	{
-			//	table.setSelection(newSelection);
-			//}
-		} else {
-			table.setCapture(true);
-			Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
-			pt = table.toControl(pt);
-			int itemSel = (pt.y - table.getHeaderHeight()) / itemHeight;
-			//System.out.println("itemSel: " + itemSel);
-			int newSelection = table.getTopIndex() + itemSel;
-			int currSel = table.getSelectionIndex();
-			Rectangle bounds = popup.getBounds();
-			if (bounds.contains(pt))	{
-				if (currSel != newSelection)	{
-					table.setSelection(newSelection);
-				}
+		case SWT.MouseMove:
+			if (System.getProperties().getProperty("os.name").equals("Windows XP")){ 
 			}
-		}
-	}
-/*			if (mouseIsDownInList == true)	{
+			int itemHeight = table.getItemHeight();
+			if (isTrackingTable == false)	{
+				table.setCapture(true);
+				System.out.println("List: MouseMove");
+				int itemSel = (event.y - table.getHeaderHeight()) / itemHeight;
+				//System.out.println("itemSel: " + itemSel);
+				int newSelection = table.getTopIndex() + itemSel;
+				int currSel = table.getSelectionIndex();
+				// windows behaviour
+				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
+				pt = table.toControl(pt);
 				Rectangle bounds = popup.getBounds();
-				Point globalPt = ((List) (event.widget)).toDisplay(new Point(event.x, event.y));
-				
-				bounds.width = bounds.width - popup.getVerticalBar().getSize().x;
-				
-				int itemHeight = lists[0].getItemHeight();
-				int itemSel2    = event.y / itemHeight;
-				itemSel2 = ((List) (event.widget)).getTopIndex() + itemSel2;
-				if (bounds.contains(globalPt))	{
-					System.out.println("inside");
-					((List) (event.widget)).setSelection(itemSel2);
-					lists[0].setSelection(itemSel2);
-					lists[1].setSelection(itemSel2);
-					lists[2].setSelection(itemSel2);
-					lists[3].setSelection(itemSel2);
-					// currListFocus
-					//drawSelection(((List) (event.widget)).getSelectionIndex());
-					drawSelection(lists[0].getSelectionIndex());
-					focusItem = -1;
-					drawFocus(event, lists[0].getSelectionIndex());
-				} else {
-					drawFocus(event, itemSel2);
-					//long endTime = System.nanoTime() + 1 * 1000 * 1000 * 1000;
-					//while (endTime > System.nanoTime()) {}
-					System.out.println("outside");
-					event.doit = false;
-				}
-				
-//				//System.out.println("listEvent: SWT.MouseMove with mouseDown");
-//				//System.out.println("x: " + event.x + ", y: " + event.y);
-//				if (event.x > ((List) (event.widget)).getBounds().width)	{
-//					//System.out.println("right of list");
-//					for (int i = 0; i < lists.length; i++){
-//						if (((List) (event.widget)) == lists[i])	{
-//							//lists[i+1].setFocus();
-//						}
-//					}
-//				}
-//				int itemSel = ((List) (event.widget)).getSelectionIndex();
-//				int newSelection = itemSel;
-//				for (int i = 0; i < lists.length; i++){
-//					int currSel = lists[i].getSelectionIndex();
-//					if (currSel != newSelection)	{
-//						/////////////////lists[i].setSelection(newSelection);
-//					}
-//				}
-			} else {
-				int itemHeight = lists[0].getItemHeight();
-				int itemSel = event.y / itemHeight;
-				int newSelection = lists[0].getTopIndex() + itemSel;
-				for (int i = 0; i < lists.length; i++){
-					int currSel = lists[i].getSelectionIndex();
+				if (bounds.contains(pt))	{
 					if (currSel != newSelection)	{
-						lists[i].setSelection(newSelection);
+						table.setSelection(newSelection);
+					}
+				} else {
+					System.out.println("outside");
+				}
+			} else {
+				table.setCapture(true);
+				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
+				pt = table.toControl(pt);
+				int itemSel = (pt.y - table.getHeaderHeight()) / itemHeight;
+				System.out.println("itemSel: " + itemSel);
+				int newSelection = table.getTopIndex() + itemSel;
+				int currSel = table.getSelectionIndex();
+				Rectangle bounds = popup.getBounds();
+				if (bounds.contains(pt))	{
+					if (currSel != newSelection)	{
+						table.setSelection(newSelection);
 					}
 				}
-				// currListFocus
-				//drawSelection(((List) (event.widget)).getSelectionIndex());
-				drawSelection(lists[0].getSelectionIndex());
-				focusItem = -1;
-				drawFocus(event, lists[0].getSelectionIndex());
 			}
-			
-			int currTopIx = ((List) (event.widget)).getTopIndex();
-			// synchronizing topItems
-			if (mouseIsDownInList == true){
-				for (int i1 = 0; i1 < lists.length; i1++){
-					lists[i1].setTopIndex(currTopIx);
-				}
-			}
-			// synchronize Scrollbar
-			ScrollBar sb = popup.getVerticalBar();
-			sb.setSelection(currTopIx * 10 + sb.getMinimum());
-*/			break;
+			break;
 		case SWT.MouseHover:
-//			System.out.println("SWT.MouseHover");
+			System.out.println("tableEvent: SWT.MouseHover");
 //			System.out.println(System.nanoTime());
 			break;
 		case SWT.Dispose:
+			System.out.println("tableEvent: SWT.Dispose");
 			if (getShell() != popup.getParent()) {
 				TableItem[] items = getItems();
 				int selectionIndex = table.getSelectionIndex ();
@@ -1701,11 +1539,12 @@ void tableEvent(Event event) {
 			}
 			break;
 		case SWT.FocusIn: {
+			System.out.println("tableEvent: SWT.FocusIn");
 			handleFocus(SWT.FocusIn);
 			break;
 		}
 		case SWT.MouseUp: {
-			//System.out.println("MouseUp - List");
+			System.out.println("tableEvent: SWT.MouseUp");
 			if (event.button != 1) return;
 			dropDown(false);
 			mouseIsDownInList = false;
@@ -1719,7 +1558,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.Selection: {
-			System.out.println("selection");
+			System.out.println("tableEvent: SWT.Selection");
 			int index = table.getSelectionIndex();
 			if (index == -1) return;
 			text.setText(table.getItem(index).getText(textLinkedColumnIndex));
@@ -1733,6 +1572,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.Traverse: {
+			System.out.println("tableEvent: SWT.Traverse");
 			switch (event.detail) {
 				case SWT.TRAVERSE_RETURN:
 				case SWT.TRAVERSE_ESCAPE:
@@ -1759,6 +1599,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.KeyUp: {		
+			System.out.println("tableEvent: SWT.KeyUp");
 			Event e = new Event ();
 			e.time      = event.time;
 			e.character = event.character;
@@ -1768,7 +1609,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.MouseDown:	{
-			System.out.println("MouseDown - List");
+			System.out.println("tableEvent: SWT.MouseDown");
 			event.doit = false;
 			Event e = new Event ();
 			e.time      = event.time;
@@ -1793,7 +1634,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
-			//System.out.println("KeyDown - List");
+			System.out.println("tableEvent: SWT.KeyDown");
 			if (event.character == SWT.ESC) { 
 				// Escape key cancels popup list
 				dropDown(false);
@@ -1821,7 +1662,7 @@ void tableEvent(Event event) {
 			break;
 		}
 	}
-	if (event.type != SWT.MouseMove)	{
+	if ((event.type != SWT.MouseMove) && (event.type != SWT.MouseDown) && (event.type != SWT.MouseUp) && (event.type != SWT.MouseHover) && (event.type != SWT.Selection))	{
 		isTrackingTable = false;
 		table.setCapture(false);
 	}
@@ -2164,25 +2005,26 @@ public void setForeground(Color color) {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
-// IO +++++ ???
-public void setItem(int columnIx, int index, String string) {
+// IO +++++
+public void setCell(int columnIx, int index, String string) {
 	checkWidget();
 	if ((columnIx < 0) || (columnIx >= table.getItemCount()))	{
 		return;
 	}
 	TableItem tableItem = table.getItem(index);
-	// TODO ++++ copy or original ???
 	tableItem.setText(columnIx, string);
 }
-/*
-// +++++ Data
-public void setItem(int index, String[] items) {
+//IO +++++
+public void setItem(int rowIx, String[] items) {
 	checkWidget();
-	for (int i = 0; i < lists.length; i++)	{
-		lists[i].setItem(index, items[i]);
-	}
+	if (rowIx < 0) return;
+	int numOfRows = table.getItemCount();
+	if (rowIx >= numOfRows) return;
+	TableItem tableItem = table.getItem(rowIx);
+	if (tableItem == null) return;
+	tableItem.setText(items);
 }
-*/
+
 /**
  * Sets the receiver's list to be the given array of items.
  *
@@ -2365,27 +2207,24 @@ public void setSelection(Point selection) {
  *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver
  * </ul>
  */
-/*
+
 //+++++ Data
 public void setText(String string) {
+	if (1==1) return;
 	checkWidget();
 	if (string == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
-	int index = lists[textLinkedColumnIndex].indexOf(string);
+	int index = indexOf(textLinkedColumnIndex, string);
 	if (index == -1) {
-		for (int i = 0; i < lists.length; i++)	{
-			lists[i].deselectAll();
-		}
+		table.deselectAll();
 		text.setText(string);
 		return;
 	}
 	text.setText(string);
 	text.selectAll();
-	for (int i = 0; i < lists.length; i++)	{
-		lists[i].setSelection(index);
-		lists[i].showSelection();
-	}
+	table.setSelection(index);
+	table.showSelection();
 }
-*/
+
 /**
  * Sets the maximum number of characters that the receiver's
  * text field is capable of holding to be the argument.
