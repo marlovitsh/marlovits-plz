@@ -1491,7 +1491,7 @@ void tableEvent(Event event) {
 			}
 			int itemHeight = table.getItemHeight();
 			if (isTrackingTable == false)	{
-				table.setCapture(true);
+				//table.setCapture(true);
 				System.out.println("List: MouseMove");
 				int itemSel = (event.y - table.getHeaderHeight()) / itemHeight;
 				//System.out.println("itemSel: " + itemSel);
@@ -1501,13 +1501,13 @@ void tableEvent(Event event) {
 				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
 				pt = table.toControl(pt);
 				Rectangle bounds = popup.getBounds();
-				if (bounds.contains(pt))	{
+//				if (bounds.contains(pt))	{
 					if (currSel != newSelection)	{
 						table.setSelection(newSelection);
 					}
-				} else {
-					System.out.println("outside");
-				}
+//				} else {
+//					System.out.println("outside");
+//				}
 			} else {
 				table.setCapture(true);
 				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
