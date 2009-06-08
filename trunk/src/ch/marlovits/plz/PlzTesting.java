@@ -180,11 +180,9 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 		}
 	
 	class ButtonListener implements SelectionListener	{
-		@Override
 		public void widgetDefaultSelected(SelectionEvent e) {			
 			System.out.println("widet default selected");
 		}
-		@Override
 		public void widgetSelected(SelectionEvent e) {
 			//marloCombo.setBackground(marloCombo.getDisplay().getSystemColor(SWT.COLOR_CYAN));
 			//String[][] items = {{"1", "2", "3", "4", "5"}, {"_1", "_2", "_3", "_4", "_5"}};
