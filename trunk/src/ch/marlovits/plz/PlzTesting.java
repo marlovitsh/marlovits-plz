@@ -558,6 +558,9 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 				//System.out.println("SWT.Drag: " + SWT.DRAG);
 				//System.out.println("SWT.KeyDown: " + SWT.KeyDown);
 				
+				marloCombo.dbgSet(marloCombo.DBG_TableEvent);
+				marloCombo.dbgSet(marloCombo.DBG_TextEvent);
+				
 				if (1==1) {
 				int dayDiff;
 				GregorianCalendar gc1 = new GregorianCalendar( 2005, Calendar.MAY, 21);
