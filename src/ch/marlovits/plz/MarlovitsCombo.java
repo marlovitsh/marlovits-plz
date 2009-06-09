@@ -53,6 +53,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Layout;
+import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
@@ -61,8 +62,6 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.TypedListener;
-
-import ch.marlovits.plz.MCCombo.TestListener;
 
 /**
  * The CCombo class represents a selectable user interface object
@@ -94,6 +93,7 @@ enum MARLOVITSCOMBO_DISPLAYLINES   {fixed,	// number of displayed lines as in vi
 									screen	//  number of displayed lines fitting screen (current monitor)
 	
 }
+
 public final class MarlovitsCombo extends Composite {
 	
 	int			leftMarginOffset = -4;   // +++++ for WindowsXP
@@ -125,6 +125,12 @@ public final class MarlovitsCombo extends Composite {
 	private Table		table;
 	TestListener tempMouseListener = new TestListener();
 	boolean		isTrackingTable;
+	
+	// dbg sesttings
+	private	long	printWhat = 0x00000000;
+	static long	DBG_TextEvent  = 1;
+	static long	DBG_TableEvent = 2;
+	static long	DBG_ListenerDispatcher = 4;
 	
 /**
  * Constructs a new instance of this class given its parent
@@ -223,32 +229,32 @@ public MarlovitsCombo(Composite parent, int style) {
 	listener = new Listener() {
 		public void handleEvent(Event event) {
 			if (popup == event.widget) {
-				System.out.println("popup == event.widget");
+				dbg("listener: popup == event.widget", DBG_ListenerDispatcher);
 				popupEvent(event);
 				return;
 			}
 			if (text == event.widget) {
-				System.out.println("text == event.widget");
+				dbg("listener: text == event.widget", DBG_ListenerDispatcher);
 				textEvent(event);
 				return;
 			}
 			if (table == event.widget){
-//				System.out.println("table == event.widget");
+				dbg("listener: table == event.widget", DBG_ListenerDispatcher);
 				tableEvent(event);
 				return;
 			}
 			if (arrow == event.widget) {
-				System.out.println("arrow == event.widget");
+				dbg("listener: arrow == event.widget", DBG_ListenerDispatcher);
 				arrowEvent(event);
 				return;
 			}
 			if (MarlovitsCombo.this == event.widget) {
-				System.out.println("MarlovitsCombo.this == event.widget");
+				dbg("listener: MarlovitsCombo.this == event.widget", DBG_ListenerDispatcher);
 				comboEvent(event);
 				return;
 			}
 			if (getShell() == event.widget) {
-				System.out.println("getShell() == event.widget");
+				dbg("listener: getShell() == event.widget", DBG_ListenerDispatcher);
 				getDisplay().asyncExec(new Runnable() {
 					public void run() {
 						if (isDisposed()) return;
@@ -260,7 +266,6 @@ public MarlovitsCombo(Composite parent, int style) {
 	};
 	filter = new Listener() {
 		public void handleEvent(Event event) {
-			System.out.println("handleEvent");
 			Shell shell = ((Control)event.widget).getShell();
 			if (shell == MarlovitsCombo.this.getShell()) {
 				handleFocus(SWT.FocusOut);
@@ -1484,9 +1489,9 @@ void internalLayout(boolean changed) {
 // IO +++++
 void tableEvent(Event event) {
 //	dropDown(false);
-	//System.out.println("tableEvent");
 	switch(event.type) {
 		case SWT.MouseMove:
+			dbg("tableEvent: SWT.MouseMove", DBG_TableEvent);
 			if (System.getProperties().getProperty("os.name").equals("Windows XP")){ 
 			}
 			int itemHeight = table.getItemHeight();
@@ -1503,7 +1508,8 @@ void tableEvent(Event event) {
 				Rectangle bounds = popup.getBounds();
 //				if (bounds.contains(pt))	{
 					if (currSel != newSelection)	{
-						table.setSelection(newSelection);
+						//////table.setSelection(newSelection);
+						drawFocus(newSelection);
 					}
 //				} else {
 //					System.out.println("outside");
@@ -1525,11 +1531,11 @@ void tableEvent(Event event) {
 			}
 			break;
 		case SWT.MouseHover:
-			System.out.println("tableEvent: SWT.MouseHover");
+			dbg("tableEvent: SWT.MouseHover", DBG_TableEvent);
 //			System.out.println(System.nanoTime());
 			break;
 		case SWT.Dispose:
-			System.out.println("tableEvent: SWT.Dispose");
+			dbg("tableEvent: SWT.Dispose", DBG_TableEvent);
 			if (getShell() != popup.getParent()) {
 				TableItem[] items = getItems();
 				int selectionIndex = table.getSelectionIndex ();
@@ -1539,12 +1545,12 @@ void tableEvent(Event event) {
 			}
 			break;
 		case SWT.FocusIn: {
-			System.out.println("tableEvent: SWT.FocusIn");
+			dbg("tableEvent: SWT.FocusIn", DBG_TableEvent);
 			handleFocus(SWT.FocusIn);
 			break;
 		}
 		case SWT.MouseUp: {
-			System.out.println("tableEvent: SWT.MouseUp");
+			dbg("tableEvent: SWT.MouseUp", DBG_TableEvent);
 			if (event.button != 1) return;
 			dropDown(false);
 			mouseIsDownInList = false;
@@ -1555,10 +1561,11 @@ void tableEvent(Event event) {
 //				cmp.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
 //			}
 			desktop.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
+			focusItem = -1;
 			break;
 		}
 		case SWT.Selection: {
-			System.out.println("tableEvent: SWT.Selection");
+			dbg("tableEvent: SWT.Selection", DBG_TableEvent);
 			int index = table.getSelectionIndex();
 			if (index == -1) return;
 			text.setText(table.getItem(index).getText(textLinkedColumnIndex));
@@ -1572,7 +1579,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.Traverse: {
-			System.out.println("tableEvent: SWT.Traverse");
+			dbg("tableEvent: SWT.Traverse", DBG_TableEvent);
 			switch (event.detail) {
 				case SWT.TRAVERSE_RETURN:
 				case SWT.TRAVERSE_ESCAPE:
@@ -1599,7 +1606,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.KeyUp: {		
-			System.out.println("tableEvent: SWT.KeyUp");
+			dbg("tableEvent: SWT.KeyUp", DBG_TableEvent);
 			Event e = new Event ();
 			e.time      = event.time;
 			e.character = event.character;
@@ -1609,7 +1616,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.MouseDown:	{
-			System.out.println("tableEvent: SWT.MouseDown");
+			dbg("tableEvent: SWT.MouseDown", DBG_TableEvent);
 			event.doit = false;
 			Event e = new Event ();
 			e.time      = event.time;
@@ -1634,7 +1641,7 @@ void tableEvent(Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
-			System.out.println("tableEvent: SWT.KeyDown");
+			dbg("tableEvent: SWT.KeyDown", DBG_TableEvent);
 			if (event.character == SWT.ESC) { 
 				// Escape key cancels popup list
 				dropDown(false);
@@ -2298,10 +2305,12 @@ String stripMnemonic(String string) {
 void textEvent(Event event) {
 	switch (event.type) {
 		case SWT.FocusIn: {
+			dbg("textEvent: SWT.FocusIn", DBG_TextEvent);
 			handleFocus(SWT.FocusIn);
 			break;
 		}
 		case SWT.DefaultSelection: {
+			dbg("textEvent: SWT.DefaultSelection", DBG_TextEvent);
 			dropDown(false);
 			Event e = new Event ();
 			e.time      = event.time;
@@ -2310,6 +2319,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.KeyDown: {
+			dbg("textEvent: SWT.KeyDown", DBG_TextEvent);
 			Event keyEvent = new Event ();
 			keyEvent.time      = event.time;
 			keyEvent.character = event.character;
@@ -2349,6 +2359,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.KeyUp: {
+			dbg("textEvent: SWT.KeyUp", DBG_TextEvent);
 			Event e = new Event();
 			e.time      = event.time;
 			e.character = event.character;
@@ -2359,19 +2370,22 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.MenuDetect: {
+			dbg("textEvent: SWT.MenuDetect", DBG_TextEvent);
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.MenuDetect, e);
 			break;
 		}
 		case SWT.Modify: {
-			table.deselectAll();
+			dbg("textEvent: SWT.Modify", DBG_TextEvent);
+/////////			table.deselectAll();
 			Event e = new Event();
 			e.time = event.time;
 			notifyListeners(SWT.Modify, e);
 			break;
 		}
 		case SWT.MouseDown: {
+			dbg("textEvent: SWT.MouseDown", DBG_TextEvent);
 			Event mouseEvent = new Event();
 			mouseEvent.button    = event.button;
 			mouseEvent.count     = event.count;
@@ -2392,6 +2406,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.MouseUp: {
+			dbg("textEvent: SWT.MouseUp", DBG_TextEvent);
 			Event mouseEvent = new Event();
 			mouseEvent.button    = event.button;
 			mouseEvent.count     = event.count;
@@ -2410,6 +2425,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.MouseDoubleClick: {
+			dbg("textEvent: SWT.MouseDoubleClick", DBG_TextEvent);
 			Event mouseEvent = new Event();
 			mouseEvent.button    = event.button;
 			mouseEvent.count     = event.count;
@@ -2421,6 +2437,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.MouseWheel: {
+			dbg("textEvent: SWT.MouseWheel", DBG_TextEvent);
 			Event keyEvent = new Event();
 			keyEvent.time      = event.time;
 			keyEvent.keyCode   = event.count > 0 ? SWT.ARROW_UP : SWT.ARROW_DOWN;
@@ -2448,6 +2465,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.Traverse: {		
+			dbg("textEvent: SWT.Traverse", DBG_TextEvent);
 			switch (event.detail) {
 				case SWT.TRAVERSE_ARROW_PREVIOUS:
 				case SWT.TRAVERSE_ARROW_NEXT:
@@ -2473,6 +2491,7 @@ void textEvent(Event event) {
 			break;
 		}
 		case SWT.Verify: {
+			dbg("textEvent: SWT.Verify", DBG_TextEvent);
 			Event e = new Event();
 			e.text      = event.text;
 			e.start     = event.start;
@@ -2485,8 +2504,90 @@ void textEvent(Event event) {
 			break;
 		}
 	}
-	//drawSelection(((List) (event.widget)).getSelectionIndex());
 }
 
+public void dbgSet(long debugType)	{
+	printWhat = printWhat | debugType;
+}
+
+public void dbgUnset(long debugType)	{
+	printWhat = printWhat ^ debugType;
+}
+
+public void dbg(final String msg, long debugType)	{
+	if ((printWhat & debugType) != 0)	{
+		System.out.println(msg);
+	}
+}
+/**
+ * Draws a focus rect around the selected line specified by the param item
+ * @param item
+ */
+// 
+void drawFocus(int item)	{
+	// draw focus for this item
+	// whiten rest of popupRect
+	// except a line that may be selected
+	//focusItem
+	int itemInList = item - table.getTopIndex();
+	if (item == -1)	{
+		if (1==1) return;
+		System.out.println("item == " + item);
+		itemInList = table.getItemCount();
+	}
+	if (itemInList == focusItem)	{
+		return;
+	}
+	int itemHeight = table.getItemHeight();
+	
+	Rectangle popupRect = popup.getBounds();
+	Point pt = new Point(popupRect.x, popupRect.y);
+	pt = popup.toControl(pt);
+	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
+	
+	/*
+	// *** undraw old focus *************************************************
+	int unselVOffset = focusItem * itemHeight;
+	Rectangle unselRect = new Rectangle(pt.x, pt.y + unselVOffset + 1, popupRect.width, itemHeight);
+//	popupGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
+//	for (int i = 0; i < lists.length; i++)	{
+//		GC listGC = new GC(lists[i]);
+//		listGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
+//		listGC.dispose();
+//	}
+	int vOffset = focusItem * itemHeight;
+	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width - popup.getVerticalBar().getSize().x, itemHeight);
+	Rectangle origFocus = ((List) (event.widget)).getBounds();
+	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
+	// undraw focus for selected item in list with focus
+	GC listGC1 = new GC((List) (event.widget));
+	listGC1.drawFocus(origFocus.x, selRect.y, origFocus.width, selRect.height);
+	listGC1.dispose();
+	popupGC.drawFocus(selRect.x + 1, selRect.y, selRect.width - 2, selRect.height);
+	for (int i = 0; i < table.length; i++)	{
+		GC listGC = new GC(lists[i]);
+		listGC.drawFocus(selRect.x - 50, selRect.y, selRect.width, selRect.height);
+		listGC.dispose();
+	}
+	*/
+	int vOffset;
+	GC listGC = new GC(table);
+	Rectangle origFocus;
+	
+	// *** undraw old focus ***************************************************
+	vOffset = focusItem * itemHeight;
+	origFocus = table.getBounds();
+	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
+	listGC.drawFocus(origFocus.x - leftMarginOffset, pt.y + vOffset + 1, origFocus.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), itemHeight);
+	// *** draw new focus ***************************************************
+	vOffset = itemInList * itemHeight;
+	origFocus = table.getBounds();
+	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
+	listGC.drawFocus(origFocus.x - leftMarginOffset, pt.y + vOffset + 1, origFocus.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), itemHeight);
+	
+	listGC.dispose();
+	
+	focusItem = itemInList;
+}
 
 }
