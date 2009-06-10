@@ -116,7 +116,9 @@ public final class MarlovitsCombo extends Composite {
 	int			columnRightMargin = columnLeftMargin;	// space on the right of leftmost list
 	boolean		drawDividerLines = true;
 	Color		dividerLineColor;
+	
 	int			focusItem = -1;
+	int			focusItemLastTopIx = -1;
 	
 	GC 			popupGC;
 
@@ -733,7 +735,7 @@ void createPopup(String[][] items, int selectionIndex) {
 	}
 	
 	// (re)install event listeners
-	int [] tableEvents = {SWT.MouseMove, SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseHover, SWT.MouseExit, SWT.MouseEnter};
+	int [] tableEvents = {SWT.MouseMove, SWT.MouseUp, SWT.Selection, SWT.Traverse, SWT.KeyDown, SWT.KeyUp, SWT.FocusIn, SWT.FocusOut, SWT.MouseMove, SWT.DRAG, SWT.NONE, SWT.MouseDown, SWT.MouseExit, SWT.MouseEnter};
 	for (int i = 0; i < tableEvents.length; i++)	{
 		table.addListener(tableEvents[i], listener);
 	}
@@ -1499,40 +1501,49 @@ void tableEvent(Event event) {
 				//table.setCapture(true);
 				System.out.println("List: MouseMove");
 				int itemSel = (event.y - table.getHeaderHeight()) / itemHeight;
-				//System.out.println("itemSel: " + itemSel);
 				int newSelection = table.getTopIndex() + itemSel;
-				int currSel = table.getSelectionIndex();
 				// windows behaviour
 				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
 				pt = table.toControl(pt);
-				Rectangle bounds = popup.getBounds();
-//				if (bounds.contains(pt))	{
-					if (currSel != newSelection)	{
-						//////table.setSelection(newSelection);
-						drawFocus(newSelection);
-					}
-//				} else {
-//					System.out.println("outside");
-//				}
+				drawFocus(newSelection);
 			} else {
 				table.setCapture(true);
 				Point pt = new Point((int) (MouseInfo.getPointerInfo().getLocation().getX()), (int) MouseInfo.getPointerInfo().getLocation().getY());
+				Point globalPt = pt;
 				pt = table.toControl(pt);
 				int itemSel = (pt.y - table.getHeaderHeight()) / itemHeight;
-				System.out.println("itemSel: " + itemSel);
 				int newSelection = table.getTopIndex() + itemSel;
 				int currSel = table.getSelectionIndex();
+				System.out.println("itemSel: " + itemSel);
+//				System.out.println("newSelection: " + newSelection);
+//				System.out.println("currSel: " + currSel);
 				Rectangle bounds = popup.getBounds();
-				if (bounds.contains(pt))	{
+				bounds = new Rectangle(bounds.x, bounds.y, bounds.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), bounds.height);
+//				System.out.println("bounds" + bounds);
+//				System.out.println("pt" + pt);
+				if (bounds.contains(globalPt))	{
+					//System.out.println("drinnen");
 					if (currSel != newSelection)	{
 						table.setSelection(newSelection);
+						text.setText(table.getItem(currSel).getText(textLinkedColumnIndex));
+						text.selectAll();
+					}
+				} else {
+					if (globalPt.y > (bounds.y + bounds.height)) {
+						// scroll down
+						table.setTopIndex(table.getTopIndex() + 1);
+					} else	{
+						if (globalPt.y < bounds.y) {
+							// scroll up
+							table.setTopIndex(table.getTopIndex() - 1);
+							drawFocus(table.getTopIndex());
+							System.out.println("table.getTopIndex(): " + table.getTopIndex());
+						} else {
+							drawFocus(newSelection);
+						}
 					}
 				}
 			}
-			break;
-		case SWT.MouseHover:
-			dbg("tableEvent: SWT.MouseHover", DBG_TableEvent);
-//			System.out.println(System.nanoTime());
 			break;
 		case SWT.Dispose:
 			dbg("tableEvent: SWT.Dispose", DBG_TableEvent);
@@ -1561,7 +1572,6 @@ void tableEvent(Event event) {
 //				cmp.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
 //			}
 			desktop.removeListener(SWT.MouseMove, (Listener) tempMouseListener);
-			focusItem = -1;
 			break;
 		}
 		case SWT.Selection: {
@@ -1669,9 +1679,13 @@ void tableEvent(Event event) {
 			break;
 		}
 	}
-	if ((event.type != SWT.MouseMove) && (event.type != SWT.MouseDown) && (event.type != SWT.MouseUp) && (event.type != SWT.MouseHover) && (event.type != SWT.Selection))	{
+	if ((event.type != SWT.MouseMove) && (event.type != SWT.MouseDown) && (event.type != SWT.MouseUp) && (event.type != SWT.Selection))	{
 		isTrackingTable = false;
 		table.setCapture(false);
+	}
+	if (event.type == SWT.MouseUp)	{
+		focusItem = -1;
+		focusItemLastTopIx = -1;
 	}
 }
 /**
@@ -2525,13 +2539,13 @@ public void dbg(final String msg, long debugType)	{
  */
 // 
 void drawFocus(int item)	{
+	// redraw old focus rect
 	// draw focus for this item
-	// whiten rest of popupRect
 	// except a line that may be selected
-	//focusItem
+	int currSel = table.getSelectionIndex();
 	int itemInList = item - table.getTopIndex();
 	if (item == -1)	{
-		if (1==1) return;
+//		if (1==1) return;
 		System.out.println("item == " + item);
 		itemInList = table.getItemCount();
 	}
@@ -2539,37 +2553,11 @@ void drawFocus(int item)	{
 		return;
 	}
 	int itemHeight = table.getItemHeight();
-	
+		
 	Rectangle popupRect = popup.getBounds();
 	Point pt = new Point(popupRect.x, popupRect.y);
 	pt = popup.toControl(pt);
-	popupRect = new Rectangle(pt.x, pt.y, popupRect.width, popupRect.height);
 	
-	/*
-	// *** undraw old focus *************************************************
-	int unselVOffset = focusItem * itemHeight;
-	Rectangle unselRect = new Rectangle(pt.x, pt.y + unselVOffset + 1, popupRect.width, itemHeight);
-//	popupGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
-//	for (int i = 0; i < lists.length; i++)	{
-//		GC listGC = new GC(lists[i]);
-//		listGC.drawFocus(unselRect.x, unselRect.y, unselRect.width, unselRect.height);
-//		listGC.dispose();
-//	}
-	int vOffset = focusItem * itemHeight;
-	Rectangle selRect = new Rectangle(pt.x, pt.y + vOffset + 1, popupRect.width - popup.getVerticalBar().getSize().x, itemHeight);
-	Rectangle origFocus = ((List) (event.widget)).getBounds();
-	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
-	// undraw focus for selected item in list with focus
-	GC listGC1 = new GC((List) (event.widget));
-	listGC1.drawFocus(origFocus.x, selRect.y, origFocus.width, selRect.height);
-	listGC1.dispose();
-	popupGC.drawFocus(selRect.x + 1, selRect.y, selRect.width - 2, selRect.height);
-	for (int i = 0; i < table.length; i++)	{
-		GC listGC = new GC(lists[i]);
-		listGC.drawFocus(selRect.x - 50, selRect.y, selRect.width, selRect.height);
-		listGC.dispose();
-	}
-	*/
 	int vOffset;
 	GC listGC = new GC(table);
 	Rectangle origFocus;
@@ -2578,16 +2566,19 @@ void drawFocus(int item)	{
 	vOffset = focusItem * itemHeight;
 	origFocus = table.getBounds();
 	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
-	listGC.drawFocus(origFocus.x - leftMarginOffset, pt.y + vOffset + 1, origFocus.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), itemHeight);
+	table.redraw(origFocus.x - leftMarginOffset, pt.y + vOffset + 1, origFocus.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), itemHeight, true);
 	// *** draw new focus ***************************************************
-	vOffset = itemInList * itemHeight;
-	origFocus = table.getBounds();
-	origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
-	listGC.drawFocus(origFocus.x - leftMarginOffset, pt.y + vOffset + 1, origFocus.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), itemHeight);
+	if (item != currSel)	{
+		vOffset = itemInList * itemHeight;
+		origFocus = table.getBounds();
+		origFocus = new Rectangle(0, 0,	origFocus.width, origFocus.height - origFocus.y);
+		listGC.drawFocus(origFocus.x - leftMarginOffset, pt.y + vOffset + 1, origFocus.width - ((table.getVerticalBar() != null) ? table.getVerticalBar().getSize().x - leftMarginOffset : 0), itemHeight);
+	}
 	
 	listGC.dispose();
 	
 	focusItem = itemInList;
+	focusItemLastTopIx = table.getTopIndex();
 }
 
 }
