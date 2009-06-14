@@ -8,6 +8,9 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.LinkedList;
 
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
@@ -557,9 +560,16 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 			public void run(){
 				//System.out.println("SWT.Drag: " + SWT.DRAG);
 				//System.out.println("SWT.KeyDown: " + SWT.KeyDown);
-				
-				marloCombo.dbgSet(marloCombo.DBG_TableEvent);
-				marloCombo.dbgSet(marloCombo.DBG_TextEvent);
+
+				JFrame frame = new JFrame("Hello!!");
+				frame.setAlwaysOnTop(true);
+				frame.setLocationByPlatform(true);
+				frame.add(new JLabel("             Textbausteinauswahl              "));
+				frame.pack();
+				frame.setVisible(true);
+
+//				marloCombo.dbgSet(marloCombo.DBG_TableEvent);
+//				marloCombo.dbgSet(marloCombo.DBG_TextEvent);
 				
 				if (1==1) {
 				int dayDiff;

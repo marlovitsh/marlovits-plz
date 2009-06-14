@@ -53,7 +53,6 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Layout;
-import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
@@ -119,6 +118,7 @@ public final class MarlovitsCombo extends Composite {
 	
 	int			focusItem = -1;
 	int			focusItemLastTopIx = -1;
+	int			savedTopIx = -1;
 	
 	GC 			popupGC;
 
@@ -127,6 +127,7 @@ public final class MarlovitsCombo extends Composite {
 	private Table		table;
 	TestListener tempMouseListener = new TestListener();
 	boolean		isTrackingTable;
+	int			startTrackingItem = -1;
 	
 	// dbg sesttings
 	private	long	printWhat = 0x00000000;
@@ -847,22 +848,6 @@ void dropDown(boolean drop) {
 	table.setBounds(0, 0, listWidth,  tableSize.y);
 	
 	// calculate and set size of popup
-/*	Display display = getDisplay();
-	Rectangle parentRect = display.map(getParent(), null, getBounds());
-	Point comboSize = getSize();
-	Rectangle displayRect = getMonitor().getClientArea();
-	int width = Math.max(comboSize.x, table.getBounds().width + 2 + arrow.getBounds().width);
-	int height = table.getBounds().height + 2;
-	int x = parentRect.x;
-	int y = parentRect.y + comboSize.y;
-	if (y + height > displayRect.y + displayRect.height)	{
-		y = parentRect.y - height;
-	}
-	if (x + width > displayRect.x + displayRect.width)	{
-		x = displayRect.x + displayRect.width - table.getBounds().width;
-	}
-	popup.setBounds(x, y, width, height);
-*/	
 	// need the combosize, App main window, parent composite bounds, desktop
 	Point comboSize = getSize();
 	Display desktop = getDisplay();
@@ -871,7 +856,7 @@ void dropDown(boolean drop) {
 	resizeColums();
 	
 	// get table size, uncorrected
-	/*Point */tableSize = table.getSize();
+	tableSize = table.getSize();
 	
 	// rect contains the coordinates for placing topleft of popup relative to parent
 	Rectangle rect = desktop.map(getParent(), null, getBounds());
@@ -910,16 +895,28 @@ void dropDown(boolean drop) {
 	popup.setBounds(rect.x, rect.y + comboSize.y, tableSize.x + 2 - sbWidth + leftMarginOffset, tableSize.y + 2);
 	
 	// ++++++++++++++++++++ find left margin width of table
-	System.out.println("table.getClientArea(): " + table.getClientArea());
-	System.out.println("table.getBounds(): " + table.getBounds());
+	//System.out.println("table.getClientArea(): " + table.getClientArea());
+	//System.out.println("table.getBounds(): " + table.getBounds());
 	int fullWidth = table.getBounds().width;
 	int addedColumnWidth = 0;
 	for (int i = 0; i < table.getColumnCount(); i++){
 		addedColumnWidth = addedColumnWidth + table.getColumn(i).getWidth();
 	}
-	System.out.println("fullWidth: " + fullWidth);
-	System.out.println("addedColumnWidth: " + addedColumnWidth);
+	//System.out.println("fullWidth: " + fullWidth);
+	//System.out.println("addedColumnWidth: " + addedColumnWidth);
 	//table.getColumn(0).
+	
+	// scroll selected item into view if necessary
+	int currTop = table.getTopIndex();
+	int currSel = table.getSelectionIndex();
+	int numOfShownItems = table.getBounds().height / itemHeight;
+	if ((currSel < currTop) || (currSel >= (currTop + numOfShownItems)))	{
+		//if (savedTopIx != -1)	{
+		//	table.setTopIndex(savedTopIx);
+		//} //else {
+			table.showSelection();
+		//}
+	}
 	
 	// make visible
 	popup.setVisible(true);
@@ -1525,7 +1522,7 @@ void tableEvent(Event event) {
 					//System.out.println("drinnen");
 					if (currSel != newSelection)	{
 						table.setSelection(newSelection);
-						text.setText(table.getItem(currSel).getText(textLinkedColumnIndex));
+						text.setText(table.getItem(newSelection).getText(textLinkedColumnIndex));
 						text.selectAll();
 					}
 				} else {
@@ -1539,6 +1536,11 @@ void tableEvent(Event event) {
 							drawFocus(table.getTopIndex());
 							System.out.println("table.getTopIndex(): " + table.getTopIndex());
 						} else {
+							if (table.getSelectionIndex() != startTrackingItem){
+								table.setSelection(startTrackingItem);
+								text.setText(table.getItem(startTrackingItem).getText(textLinkedColumnIndex));
+								text.selectAll();
+							}
 							drawFocus(newSelection);
 						}
 					}
@@ -1586,6 +1588,7 @@ void tableEvent(Event event) {
 			e.doit      = event.doit;
 			notifyListeners(SWT.Selection, e);
 			event.doit = e.doit;
+			savedTopIx = table.getTopIndex();
 			break;
 		}
 		case SWT.Traverse: {
@@ -1642,6 +1645,9 @@ void tableEvent(Event event) {
 			isTrackingTable = true;
 			Display desktop = getDisplay();
 			table.setCapture(true);
+			
+			startTrackingItem = table.getSelectionIndex();
+			
 //			Composite cmp = this;
 //			while ((cmp = cmp.getParent()) != null)	{
 //				cmp.addListener(SWT.MouseMove, (Listener) tempMouseListener);
