@@ -9,5 +9,6 @@ Require-Bundle: ch.elexis;bundle-version="1.4.0",
  ch.rgw.utility;bundle-version="1.0.0",
  org.eclipse.ui.forms;bundle-version="3.3.101"
 Bundle-Vendor: marlovits.ch
-Import-Package: org.eclipse.core.runtime,
- org.geonames
+Import-Package: org.eclipse.core.runtime
+Bundle-ClassPath: lib/geonames-1.0.1-java5.jar,
+ .

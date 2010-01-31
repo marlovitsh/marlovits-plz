@@ -1,6 +1,5 @@
 package ch.marlovits.plz;
 
-import java.awt.AWTEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,15 +29,13 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 
 import ch.elexis.Desk;
-import ch.elexis.actions.GlobalEvents.ActivationListener;
-import ch.elexis.actions.GlobalEvents.SelectionListener;
-import ch.elexis.data.PersistentObject;
+import ch.elexis.actions.GlobalEventDispatcher.IActivationListener;
 import ch.elexis.data.Query;
 import ch.elexis.util.SWTHelper;
 import ch.rgw.tools.StringTool;
 
 //public class PlzSelectorDialog extends TrayDialog {
-public class PlzSelectorDialog extends TrayDialog implements SelectionListener, ActivationListener{
+public class PlzSelectorDialog extends TrayDialog implements IActivationListener{
 	private static final String[] COLUMN_TEXT = {
 		"Land",
 		"Postleitzahl",
@@ -65,7 +62,7 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 	private static final int COL_STRASSE         = 4;
 	private static final int COL_KANTON_         = 5;
 	private static final int COL_KANTONKUERZEL_  = 6;
-
+	
 	//LabeledInputField liBeleg, liDate, liBetrag;
 	private TableViewer plzViewer;
 	String		landStr;
@@ -184,11 +181,11 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 			}
 			
 			public void dispose(){
-			// nothing to do
+				// nothing to do
 			}
 			
 			public void inputChanged(Viewer viewer, Object oldInput, Object newInput){
-			// nothing to do
+				// nothing to do
 			}
 		});
 		
@@ -211,11 +208,11 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 			public void doubleClick(DoubleClickEvent event) {
 				//Window w = null;
 				//processWindowEvent(WindowEvent esss);
-				//w.getToolkit().getSystemEventQueue().postEvent(new WindowEvent(w, WindowEvent.WINDOW_CLOSING)); 
+				//w.getToolkit().getSystemEventQueue().postEvent(new WindowEvent(w, WindowEvent.WINDOW_CLOSING));
 				isOK = true;
 				IStructuredSelection selection = (IStructuredSelection)event.getSelection();
 				resultPlz = (PlzEintrag) selection.getFirstElement();
-				System.out.println("Doubleclick");			
+				System.out.println("Doubleclick");
 				getShell().close();
 			}
 		});
@@ -224,13 +221,13 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 		
 		plzViewer.setLabelProvider(new ITableLabelProvider() {
 			public void addListener(ILabelProviderListener listener){
-			// nothing to do
+				// nothing to do
 			}
 			public void removeListener(ILabelProviderListener listener){
-			// nothing to do
+				// nothing to do
 			}
 			public void dispose(){
-			// nothing to do
+				// nothing to do
 			}
 			public String getColumnText(Object element, int columnIndex){
 				if (!(element instanceof PlzEintrag)) {
@@ -272,7 +269,7 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 				return false;
 			}
 		});
-
+		
 		plzViewer.setInput(this);
 		
 		// und nun der Rückgabewert
@@ -280,7 +277,7 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 	}
 	
 	
-
+	
 	/**
 	 * Dialog für die Erfassung neuer PLZ-Daten/Änderung von PLZ-Daten
 	 */
@@ -293,14 +290,14 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 	
 	@Override
 	protected void okPressed(){
-		// return oder 
+		// return oder
 		super.okPressed();
 	}
-
-
+	
+	
 	private List<PlzEintrag> getPostleitzahlen(){
 		// Erstellen des Return-Arrays
-		List<PlzEintrag> postleitzahlen = new ArrayList<PlzEintrag>(); 		
+		List<PlzEintrag> postleitzahlen = new ArrayList<PlzEintrag>();
 		
 		// Erstellen einer Query auf Plz und alle Datensätze einlesen, sortieren nach ID
 		//Query<ch.marlovits.plz.Plz> query = new Query<ch.marlovits.plz.Plz>(ch.marlovits.plz.Plz.class);
@@ -357,25 +354,14 @@ public class PlzSelectorDialog extends TrayDialog implements SelectionListener, 
 		});
 		return postleitzahlen;
 	}
-
-	public void clearEvent(Class<? extends PersistentObject> template) {
+	
+	public void activation(boolean mode){
 		// TODO Auto-generated method stub
 		
 	}
-
-	public void selectionEvent(PersistentObject obj) {
+	
+	public void visible(boolean mode){
 		// TODO Auto-generated method stub
 		
 	}
-
-	public void activation(boolean mode) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	public void visible(boolean mode) {
-		// TODO Auto-generated method stub
-		
-	}
-
 }
