@@ -560,18 +560,31 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 			public void run(){
 				//System.out.println("SWT.Drag: " + SWT.DRAG);
 				//System.out.println("SWT.KeyDown: " + SWT.KeyDown);
-
+				
+				//int gender = MarlovitsVornamen.getGender("Harald");
+				//MarlovitsVornamen.extractVornamen();
+				
+				
+				if (1==0)	{
+				JdbcLink myJdbcLink = JdbcLink.createODBCLink("FromAeskulap");
+				//System.out.println("myJdbcLink: " + myJdbcLink);
+				boolean err = myJdbcLink.connect("postgres", "Knorrli_66_07");
+				System.out.println("err: " + err);
+				String testQueryString = myJdbcLink.queryString("select STATION_NAME from STATION");
+				System.out.println("testQueryString: " + testQueryString);
+				}
+				if (1==0) {
 				JFrame frame = new JFrame("Hello!!");
 				frame.setAlwaysOnTop(true);
 				frame.setLocationByPlatform(true);
 				frame.add(new JLabel("             Textbausteinauswahl              "));
 				frame.pack();
 				frame.setVisible(true);
-
+				}
 //				marloCombo.dbgSet(marloCombo.DBG_TableEvent);
 //				marloCombo.dbgSet(marloCombo.DBG_TextEvent);
 				
-				if (1==1) {
+				if (1==0) {
 				int dayDiff;
 				GregorianCalendar gc1 = new GregorianCalendar( 2005, Calendar.MAY, 21);
 				GregorianCalendar gc2 = new GregorianCalendar( 2009, Calendar.JUNE, 6);
@@ -587,7 +600,7 @@ public class PlzTesting extends ViewPart implements ISaveablePart2 {
 				}
 				
 				// PROGRESS MONITOR ***********************************************
-				if (1==1)	{
+				if (1==0)	{
 				ExecutionEvent eev = new ExecutionEvent();
 				IProgressMonitor monitor = Handler.getMonitor(eev);
 				monitor.beginTask("theName", 100);

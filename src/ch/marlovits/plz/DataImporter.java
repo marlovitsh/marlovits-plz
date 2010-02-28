@@ -1,6 +1,7 @@
 package ch.marlovits.plz;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +9,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.util.List;
 
 import org.geonames.InvalidParameterException;
@@ -389,13 +391,17 @@ public class DataImporter {
 	public static void importTabDelimited(){
 				try {
 			String fileName = "D:\\Dokumente und Einstellungen\\Harry\\Desktop\\DatenFürElexis\\plzs\\CH_Post\\plz_p1_20090325.txt";
-	        FileReader fr = new FileReader(fileName);
-	        BufferedReader br = new BufferedReader(fr);
+	        FileInputStream fis = new FileInputStream(fileName); 
+	        InputStreamReader isr = new InputStreamReader(fis, "ISO-8859-1"); 
+	        BufferedReader br = new BufferedReader(isr);
 	        String delimiter = "	";
 			String line;
 			while ((line = br.readLine()) != null) {
+				String tmp = URLDecoder.decode(line, "ISO-8859-1");
+				byte[] bytes = line.getBytes();
+				
 				String[] fieldsArray = line.split(delimiter);
-				 new PlzEintrag(fieldsArray[PlzInputFields.onrp.			ordinal()],
+				new PlzEintrag(	fieldsArray[PlzInputFields.onrp.			ordinal()],
 								fieldsArray[PlzInputFields.plzTyp.			ordinal()],
 								fieldsArray[PlzInputFields.plz.				ordinal()],
 								fieldsArray[PlzInputFields.zusatzZiffer.	ordinal()],
