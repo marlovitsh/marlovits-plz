@@ -126,9 +126,30 @@ public class PlzEintrag extends PersistentObject {
 						String strasse)		{
 		create(null);
 		set(new String[]{"Onrp", "Plztyp", "Plz", "Zusatzziffer", "Ort18", "Ort27", "Kanton", "Sprachcode", "Sprachcode2", "Sortierfile", "Briefzustellung", "Gemeindenr", "Gueltigab", "Entrylanguage", "Strasse"},
-			new String[]{ onrp,   plzTyp,   plz,   zusatzZiffer,   ort18,   ort27,   kanton,   sprachCode,   sprachCode2,   sortierFile,   briefZustellung,   gemeindeNr,   gueltigAb,   entryLanguage,   strasse});
-	}
-	
+		new String[]{ onrp,   plzTyp,   plz,   zusatzZiffer,   ort18,   ort27,   kanton,   sprachCode,   sprachCode2,   sortierFile,   briefZustellung,   gemeindeNr,   gueltigAb,   entryLanguage,   strasse});
+		}
+
+	public PlzEintrag(	String onrp,
+						String plzTyp,
+						String plz,
+						String zusatzZiffer,
+						String ort18,
+						String ort27,
+						String kanton,
+						String sprachCode,
+						String sprachCode2,
+						String sortierFile,
+						String briefZustellung,
+						String gemeindeNr,
+						String gueltigAb,
+						String entryLanguage,
+						String strasse,
+						String land)		{
+		create(null);
+		set(new String[]{"Onrp", "Plztyp", "Plz", "Zusatzziffer", "Ort18", "Ort27", "Kanton", "Sprachcode", "Sprachcode2", "Sortierfile", "Briefzustellung", "Gemeindenr", "Gueltigab", "Entrylanguage", "Strasse", "Land"},
+		new String[]{ onrp,   plzTyp,   plz,   zusatzZiffer,   ort18,   ort27,   kanton,   sprachCode,   sprachCode2,   sortierFile,   briefZustellung,   gemeindeNr,   gueltigAb,   entryLanguage,   strasse, land});
+		}
+
 	public static PlzEintrag load(String id){
 		if(StringTool.isNothing(id)){
 			return null;
